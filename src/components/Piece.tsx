@@ -86,7 +86,7 @@ function PieceGlyph({ type, stroke }: GlyphProps) {
   );
 }
 
-function glyphFor(type: PieceType, p: React.SVGProps<SVGElement>) {
+function glyphFor(type: PieceType, p: Record<string, unknown>) {
   switch (type) {
     case "commander":
       return (
