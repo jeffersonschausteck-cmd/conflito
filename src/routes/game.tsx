@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Board } from "@/components/Board";
+import { BoardWithPieces } from "@/components/BoardWithPieces";
 import { CyberBackground } from "@/components/CyberBackground";
 
 export const Route = createFileRoute("/game")({
@@ -29,9 +29,9 @@ function GamePage() {
             Operations Board
           </h1>
         </header>
-        <Board />
+        <BoardWithPieces />
         <p className="text-xs text-cyan-200/50">
-          Engine preview. No pieces, no rules — selection only.
+          Pieces deployed. Movement system offline — selection only.
         </p>
       </div>
     </main>
