@@ -4,6 +4,7 @@ import { CyberBackground } from "@/components/CyberBackground";
 import { BoardWithPieces } from "@/components/BoardWithPieces";
 import { FACTIONS, flowState } from "@/services/flowState";
 import { FactionIcon } from "@/components/FactionIcon";
+import { GameStateProvider, useGameState } from "@/hooks/useGameState";
 
 export const Route = createFileRoute("/game")({
   head: () => ({
@@ -98,38 +99,54 @@ function GamePage() {
       </header>
 
       {/* Board */}
-      <section className="relative z-10 flex flex-col items-center justify-center px-4 py-8">
-        <BoardWithPieces />
-      </section>
+      <GameStateProvider>
+        <section className="relative z-10 flex flex-col items-center justify-center px-4 py-8">
+          <BoardWithPieces />
+        </section>
 
-      {/* Bottom panel: selected piece */}
-      <footer className="relative z-10 mx-auto mb-6 mt-2 w-full max-w-3xl px-6">
-        <div
-          className="border border-primary/30 bg-card/50 p-4 backdrop-blur-md"
-          style={{
-            clipPath:
-              "polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)",
-          }}
-        >
-          <div className="flex items-center gap-4">
-            <div className="grid h-14 w-14 place-items-center border border-primary/40 bg-primary/5 font-display text-xl text-primary">
-              ?
+        {/* Bottom panel: selected piece */}
+        <SelectedUnitPanel />
+      </GameStateProvider>
+    </main>
+  );
+}
+
+function SelectedUnitPanel() {
+  const { selectedPiece, state } = useGameState();
+  const label = selectedPiece
+    ? `${selectedPiece.owner.toUpperCase()} · ${selectedPiece.pieceType.toUpperCase()}`
+    : "No unit selected · Tap a piece to inspect";
+  const glyph = selectedPiece ? selectedPiece.pieceType.charAt(0).toUpperCase() : "?";
+
+  return (
+    <footer className="relative z-10 mx-auto mb-6 mt-2 w-full max-w-3xl px-6">
+      <div
+        className="border border-primary/30 bg-card/50 p-4 backdrop-blur-md"
+        style={{
+          clipPath:
+            "polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)",
+        }}
+      >
+        <div className="flex items-center gap-4">
+          <div className="grid h-14 w-14 place-items-center border border-primary/40 bg-primary/5 font-display text-xl text-primary">
+            {glyph}
+          </div>
+          <div className="flex-1">
+            <div className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+              Selected Unit · Active {state.currentPlayer}
             </div>
-            <div className="flex-1">
-              <div className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                Selected Unit
-              </div>
-              <div className="font-display text-sm uppercase tracking-[0.2em] text-foreground/70">
-                No unit selected · Tap a piece to inspect
-              </div>
-            </div>
-            <div className="hidden gap-2 font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground sm:flex">
-              <span className="border border-border/60 px-2 py-1">RANK —</span>
-              <span className="border border-border/60 px-2 py-1">MOVES —</span>
+            <div className="font-display text-sm uppercase tracking-[0.2em] text-foreground/70">
+              {label}
             </div>
           </div>
+          <div className="hidden gap-2 font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground sm:flex">
+            <span className="border border-border/60 px-2 py-1">
+              RANK {selectedPiece ? selectedPiece.rank : "—"}
+            </span>
+            <span className="border border-border/60 px-2 py-1">MOVES —</span>
+          </div>
         </div>
-      </footer>
-    </main>
+      </div>
+    </footer>
   );
 }
