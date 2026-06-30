@@ -1,7 +1,7 @@
 // Global game state model. Serializable so it can be persisted or
 // later mirrored across the network for multiplayer.
 
-import type { Tile } from "@/types/board";
+import type { BoardState } from "@/types/board";
 import type { Piece, PieceId, PlayerOwner } from "@/types/piece";
 
 /** Canonical player identifier used by the game state. */
@@ -25,7 +25,7 @@ export interface GameStateConfig {
  */
 export interface GameState {
   config: GameStateConfig;
-  board: Tile[][];
+  board: BoardState;
   pieces: Piece[];
   selectedPieceId: PieceId | null;
   currentPlayer: Player;
