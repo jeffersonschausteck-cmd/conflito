@@ -6,7 +6,12 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
 
-const SECTIONS = [
+interface Row {
+  label: string;
+  value: number;
+  toggle?: boolean;
+}
+const SECTIONS: Array<{ title: string; rows: Row[] }> = [
   {
     title: "Audio",
     rows: [
