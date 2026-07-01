@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Board } from "@/components/Board";
 import { Piece } from "@/components/Piece";
 import { useGameState } from "@/hooks/useGameState";
@@ -12,26 +13,57 @@ export interface BoardWithPiecesProps {
 /**
  * Composes the Board with a non-invasive piece + movement overlay
  * driven entirely by the global GameState. Board and Piece remain
- * presentation-only; movement rules live in MovementEngine and are
- * accessed through the GameState API — this component never
- * calculates legality itself.
+ * presentation-only; movement rules live in MovementEngine, combat
+ * in CombatEngine — this component only *displays* their results.
  *
  * Layering (top -> bottom):
  *   1. Tile click overlay  (captures clicks on legal destination tiles)
  *   2. Pieces layer        (absolutely positioned, 250ms slide transitions)
- *   3. Highlight layer     (cyan glow on legal tiles)
- *   4. Board               (existing visual + tile grid)
+ *   3. Combat feedback     (flash on the combat tile)
+ *   4. Highlight layer     (cyan glow on legal tiles)
+ *   5. Board               (existing visual + tile grid)
  */
 export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) {
-  const { state, selectedPiece, legalMoves, selectPiece, moveSelectedTo } =
-    useGameState();
+  const {
+    state,
+    selectedPiece,
+    legalMoves,
+    lastCombat,
+    selectPiece,
+    moveSelectedTo,
+    clearLastCombat,
+  } = useGameState();
   const pieces = state.pieces;
   const selectedPieceId = selectedPiece?.id ?? null;
 
   const cellW = 100 / cols;
   const cellH = 100 / rows;
 
+  // Auto-clear combat feedback after the flash animation completes so
+  // the tile does not stay stuck in the animated state.
+  const [combatTick, setCombatTick] = useState<number | null>(null);
+  useEffect(() => {
+    if (!lastCombat) return;
+    setCombatTick(lastCombat.id);
+    const t = window.setTimeout(() => {
+      clearLastCombat();
+      setCombatTick(null);
+    }, 900);
+    return () => window.clearTimeout(t);
+  }, [lastCombat, clearLastCombat]);
+
   const handlePieceClick = (piece: PieceModel) => {
+    // If a piece is selected and the clicked piece sits on a legal
+    // (enemy) destination, treat the click as an attack rather than a
+    // reselection — otherwise the enemy-occupied tile is unreachable.
+    if (
+      selectedPieceId &&
+      piece.id !== selectedPieceId &&
+      legalMoves.has(`${piece.currentRow}-${piece.currentColumn}`)
+    ) {
+      moveSelectedTo(piece.currentRow, piece.currentColumn);
+      return;
+    }
     selectPiece(piece.id === selectedPieceId ? null : piece.id);
   };
 
