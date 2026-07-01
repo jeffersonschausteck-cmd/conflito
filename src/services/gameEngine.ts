@@ -72,8 +72,15 @@ export const GameEngine = {
     if (pieceId !== null) {
       const target = GameEngine.findPieceById(state, pieceId);
       if (!target || !target.isAlive) return state;
+      // Turn ownership: only the active player may select their pieces.
+      if (ownerToPlayer(target.owner) !== state.currentPlayer) return state;
     }
     return { ...state, selectedPieceId: pieceId };
+  },
+
+  /** Toggle currentPlayer. Pure helper. */
+  nextPlayer(player: Player): Player {
+    return player === "BLUE" ? "RED" : "BLUE";
   },
 
   /** BoardBounds derived from the current config — pure helper. */
