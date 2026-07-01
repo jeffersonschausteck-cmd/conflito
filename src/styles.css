@@ -220,3 +220,24 @@
 @utility combat-winner-glow {
   animation: combat-winner-glow 900ms ease-in-out;
 }
+
+@keyframes piece-reveal-pulse {
+  0% {
+    filter: drop-shadow(0 0 0 transparent);
+    transform: scale(1);
+  }
+  40% {
+    filter:
+      drop-shadow(0 0 12px color-mix(in oklab, var(--neon-cyan) 90%, transparent))
+      drop-shadow(0 0 22px color-mix(in oklab, var(--neon-cyan) 55%, transparent));
+    transform: scale(1.08);
+  }
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+    transform: scale(1);
+  }
+}
+
+@utility piece-reveal-pulse {
+  animation: piece-reveal-pulse 500ms ease-out;
+}
