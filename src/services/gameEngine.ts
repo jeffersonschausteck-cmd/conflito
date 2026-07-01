@@ -3,6 +3,7 @@ import { CombatEngine } from "@/services/combatEngine";
 import { InitialSetup } from "@/services/initialSetup";
 import { MovementEngine } from "@/services/movementEngine";
 import { PieceManager } from "@/services/pieceManager";
+import { TurnEngine } from "@/services/turnEngine";
 import {
   ownerToPlayer,
   type GameAction,
@@ -12,6 +13,7 @@ import {
 } from "@/types/gameState";
 import type { BoardBounds, Coord } from "@/types/movement";
 import type { Piece, PieceId } from "@/types/piece";
+
 
 /**
  * GameEngine — pure, framework-agnostic reducer + factories that own
@@ -32,15 +34,21 @@ export const GameEngine = {
 
   createInitialState(config: Partial<GameStateConfig> = {}): GameState {
     const merged: GameStateConfig = { ...GameEngine.defaultConfig(), ...config };
+    const turn = TurnEngine.initial("BLUE");
     return {
       config: merged,
       board: createInitialBoard(merged.rows, merged.cols),
       pieces: InitialSetup.generate({ rows: merged.rows, cols: merged.cols }),
       selectedPieceId: null,
-      currentPlayer: "BLUE",
+      currentPlayer: turn.currentPlayer,
+      turnNumber: turn.turnNumber,
+      actionLocked: turn.actionLocked,
+      gameOver: turn.gameOver,
+      winner: turn.winner,
       lastCombat: null,
     };
   },
+
 
   /** Pure lookup helpers — never mutate. */
   findPieceById(state: GameState, id: PieceId): Piece | null {
@@ -69,6 +77,7 @@ export const GameEngine = {
    * - Movement / turn ownership is NOT enforced yet.
    */
   selectPiece(state: GameState, pieceId: PieceId | null): GameState {
+    if (state.gameOver || state.actionLocked) return state;
     if (pieceId === state.selectedPieceId) return state;
     if (pieceId !== null) {
       const target = GameEngine.findPieceById(state, pieceId);
@@ -95,14 +104,13 @@ export const GameEngine = {
    * rule knowledge lives in the movement layer.
    */
   legalMovesForSelection(state: GameState): Set<string> {
+    if (state.gameOver || state.actionLocked) return new Set();
     const selected = GameEngine.selectedPiece(state);
     if (!selected) return new Set();
     const raw = MovementEngine.getLegalMoves(selected, GameEngine.bounds(state));
     const out = new Set<string>();
     for (const c of raw) {
       const occupant = PieceManager.findAt(state.pieces, c.row, c.column);
-      // Friendly-occupied tiles are illegal; enemy-occupied tiles are
-      // legal and route through CombatEngine at execution time.
       if (occupant && occupant.owner === selected.owner) continue;
       out.add(`${c.row}-${c.column}`);
     }
@@ -110,19 +118,35 @@ export const GameEngine = {
   },
 
   /**
-   * Execute a move for the currently selected piece. Returns the
-   * unchanged state when there is no selection or the target is not
-   * a legal destination — the UI is intentionally forbidden from
-   * making that determination itself.
-   *
-   * If the target tile holds a live enemy piece, resolution is
-   * delegated to CombatEngine and its result is stored on
-   * `state.lastCombat` for UI feedback.
+   * Apply the TurnEngine hand-off after a successful action, and check
+   * for a victory condition. All turn mutation flows through here so
+   * TurnEngine remains the single source of truth for turn flow.
    */
+  finalizeTurn(state: GameState): GameState {
+    const turn = TurnEngine.completeTurn({
+      currentPlayer: state.currentPlayer,
+      turnNumber: state.turnNumber,
+      actionLocked: state.actionLocked,
+      gameOver: state.gameOver,
+      winner: state.winner,
+    });
+    const withTurn: GameState = {
+      ...state,
+      currentPlayer: turn.currentPlayer,
+      turnNumber: turn.turnNumber,
+      actionLocked: turn.actionLocked,
+    };
+    const winner = TurnEngine.checkVictory(withTurn);
+    if (winner) {
+      return { ...withTurn, gameOver: true, winner, selectedPieceId: null };
+    }
+    return withTurn;
+  },
+
   moveSelectedTo(state: GameState, target: Coord): GameState {
+    if (state.gameOver || state.actionLocked) return state;
     const selected = GameEngine.selectedPiece(state);
     if (!selected) return state;
-    // Turn ownership gate — mirrors selectPiece.
     if (ownerToPlayer(selected.owner) !== state.currentPlayer) return state;
     const bounds = GameEngine.bounds(state);
     if (!MovementEngine.isLegalMove(selected, target, bounds)) return state;
@@ -133,12 +157,10 @@ export const GameEngine = {
       target,
     );
 
-    // Friendly occupancy is rejected up-front (mirrors legalMovesForSelection).
     const occupant = PieceManager.findAt(state.pieces, target.row, target.column);
     if (occupant && occupant.owner === selected.owner) return state;
 
-    const nextPlayer = GameEngine.nextPlayer(state.currentPlayer);
-
+    let next: GameState;
     if (defender) {
       const { pieces, result } = CombatEngine.resolve({
         pieces: state.pieces,
@@ -146,27 +168,18 @@ export const GameEngine = {
         defenderId: defender.id,
         tile: target,
       });
-      return {
-        ...state,
-        pieces,
-        selectedPieceId: null,
-        lastCombat: result,
-        currentPlayer: nextPlayer,
-      };
+      next = { ...state, pieces, selectedPieceId: null, lastCombat: result };
+    } else {
+      const { pieces } = MovementEngine.execute(
+        state.pieces,
+        selected.id,
+        target,
+        bounds,
+      );
+      next = { ...state, pieces, selectedPieceId: null };
     }
 
-    const { pieces } = MovementEngine.execute(
-      state.pieces,
-      selected.id,
-      target,
-      bounds,
-    );
-    return {
-      ...state,
-      pieces,
-      selectedPieceId: null,
-      currentPlayer: nextPlayer,
-    };
+    return GameEngine.finalizeTurn(next);
   },
 
   reduce(state: GameState, action: GameAction): GameState {
@@ -178,6 +191,9 @@ export const GameEngine = {
           row: action.row,
           column: action.column,
         });
+      case "END_TURN":
+        if (state.gameOver) return state;
+        return GameEngine.finalizeTurn({ ...state, selectedPieceId: null });
       case "CLEAR_LAST_COMBAT":
         return state.lastCombat ? { ...state, lastCombat: null } : state;
       case "RESET":
@@ -187,5 +203,6 @@ export const GameEngine = {
     }
   },
 };
+
 
 export type { Player };
