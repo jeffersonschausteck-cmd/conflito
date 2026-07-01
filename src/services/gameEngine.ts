@@ -38,7 +38,17 @@ export const GameEngine = {
     return {
       config: merged,
       board: createInitialBoard(merged.rows, merged.cols),
-      pieces: InitialSetup.generate({ rows: merged.rows, cols: merged.cols }),
+      pieces: (() => {
+        if (typeof window !== "undefined") {
+          try {
+            const saved = window.sessionStorage.getItem("psc:initial-pieces");
+            if (saved) return JSON.parse(saved);
+          } catch (e) {
+            console.error("Failed to load initial pieces from sessionStorage", e);
+          }
+        }
+        return InitialSetup.generate({ rows: merged.rows, cols: merged.cols });
+      })(),
       selectedPieceId: null,
       currentPlayer: turn.currentPlayer,
       turnNumber: turn.turnNumber,

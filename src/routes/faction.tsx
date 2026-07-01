@@ -19,6 +19,9 @@ function FactionSelectPage() {
   const confirm = () => {
     if (!selected) return;
     flowState.write({ faction: selected });
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem("psc:initial-pieces");
+    }
     navigate({ to: "/loading" });
   };
 

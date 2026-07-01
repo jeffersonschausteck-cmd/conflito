@@ -35,6 +35,15 @@
   --color-neon-cyan: var(--neon-cyan);
   --color-neon-magenta: var(--neon-magenta);
 
+  --color-game-bg: #08111F;
+  --color-game-panel: #111827;
+  --color-game-border: #1F2937;
+  --color-game-blue: #00D4FF;
+  --color-game-red: #FF4B5C;
+  --color-game-green: #2CEAA3;
+  --color-game-yellow: #FFC857;
+  --color-game-text: #F3F4F6;
+
   --font-display: "Orbitron", "Inter", sans-serif;
   --font-sans: "Rajdhani", "Inter", sans-serif;
 

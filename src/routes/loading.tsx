@@ -31,7 +31,7 @@ function LoadingPage() {
       setProgress(pct);
       if (pct >= 100) {
         clearInterval(tick);
-        setTimeout(() => navigate({ to: "/game" }), 300);
+        setTimeout(() => navigate({ to: "/deployment" }), 300);
       }
     }, 60);
     return () => clearInterval(tick);
