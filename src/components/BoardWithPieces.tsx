@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Board } from "@/components/Board";
 import { Piece } from "@/components/Piece";
 import { useGameState } from "@/hooks/useGameState";
+import { useRevealLog } from "@/hooks/useRevealLog";
+import { FogOfWarEngine, LOCAL_VIEWER } from "@/services/fogOfWarEngine";
 import { GameEngine } from "@/services/gameEngine";
 import type { Piece as PieceModel } from "@/types/piece";
 
@@ -35,6 +37,7 @@ export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) 
   } = useGameState();
   const pieces = state.pieces;
   const selectedPieceId = selectedPiece?.id ?? null;
+  const { justRevealed } = useRevealLog();
 
   const cellW = 100 / cols;
   const cellH = 100 / rows;
@@ -123,12 +126,15 @@ export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) 
                   lastCombat &&
                   combatTick === lastCombat.id &&
                   lastCombat.survivorId === piece.id;
+                const isRevealPulse = justRevealed.has(piece.id);
                 const fxClass = [
                   isCombatTile ? "combat-shake" : "",
                   isWinner ? "combat-winner-glow" : "",
+                  isRevealPulse ? "piece-reveal-pulse" : "",
                 ]
                   .filter(Boolean)
                   .join(" ");
+                const hidden = FogOfWarEngine.isHiddenFrom(piece, LOCAL_VIEWER);
                 return (
                   <div
                     key={piece.id}
@@ -146,6 +152,7 @@ export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) 
                     <Piece
                       piece={piece}
                       selected={piece.id === selectedPieceId}
+                      hidden={hidden}
                       onClick={handlePieceClick}
                     />
                   </div>

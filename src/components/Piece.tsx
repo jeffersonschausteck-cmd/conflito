@@ -5,14 +5,18 @@ import type { Piece as PieceModel, PieceType } from "@/types/piece";
 export interface PieceProps {
   piece: PieceModel;
   selected?: boolean;
+  /** Fog-of-war: when true, render a generic "unknown unit" glyph. */
+  hidden?: boolean;
   onClick?: (piece: PieceModel) => void;
 }
 
 /**
  * Pure presentational piece. Uses minimalist inline SVG glyphs — no
  * raster assets. The glyph is chosen by pieceType; color by owner.
+ * When `hidden` is true the true glyph is replaced by a generic
+ * silhouette (fog of war) — color + position remain visible.
  */
-function PieceBase({ piece, selected = false, onClick }: PieceProps) {
+function PieceBase({ piece, selected = false, hidden = false, onClick }: PieceProps) {
   if (!piece.isAlive) return null;
 
   const isBlue = piece.owner === "blue";
@@ -21,10 +25,14 @@ function PieceBase({ piece, selected = false, onClick }: PieceProps) {
     ? "shadow-[0_0_18px_-2px_rgba(34,211,238,0.85)]"
     : "shadow-[0_0_18px_-2px_rgba(244,63,94,0.85)]";
 
+  const label = hidden
+    ? `${piece.owner} unknown unit`
+    : `${piece.owner} ${piece.pieceType}`;
+
   return (
     <button
       type="button"
-      aria-label={`${piece.owner} ${piece.pieceType}`}
+      aria-label={label}
       aria-pressed={selected}
       onClick={(e) => {
         e.stopPropagation();
@@ -53,8 +61,31 @@ function PieceBase({ piece, selected = false, onClick }: PieceProps) {
           )}
         />
       )}
-      <PieceGlyph type={piece.pieceType} stroke={stroke} />
+      {hidden ? (
+        <UnknownGlyph stroke={stroke} />
+      ) : (
+        <PieceGlyph type={piece.pieceType} stroke={stroke} />
+      )}
     </button>
+  );
+}
+
+/** Generic silhouette shown for fog-of-war-hidden enemy pieces. */
+function UnknownGlyph({ stroke }: { stroke: string }) {
+  const p = {
+    fill: "none",
+    stroke,
+    strokeWidth: 1.6,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+  return (
+    <svg viewBox="0 0 24 24" className="h-[70%] w-[70%]" aria-hidden>
+      {/* Hex silhouette + centered question mark = "unknown unit". */}
+      <polygon points="12,3 20,7.5 20,16.5 12,21 4,16.5 4,7.5" {...p} />
+      <path d="M9.5 10 A2.5 2.5 0 1 1 12 12.5 V14" {...p} />
+      <circle cx="12" cy="16.5" r="0.6" fill={stroke} stroke="none" />
+    </svg>
   );
 }
 

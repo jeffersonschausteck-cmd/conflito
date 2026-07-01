@@ -100,7 +100,7 @@ export const InitialSetup = {
             column: c,
             index: nextIndex("blue", spec.type),
             canMove: spec.canMove ?? true,
-            isRevealed: true, // local player's own pieces
+            isRevealed: false, // fog of war — owner visibility resolved by FogOfWarEngine
           }),
         );
 

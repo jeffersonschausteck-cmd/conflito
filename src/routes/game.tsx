@@ -5,6 +5,7 @@ import { BoardWithPieces } from "@/components/BoardWithPieces";
 import { FACTIONS, flowState } from "@/services/flowState";
 import { FactionIcon } from "@/components/FactionIcon";
 import { GameStateProvider, useGameState } from "@/hooks/useGameState";
+import { RevealLogProvider, useRevealLog } from "@/hooks/useRevealLog";
 
 export const Route = createFileRoute("/game")({
   head: () => ({
@@ -100,12 +101,17 @@ function GamePage() {
 
       {/* Board */}
       <GameStateProvider>
-        <section className="relative z-10 flex flex-col items-center justify-center px-4 py-8">
-          <BoardWithPieces />
-        </section>
+        <RevealLogProvider>
+          <section className="relative z-10 grid grid-cols-1 gap-6 px-4 py-8 lg:grid-cols-[1fr_320px] lg:px-8">
+            <div className="flex flex-col items-center justify-center">
+              <BoardWithPieces />
+            </div>
+            <RevealLogPanel />
+          </section>
 
-        {/* Bottom panel: selected piece */}
-        <SelectedUnitPanel />
+          {/* Bottom panel: selected piece */}
+          <SelectedUnitPanel />
+        </RevealLogProvider>
       </GameStateProvider>
     </main>
   );
@@ -148,5 +154,62 @@ function SelectedUnitPanel() {
         </div>
       </div>
     </footer>
+  );
+}
+
+function RevealLogPanel() {
+  const { log } = useRevealLog();
+
+  return (
+    <aside
+      className="border border-primary/25 bg-card/40 p-4 backdrop-blur-md lg:sticky lg:top-24 lg:self-start"
+      style={{
+        clipPath:
+          "polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)",
+      }}
+    >
+      <div className="mb-3 flex items-center justify-between">
+        <div className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+          Intel · Reveal Log
+        </div>
+        <span className="font-display text-[10px] tabular-nums text-primary/70">
+          {String(log.length).padStart(2, "0")}
+        </span>
+      </div>
+
+      {log.length === 0 ? (
+        <div className="rounded border border-dashed border-border/50 p-3 font-display text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+          No enemy units identified.
+        </div>
+      ) : (
+        <ul className="space-y-1.5">
+          {log.map((entry) => {
+            const isBlue = entry.owner === "blue";
+            const color = isBlue ? "text-cyan-300" : "text-rose-300";
+            const dot = isBlue ? "bg-cyan-400" : "bg-rose-400";
+            return (
+              <li
+                key={entry.id}
+                className="flex items-center gap-2 border border-border/40 bg-background/40 px-2.5 py-1.5"
+              >
+                <span
+                  aria-hidden
+                  className={`inline-block h-2 w-2 rounded-full ${dot} shadow-[0_0_8px_currentColor]`}
+                />
+                <span className={`font-display text-[11px] uppercase tracking-[0.18em] ${color}`}>
+                  {entry.owner === "blue" ? "Blue" : "Red"} unit revealed:
+                </span>
+                <span className="font-display text-[11px] uppercase tracking-[0.18em] text-foreground">
+                  {entry.pieceType}
+                </span>
+                <span className="ml-auto font-display text-[10px] text-muted-foreground">
+                  R{entry.rank}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </aside>
   );
 }
