@@ -37,6 +37,7 @@ export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) 
   } = useGameState();
   const pieces = state.pieces;
   const selectedPieceId = selectedPiece?.id ?? null;
+  const { justRevealed } = useRevealLog();
 
   const cellW = 100 / cols;
   const cellH = 100 / rows;
