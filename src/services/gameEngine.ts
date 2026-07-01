@@ -3,11 +3,12 @@ import { CombatEngine } from "@/services/combatEngine";
 import { InitialSetup } from "@/services/initialSetup";
 import { MovementEngine } from "@/services/movementEngine";
 import { PieceManager } from "@/services/pieceManager";
-import type {
-  GameAction,
-  GameState,
-  GameStateConfig,
-  Player,
+import {
+  ownerToPlayer,
+  type GameAction,
+  type GameState,
+  type GameStateConfig,
+  type Player,
 } from "@/types/gameState";
 import type { BoardBounds, Coord } from "@/types/movement";
 import type { Piece, PieceId } from "@/types/piece";
@@ -72,8 +73,15 @@ export const GameEngine = {
     if (pieceId !== null) {
       const target = GameEngine.findPieceById(state, pieceId);
       if (!target || !target.isAlive) return state;
+      // Turn ownership: only the active player may select their pieces.
+      if (ownerToPlayer(target.owner) !== state.currentPlayer) return state;
     }
     return { ...state, selectedPieceId: pieceId };
+  },
+
+  /** Toggle currentPlayer. Pure helper. */
+  nextPlayer(player: Player): Player {
+    return player === "BLUE" ? "RED" : "BLUE";
   },
 
   /** BoardBounds derived from the current config — pure helper. */
@@ -114,6 +122,8 @@ export const GameEngine = {
   moveSelectedTo(state: GameState, target: Coord): GameState {
     const selected = GameEngine.selectedPiece(state);
     if (!selected) return state;
+    // Turn ownership gate — mirrors selectPiece.
+    if (ownerToPlayer(selected.owner) !== state.currentPlayer) return state;
     const bounds = GameEngine.bounds(state);
     if (!MovementEngine.isLegalMove(selected, target, bounds)) return state;
 
@@ -127,6 +137,8 @@ export const GameEngine = {
     const occupant = PieceManager.findAt(state.pieces, target.row, target.column);
     if (occupant && occupant.owner === selected.owner) return state;
 
+    const nextPlayer = GameEngine.nextPlayer(state.currentPlayer);
+
     if (defender) {
       const { pieces, result } = CombatEngine.resolve({
         pieces: state.pieces,
@@ -139,6 +151,7 @@ export const GameEngine = {
         pieces,
         selectedPieceId: null,
         lastCombat: result,
+        currentPlayer: nextPlayer,
       };
     }
 
@@ -148,7 +161,12 @@ export const GameEngine = {
       target,
       bounds,
     );
-    return { ...state, pieces, selectedPieceId: null };
+    return {
+      ...state,
+      pieces,
+      selectedPieceId: null,
+      currentPlayer: nextPlayer,
+    };
   },
 
   reduce(state: GameState, action: GameAction): GameState {
