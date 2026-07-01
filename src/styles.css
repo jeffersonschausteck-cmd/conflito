@@ -241,3 +241,32 @@
 @utility piece-reveal-pulse {
   animation: piece-reveal-pulse 500ms ease-out;
 }
+
+@keyframes turn-banner-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px) scaleX(0.9);
+    letter-spacing: 0.6em;
+  }
+  60% {
+    opacity: 1;
+    letter-spacing: 0.4em;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scaleX(1);
+    letter-spacing: 0.4em;
+  }
+}
+
+.turn-banner {
+  animation: turn-banner-in 380ms ease-out both;
+  clip-path: polygon(
+    10px 0,
+    100% 0,
+    100% calc(100% - 10px),
+    calc(100% - 10px) 100%,
+    0 100%,
+    0 10px
+  );
+}
