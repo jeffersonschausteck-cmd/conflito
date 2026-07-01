@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ScreenShell } from "@/components/ScreenShell";
+import { GamePanel } from "@/components/ui/GamePanel";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — Shadow Command" }] }),
@@ -11,13 +12,14 @@ interface Row {
   value: number;
   toggle?: boolean;
 }
+
 const SECTIONS: Array<{ title: string; rows: Row[] }> = [
   {
     title: "Audio",
     rows: [
       { label: "Master Volume", value: 80 },
-      { label: "Music", value: 60 },
-      { label: "SFX", value: 80 },
+      { label: "Music",         value: 60 },
+      { label: "SFX",           value: 80 },
     ],
   },
   {
@@ -40,18 +42,13 @@ function SettingsPage() {
     >
       <div className="mx-auto grid max-w-2xl gap-6 text-left">
         {SECTIONS.map((s) => (
-          <div
+          <GamePanel
             key={s.title}
-            className="border border-primary/30 bg-card/40 p-6"
-            style={{
-              clipPath:
-                "polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)",
-            }}
+            variant="blue"
+            eyebrow="// CONFIG"
+            title={s.title}
           >
-            <h3 className="font-display text-xs uppercase tracking-[0.4em] text-primary">
-              {s.title}
-            </h3>
-            <div className="mt-4 space-y-4">
+            <div className="space-y-4">
               {s.rows.map((r) => (
                 <div
                   key={r.label}
@@ -78,7 +75,7 @@ function SettingsPage() {
                 </div>
               ))}
             </div>
-          </div>
+          </GamePanel>
         ))}
       </div>
     </ScreenShell>

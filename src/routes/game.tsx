@@ -7,6 +7,12 @@ import { FactionIcon } from "@/components/FactionIcon";
 import { GameStateProvider, useGameState } from "@/hooks/useGameState";
 import { RevealLogProvider, useRevealLog } from "@/hooks/useRevealLog";
 import { useAITurn } from "@/hooks/useAITurn";
+import { GameButton } from "@/components/ui/GameButton";
+import { GamePanel } from "@/components/ui/GamePanel";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { Modal } from "@/components/ui/Modal";
+import { GameTooltip } from "@/components/ui/GameTooltip";
+import { theme } from "@/design/theme";
 
 export const Route = createFileRoute("/game")({
   head: () => ({
@@ -20,6 +26,8 @@ export const Route = createFileRoute("/game")({
   }),
   component: GamePage,
 });
+
+// ─── GamePage ────────────────────────────────────────────────────────────────
 
 function GamePage() {
   const [seconds, setSeconds] = useState(45);
@@ -47,8 +55,9 @@ function GamePage() {
     <main className="relative min-h-screen w-full overflow-hidden bg-background text-foreground">
       <CyberBackground />
 
-      {/* HUD top */}
+      {/* ── HUD Top ──────────────────────────────────────────────────────── */}
       <header className="relative z-10 flex items-center justify-between border-b border-primary/20 bg-background/40 px-6 py-3 backdrop-blur-md sm:px-10">
+        {/* Operator info */}
         <div className="flex items-center gap-3" style={{ color: faction.color }}>
           <FactionIcon faction={faction.id} color={faction.color} size={28} />
           <div>
@@ -61,6 +70,7 @@ function GamePage() {
           </div>
         </div>
 
+        {/* Turn / Phase / Timer */}
         <div className="flex items-center gap-6 text-center">
           <div>
             <div className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
@@ -75,9 +85,7 @@ function GamePage() {
             <div className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
               Phase
             </div>
-            <div className="font-display text-lg font-bold text-foreground">
-              YOURS
-            </div>
+            <StatusBadge color="blue" label="YOURS" />
           </div>
           <div className="h-8 w-px bg-primary/20" />
           <div>
@@ -90,17 +98,15 @@ function GamePage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Link
-            to="/result"
-            className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground transition-colors hover:text-destructive"
-          >
-            ⛔ Surrender
+        {/* Surrender link */}
+        <GameTooltip content="Forfeit current match" position="bottom">
+          <Link to="/result">
+            <GameButton variant="danger" size="sm">⛔ Surrender</GameButton>
           </Link>
-        </div>
+        </GameTooltip>
       </header>
 
-      {/* Board */}
+      {/* ── Board + Sidebar ──────────────────────────────────────────────── */}
       <GameStateProvider>
         <RevealLogProvider>
           <TurnBanner />
@@ -112,7 +118,6 @@ function GamePage() {
             <RevealLogPanel />
           </section>
 
-          {/* Bottom panel: selected piece */}
           <SelectedUnitPanel />
           <GameOverOverlay />
         </RevealLogProvider>
@@ -121,85 +126,92 @@ function GamePage() {
   );
 }
 
+// ─── TurnBanner ──────────────────────────────────────────────────────────────
+
 function TurnBanner() {
   const { state } = useGameState();
   const isBlue = state.currentPlayer === "BLUE";
-  const color = isBlue ? "cyan" : "rose";
-  // Re-key on turnNumber to retrigger the transition animation.
+
   return (
     <div className="relative z-10 flex justify-center pt-4">
-      <div
-        key={state.turnNumber}
-        className={`turn-banner border px-6 py-1.5 font-display text-xs uppercase tracking-[0.4em] backdrop-blur-md ${
-          isBlue
-            ? "border-cyan-400/50 bg-cyan-500/10 text-cyan-300 shadow-[0_0_24px_rgba(34,211,238,0.25)]"
-            : "border-rose-400/50 bg-rose-500/10 text-rose-300 shadow-[0_0_24px_rgba(244,63,94,0.25)]"
-        }`}
-      >
-        <span className={`mr-2 inline-block h-1.5 w-1.5 rounded-full bg-${color}-400 shadow-[0_0_8px_currentColor]`} />
-        {state.currentPlayer} TURN · #{String(state.turnNumber).padStart(2, "0")}
+      <div key={state.turnNumber} className="turn-banner backdrop-blur-md">
+        <StatusBadge
+          color={isBlue ? "blue" : "red"}
+          label={`${state.currentPlayer} TURN · #${String(state.turnNumber).padStart(2, "00")}`}
+          icon={
+            <span
+              className="inline-block h-1.5 w-1.5 rounded-full animate-pulse"
+              style={{
+                background: isBlue ? theme.colors.primaryBlue : theme.colors.primaryRed,
+                boxShadow: `0 0 8px currentColor`,
+              }}
+            />
+          }
+        />
       </div>
     </div>
   );
 }
+
+// ─── GameOverOverlay ─────────────────────────────────────────────────────────
 
 function GameOverOverlay() {
   const { state, reset } = useGameState();
   if (!state.gameOver || !state.winner) return null;
   const isBlue = state.winner === "BLUE";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md">
-      <div
-        className={`border p-8 text-center ${
-          isBlue
-            ? "border-cyan-400/60 shadow-[0_0_60px_rgba(34,211,238,0.35)]"
-            : "border-rose-400/60 shadow-[0_0_60px_rgba(244,63,94,0.35)]"
-        }`}
-        style={{
-          clipPath:
-            "polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)",
-        }}
-      >
-        <div className="font-display text-[11px] uppercase tracking-[0.4em] text-muted-foreground">
-          Operation Concluded
-        </div>
+    <Modal
+      isOpen={state.gameOver && !!state.winner}
+      onClose={reset}
+      title="Operation Concluded"
+      footer={
+        <GameButton variant="primary" size="md" onClick={reset}>
+          New Engagement
+        </GameButton>
+      }
+    >
+      <div className="text-center py-4">
+        <StatusBadge
+          color={isBlue ? "blue" : "red"}
+          label={`${state.winner} VICTORY`}
+          className="mx-auto mb-4"
+        />
         <div
-          className={`mt-3 font-display text-4xl font-bold uppercase tracking-[0.25em] ${
-            isBlue ? "text-cyan-300" : "text-rose-300"
-          }`}
+          className="font-display text-4xl font-bold uppercase tracking-[0.25em]"
+          style={{
+            color: isBlue ? theme.colors.primaryBlue : theme.colors.primaryRed,
+            textShadow: `0 0 30px ${isBlue ? theme.colors.primaryBlue : theme.colors.primaryRed}`,
+          }}
         >
           {state.winner} VICTORY
         </div>
-        <button
-          onClick={reset}
-          className="mt-6 border border-primary/50 bg-primary/10 px-6 py-2 font-display text-xs uppercase tracking-[0.3em] text-primary transition hover:bg-primary/20"
-        >
-          New Engagement
-        </button>
       </div>
-    </div>
+    </Modal>
   );
 }
 
+// ─── AIThinkingBanner ────────────────────────────────────────────────────────
 
 function AIThinkingBanner() {
   const { thinking, aiPlayer } = useAITurn();
+
   return (
-    <div className="mb-4 h-6">
-      {thinking ? (
-        <div className="flex items-center gap-2 border border-rose-400/40 bg-rose-500/10 px-3 py-1 font-display text-[10px] uppercase tracking-[0.3em] text-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.25)]">
-          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-rose-400 shadow-[0_0_8px_currentColor]" />
-          {aiPlayer} · AI thinking
-          <span className="inline-flex gap-0.5">
-            <span className="animate-pulse [animation-delay:0ms]">.</span>
-            <span className="animate-pulse [animation-delay:150ms]">.</span>
-            <span className="animate-pulse [animation-delay:300ms]">.</span>
-          </span>
-        </div>
-      ) : null}
+    <div className="mb-4 h-8 flex items-center justify-center">
+      {thinking && (
+        <StatusBadge
+          color="red"
+          label={`${aiPlayer} · AI thinking`}
+          icon={
+            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
+          }
+        />
+      )}
     </div>
   );
 }
+
+// ─── SelectedUnitPanel ───────────────────────────────────────────────────────
 
 function SelectedUnitPanel() {
   const { selectedPiece, state } = useGameState();
@@ -210,55 +222,57 @@ function SelectedUnitPanel() {
 
   return (
     <footer className="relative z-10 mx-auto mb-6 mt-2 w-full max-w-3xl px-6">
-      <div
-        className="border border-primary/30 bg-card/50 p-4 backdrop-blur-md"
-        style={{
-          clipPath:
-            "polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)",
-        }}
+      <GamePanel
+        variant={selectedPiece ? "blue" : "default"}
+        glow={!!selectedPiece}
       >
         <div className="flex items-center gap-4">
-          <div className="grid h-14 w-14 place-items-center border border-primary/40 bg-primary/5 font-display text-xl text-primary">
+          {/* Piece glyph */}
+          <div className="grid h-14 w-14 place-items-center border border-primary/40 bg-primary/5 font-display text-xl text-primary shrink-0">
             {glyph}
           </div>
-          <div className="flex-1">
+
+          {/* Info */}
+          <div className="flex-1 min-w-0">
             <div className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
               Selected Unit · Active {state.currentPlayer}
             </div>
-            <div className="font-display text-sm uppercase tracking-[0.2em] text-foreground/70">
+            <div className="font-display text-sm uppercase tracking-[0.2em] text-foreground/70 truncate">
               {label}
             </div>
           </div>
-          <div className="hidden gap-2 font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground sm:flex">
-            <span className="border border-border/60 px-2 py-1">
-              RANK {selectedPiece ? selectedPiece.rank : "—"}
-            </span>
-            <span className="border border-border/60 px-2 py-1">MOVES —</span>
+
+          {/* Rank / Moves badges */}
+          <div className="hidden gap-2 sm:flex">
+            <StatusBadge
+              color="blue"
+              label={`Rank ${selectedPiece ? selectedPiece.rank : "—"}`}
+            />
+            <StatusBadge color="yellow" label="Moves —" />
           </div>
         </div>
-      </div>
+      </GamePanel>
     </footer>
   );
 }
+
+// ─── RevealLogPanel ──────────────────────────────────────────────────────────
 
 function RevealLogPanel() {
   const { log } = useRevealLog();
 
   return (
-    <aside
-      className="border border-primary/25 bg-card/40 p-4 backdrop-blur-md lg:sticky lg:top-24 lg:self-start"
-      style={{
-        clipPath:
-          "polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)",
-      }}
+    <GamePanel
+      variant="default"
+      eyebrow="Intel"
+      title="Reveal Log"
+      className="lg:sticky lg:top-24 lg:self-start"
     >
-      <div className="mb-3 flex items-center justify-between">
-        <div className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-          Intel · Reveal Log
-        </div>
-        <span className="font-display text-[10px] tabular-nums text-primary/70">
-          {String(log.length).padStart(2, "0")}
-        </span>
+      <div className="mb-2 flex justify-end">
+        <StatusBadge
+          color="blue"
+          label={String(log.length).padStart(2, "0")}
+        />
       </div>
 
       {log.length === 0 ? (
@@ -269,8 +283,6 @@ function RevealLogPanel() {
         <ul className="space-y-1.5">
           {log.map((entry) => {
             const isBlue = entry.owner === "blue";
-            const color = isBlue ? "text-cyan-300" : "text-rose-300";
-            const dot = isBlue ? "bg-cyan-400" : "bg-rose-400";
             return (
               <li
                 key={entry.id}
@@ -278,15 +290,20 @@ function RevealLogPanel() {
               >
                 <span
                   aria-hidden
-                  className={`inline-block h-2 w-2 rounded-full ${dot} shadow-[0_0_8px_currentColor]`}
+                  className="inline-block h-2 w-2 rounded-full shrink-0"
+                  style={{
+                    background: isBlue ? theme.colors.primaryBlue : theme.colors.primaryRed,
+                    boxShadow: `0 0 6px currentColor`,
+                  }}
                 />
-                <span className={`font-display text-[11px] uppercase tracking-[0.18em] ${color}`}>
-                  {entry.owner === "blue" ? "Blue" : "Red"} unit revealed:
-                </span>
+                <StatusBadge
+                  color={isBlue ? "blue" : "red"}
+                  label={`${isBlue ? "Blue" : "Red"} revealed:`}
+                />
                 <span className="font-display text-[11px] uppercase tracking-[0.18em] text-foreground">
                   {entry.pieceType}
                 </span>
-                <span className="ml-auto font-display text-[10px] text-muted-foreground">
+                <span className="ml-auto font-display text-[10px] text-muted-foreground shrink-0">
                   R{entry.rank}
                 </span>
               </li>
@@ -294,6 +311,6 @@ function RevealLogPanel() {
           })}
         </ul>
       )}
-    </aside>
+    </GamePanel>
   );
 }

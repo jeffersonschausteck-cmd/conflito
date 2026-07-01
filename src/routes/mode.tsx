@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ScreenShell } from "@/components/ScreenShell";
-import { CyberButton } from "@/components/CyberButton";
+import { GameButton } from "@/components/ui/GameButton";
+import { GameCard } from "@/components/ui/GameCard";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { flowState, type GameMode } from "@/services/flowState";
 
 export const Route = createFileRoute("/mode")({
@@ -55,44 +57,43 @@ function ModeSelectPage() {
     >
       <div className="grid gap-6 sm:grid-cols-2">
         {MODES.map((m) => (
-          <button
+          <GameCard
             key={m.id}
-            type="button"
-            disabled={m.disabled}
+            state={m.disabled ? "disabled" : "default"}
+            hoverable={!m.disabled}
             onClick={() => onSelect(m)}
-            className={`group relative overflow-hidden border p-8 text-left transition-all duration-300 ${
-              m.disabled
-                ? "cursor-not-allowed border-border/40 bg-card/20 opacity-50"
-                : "border-primary/40 bg-card/40 hover:-translate-y-1 hover:border-primary hover:bg-primary/5 hover:shadow-[0_0_40px_-10px_var(--primary)]"
-            }`}
-            style={{
-              clipPath:
-                "polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)",
-            }}
+            style={{ cursor: m.disabled ? "not-allowed" : "pointer", textAlign: "left" }}
           >
-            <div className="font-display text-[10px] uppercase tracking-[0.4em] text-primary/80">
-              {m.tagline}
+            <div className="p-2">
+              <div className="flex items-center justify-between mb-3">
+                <div className="font-display text-[10px] uppercase tracking-[0.4em] text-primary/80">
+                  {m.tagline}
+                </div>
+                {m.disabled && (
+                  <StatusBadge color="red" label="Locked" />
+                )}
+              </div>
+              <h3 className="font-display text-2xl font-bold uppercase tracking-[0.1em] text-foreground">
+                {m.name}
+              </h3>
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                {m.description}
+              </p>
+              <div className="mt-6 font-display text-[10px] uppercase tracking-[0.3em]">
+                {m.disabled ? (
+                  <span className="text-destructive/70">⛔ Locked</span>
+                ) : (
+                  <StatusBadge color="green" label="▶ Select" />
+                )}
+              </div>
             </div>
-            <h3 className="mt-3 font-display text-2xl font-bold uppercase tracking-[0.1em] text-foreground">
-              {m.name}
-            </h3>
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              {m.description}
-            </p>
-            <div className="mt-6 font-display text-[10px] uppercase tracking-[0.3em]">
-              {m.disabled ? (
-                <span className="text-destructive/70">⛔ Locked</span>
-              ) : (
-                <span className="text-primary">▶ Select →</span>
-              )}
-            </div>
-          </button>
+          </GameCard>
         ))}
       </div>
 
       <div className="mt-12 flex justify-center">
         <Link to="/">
-          <CyberButton variant="ghost">Cancel</CyberButton>
+          <GameButton variant="ghost" size="md">Cancel</GameButton>
         </Link>
       </div>
     </ScreenShell>

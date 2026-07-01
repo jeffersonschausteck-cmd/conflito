@@ -1,9 +1,16 @@
+// ── Game-specific UI components ──────────────────────────────────────────────
 export * from "./GameButton";
-export * from "./GamePanel";
 export * from "./GameCard";
+export * from "./GamePanel";
+export * from "./Modal";
+export * from "./GameTooltip";   // custom futuristic tooltip
+export * from "./StatusBadge";
+
+// ── Extended game UI panels / decorators ─────────────────────────────────────
 export * from "./PieceCard";
 export * from "./GlowBorder";
-export * from "./StatusBadge";
-export * from "./GameTooltip";
-export * from "./Modal";
 export * from "./HUDPanel";
+
+// NOTE: tooltip.tsx (shadcn/Radix) is NOT re-exported here because it conflicts
+// with the game design system TooltipProps shape. Import it directly via:
+// import { Tooltip, TooltipContent, ... } from "@/components/ui/tooltip"

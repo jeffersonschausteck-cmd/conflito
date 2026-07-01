@@ -1,3 +1,4 @@
+import { PieceFrame } from "@/components/game";
 import { memo } from "react";
 import { cn } from "@/lib/utils";
 import type { Piece as PieceModel, PieceType } from "@/types/piece";
@@ -48,8 +49,8 @@ function PieceBase({ piece, selected = false, hidden = false, onClick }: PiecePr
         "hover:scale-[1.06]",
         selected && `scale-[1.05] ${glow}`,
         selected &&
-          (isBlue ? "border-cyan-200" : "border-rose-200") +
-            " bg-cyan-400/10",
+        (isBlue ? "border-cyan-200" : "border-rose-200") +
+        " bg-cyan-400/10",
       )}
     >
       {selected && (
@@ -61,11 +62,19 @@ function PieceBase({ piece, selected = false, hidden = false, onClick }: PiecePr
           )}
         />
       )}
-      {hidden ? (
-        <UnknownGlyph stroke={stroke} />
-      ) : (
-        <PieceGlyph type={piece.pieceType} stroke={stroke} />
-      )}
+      <PieceFrame
+        selected={selected}
+        isBlue={isBlue}
+      >
+        {hidden ? (
+          <UnknownGlyph stroke={stroke} />
+        ) : (
+          <PieceGlyph
+            type={piece.pieceType}
+            stroke={stroke}
+          />
+        )}
+      </PieceFrame>
     </button>
   );
 }

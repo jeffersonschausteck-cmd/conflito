@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ScreenShell } from "@/components/ScreenShell";
-import { CyberButton } from "@/components/CyberButton";
+import { GameButton } from "@/components/ui/GameButton";
+import { GamePanel } from "@/components/ui/GamePanel";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { GameCard } from "@/components/ui/GameCard";
 
 type Outcome = "victory" | "defeat";
 
@@ -13,50 +16,53 @@ export const Route = createFileRoute("/result")({
 });
 
 function ResultPage() {
-  const navigate = useNavigate();
   const [outcome, setOutcome] = useState<Outcome>("victory");
   const isWin = outcome === "victory";
 
   const stats = [
-    { label: "Turns", value: "24" },
+    { label: "Turns",     value: "24" },
     { label: "Units Lost", value: "07" },
-    { label: "Captures", value: "12" },
-    { label: "Accuracy", value: "78%" },
+    { label: "Captures",  value: "12" },
+    { label: "Accuracy",  value: "78%" },
   ];
 
   return (
     <ScreenShell backTo="/" backLabel="← Home">
       <div className="flex flex-col items-center gap-8">
-        <div
-          className="font-display text-[10px] uppercase tracking-[0.5em]"
-          style={{ color: isWin ? "var(--primary)" : "var(--destructive)" }}
-        >
+        {/* Mission complete label */}
+        <div className="font-display text-[10px] uppercase tracking-[0.5em] text-primary/80">
           // MISSION COMPLETE
         </div>
 
-        <h1
-          className="font-display text-6xl font-black uppercase tracking-[0.25em] sm:text-8xl"
-          style={{
-            color: isWin ? "var(--primary)" : "var(--destructive)",
-            textShadow: `0 0 40px ${
-              isWin
-                ? "color-mix(in oklab, var(--primary) 60%, transparent)"
-                : "color-mix(in oklab, var(--destructive) 60%, transparent)"
-            }`,
-          }}
-        >
-          {isWin ? "Victory" : "Defeat"}
-        </h1>
+        {/* Victory / Defeat headline */}
+        <div className="flex flex-col items-center gap-3">
+          <StatusBadge
+            color={isWin ? "green" : "red"}
+            label={isWin ? "Victory" : "Defeat"}
+            className="text-lg px-4 py-1"
+          />
+          <h1
+            className="font-display text-6xl font-black uppercase tracking-[0.25em] sm:text-8xl"
+            style={{
+              color: isWin ? "var(--primary)" : "var(--destructive)",
+              textShadow: `0 0 40px ${
+                isWin
+                  ? "color-mix(in oklab, var(--primary) 60%, transparent)"
+                  : "color-mix(in oklab, var(--destructive) 60%, transparent)"
+              }`,
+            }}
+          >
+            {isWin ? "Victory" : "Defeat"}
+          </h1>
+        </div>
 
+        {/* Stats grid */}
         <div className="grid w-full max-w-2xl grid-cols-2 gap-4 sm:grid-cols-4">
           {stats.map((s) => (
-            <div
+            <GamePanel
               key={s.label}
-              className="border border-primary/30 bg-card/40 p-4 text-center"
-              style={{
-                clipPath:
-                  "polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)",
-              }}
+              variant={isWin ? "blue" : "red"}
+              className="text-center"
             >
               <div className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                 {s.label}
@@ -64,23 +70,25 @@ function ResultPage() {
               <div className="mt-2 font-display text-2xl font-bold text-primary">
                 {s.value}
               </div>
-            </div>
+            </GamePanel>
           ))}
         </div>
 
+        {/* Actions */}
         <div className="mt-6 flex flex-col items-center gap-4 sm:flex-row">
           <Link to="/mode">
-            <CyberButton variant="primary">▶ Play Again</CyberButton>
+            <GameButton variant="primary" size="lg">▶ Play Again</GameButton>
           </Link>
           <Link to="/">
-            <CyberButton variant="secondary">Home</CyberButton>
+            <GameButton variant="secondary" size="md">Home</GameButton>
           </Link>
-          <CyberButton
+          <GameButton
             variant="ghost"
+            size="md"
             onClick={() => setOutcome(isWin ? "defeat" : "victory")}
           >
             Toggle Preview
-          </CyberButton>
+          </GameButton>
         </div>
       </div>
     </ScreenShell>

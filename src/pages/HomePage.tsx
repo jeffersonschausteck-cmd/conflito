@@ -1,8 +1,16 @@
 import { CyberBackground } from "@/components/CyberBackground";
-import { CyberButton } from "@/components/CyberButton";
 import { GameLogo } from "@/components/GameLogo";
 import { StatusBar, StatusFooter } from "@/components/StatusBar";
+import { GameButton } from "@/components/ui/GameButton";
+import { GameCard } from "@/components/ui/GameCard";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Link } from "@tanstack/react-router";
+
+const STATS = [
+  { badge: "12" as const, label: "Factions", color: "blue" as const },
+  { badge: "1v1" as const, label: "Ranked",   color: "green" as const },
+  { badge: "∞" as const,  label: "Strategies",color: "yellow" as const },
+];
 
 export function HomePage() {
   return (
@@ -19,31 +27,34 @@ export function HomePage() {
           where every move matters.
         </p>
 
+        {/* CTA buttons */}
         <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:gap-5">
           <Link to="/mode">
-            <CyberButton variant="primary">▶ New Game</CyberButton>
+            <GameButton variant="primary" size="lg">▶ New Game</GameButton>
           </Link>
           <Link to="/settings">
-            <CyberButton variant="secondary">⚙ Settings</CyberButton>
+            <GameButton variant="secondary" size="md">⚙ Settings</GameButton>
           </Link>
           <Link to="/about">
-            <CyberButton variant="ghost">◇ About</CyberButton>
+            <GameButton variant="ghost" size="md">◇ About</GameButton>
           </Link>
         </div>
 
-        <div className="mt-10 grid w-full max-w-md grid-cols-3 gap-3 font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground/70">
-          <div className="border border-border/60 bg-card/40 px-3 py-2 backdrop-blur-sm">
-            <div className="text-primary">12</div>
-            <div>Factions</div>
-          </div>
-          <div className="border border-border/60 bg-card/40 px-3 py-2 backdrop-blur-sm">
-            <div className="text-primary">1v1</div>
-            <div>Ranked</div>
-          </div>
-          <div className="border border-border/60 bg-card/40 px-3 py-2 backdrop-blur-sm">
-            <div className="text-primary">∞</div>
-            <div>Strategies</div>
-          </div>
+        {/* Stats grid */}
+        <div className="mt-10 grid w-full max-w-md grid-cols-3 gap-3">
+          {STATS.map((s) => (
+            <GameCard
+              key={s.label}
+              hoverable={false}
+              header={
+                <StatusBadge color={s.color} label={s.badge} className="mx-auto" />
+              }
+            >
+              <div className="pt-1 pb-2 text-center font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                {s.label}
+              </div>
+            </GameCard>
+          ))}
         </div>
       </div>
 
