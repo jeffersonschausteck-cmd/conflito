@@ -34,4 +34,5 @@ export interface GameState {
 /** Discriminated-union action set — extensible for future systems. */
 export type GameAction =
   | { type: "SELECT_PIECE"; pieceId: PieceId | null }
+  | { type: "MOVE_SELECTED"; row: number; column: number }
   | { type: "RESET" };

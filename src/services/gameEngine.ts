@@ -1,5 +1,6 @@
 import { createInitialBoard } from "@/services/boardEngine";
 import { InitialSetup } from "@/services/initialSetup";
+import { MovementEngine } from "@/services/movementEngine";
 import { PieceManager } from "@/services/pieceManager";
 import type {
   GameAction,
@@ -7,6 +8,7 @@ import type {
   GameStateConfig,
   Player,
 } from "@/types/gameState";
+import type { BoardBounds, Coord } from "@/types/movement";
 import type { Piece, PieceId } from "@/types/piece";
 
 /**
@@ -72,10 +74,52 @@ export const GameEngine = {
     return { ...state, selectedPieceId: pieceId };
   },
 
+  /** BoardBounds derived from the current config — pure helper. */
+  bounds(state: GameState): BoardBounds {
+    return { rows: state.config.rows, cols: state.config.cols };
+  },
+
+  /**
+   * Legal destination tiles for the currently selected piece under
+   * MovementEngine v0.1 rules (1-tile orthogonal). Delegated so all
+   * rule knowledge lives in the movement layer.
+   */
+  legalMovesForSelection(state: GameState): Set<string> {
+    return MovementEngine.legalMoveSet(
+      GameEngine.selectedPiece(state),
+      GameEngine.bounds(state),
+    );
+  },
+
+  /**
+   * Execute a move for the currently selected piece. Returns the
+   * unchanged state when there is no selection or the target is not
+   * a legal destination — the UI is intentionally forbidden from
+   * making that determination itself.
+   */
+  moveSelectedTo(state: GameState, target: Coord): GameState {
+    const selected = GameEngine.selectedPiece(state);
+    if (!selected) return state;
+    const bounds = GameEngine.bounds(state);
+    if (!MovementEngine.isLegalMove(selected, target, bounds)) return state;
+    const { pieces } = MovementEngine.execute(
+      state.pieces,
+      selected.id,
+      target,
+      bounds,
+    );
+    return { ...state, pieces, selectedPieceId: null };
+  },
+
   reduce(state: GameState, action: GameAction): GameState {
     switch (action.type) {
       case "SELECT_PIECE":
         return GameEngine.selectPiece(state, action.pieceId);
+      case "MOVE_SELECTED":
+        return GameEngine.moveSelectedTo(state, {
+          row: action.row,
+          column: action.column,
+        });
       case "RESET":
         return GameEngine.createInitialState(state.config);
       default:
