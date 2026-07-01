@@ -103,6 +103,7 @@ function GamePage() {
       {/* Board */}
       <GameStateProvider>
         <RevealLogProvider>
+          <TurnBanner />
           <section className="relative z-10 grid grid-cols-1 gap-6 px-4 py-8 lg:grid-cols-[1fr_320px] lg:px-8">
             <div className="flex flex-col items-center justify-center">
               <AIThinkingBanner />
@@ -113,11 +114,73 @@ function GamePage() {
 
           {/* Bottom panel: selected piece */}
           <SelectedUnitPanel />
+          <GameOverOverlay />
         </RevealLogProvider>
       </GameStateProvider>
     </main>
   );
 }
+
+function TurnBanner() {
+  const { state } = useGameState();
+  const isBlue = state.currentPlayer === "BLUE";
+  const color = isBlue ? "cyan" : "rose";
+  // Re-key on turnNumber to retrigger the transition animation.
+  return (
+    <div className="relative z-10 flex justify-center pt-4">
+      <div
+        key={state.turnNumber}
+        className={`turn-banner border px-6 py-1.5 font-display text-xs uppercase tracking-[0.4em] backdrop-blur-md ${
+          isBlue
+            ? "border-cyan-400/50 bg-cyan-500/10 text-cyan-300 shadow-[0_0_24px_rgba(34,211,238,0.25)]"
+            : "border-rose-400/50 bg-rose-500/10 text-rose-300 shadow-[0_0_24px_rgba(244,63,94,0.25)]"
+        }`}
+      >
+        <span className={`mr-2 inline-block h-1.5 w-1.5 rounded-full bg-${color}-400 shadow-[0_0_8px_currentColor]`} />
+        {state.currentPlayer} TURN · #{String(state.turnNumber).padStart(2, "0")}
+      </div>
+    </div>
+  );
+}
+
+function GameOverOverlay() {
+  const { state, reset } = useGameState();
+  if (!state.gameOver || !state.winner) return null;
+  const isBlue = state.winner === "BLUE";
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md">
+      <div
+        className={`border p-8 text-center ${
+          isBlue
+            ? "border-cyan-400/60 shadow-[0_0_60px_rgba(34,211,238,0.35)]"
+            : "border-rose-400/60 shadow-[0_0_60px_rgba(244,63,94,0.35)]"
+        }`}
+        style={{
+          clipPath:
+            "polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)",
+        }}
+      >
+        <div className="font-display text-[11px] uppercase tracking-[0.4em] text-muted-foreground">
+          Operation Concluded
+        </div>
+        <div
+          className={`mt-3 font-display text-4xl font-bold uppercase tracking-[0.25em] ${
+            isBlue ? "text-cyan-300" : "text-rose-300"
+          }`}
+        >
+          {state.winner} VICTORY
+        </div>
+        <button
+          onClick={reset}
+          className="mt-6 border border-primary/50 bg-primary/10 px-6 py-2 font-display text-xs uppercase tracking-[0.3em] text-primary transition hover:bg-primary/20"
+        >
+          New Engagement
+        </button>
+      </div>
+    </div>
+  );
+}
+
 
 function AIThinkingBanner() {
   const { thinking, aiPlayer } = useAITurn();
