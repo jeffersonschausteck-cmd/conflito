@@ -3,6 +3,7 @@ import { CombatEngine } from "@/services/combatEngine";
 import { InitialSetup } from "@/services/initialSetup";
 import { MovementEngine } from "@/services/movementEngine";
 import { PieceManager } from "@/services/pieceManager";
+import { TurnEngine } from "@/services/turnEngine";
 import {
   ownerToPlayer,
   type GameAction,
@@ -12,6 +13,7 @@ import {
 } from "@/types/gameState";
 import type { BoardBounds, Coord } from "@/types/movement";
 import type { Piece, PieceId } from "@/types/piece";
+
 
 /**
  * GameEngine — pure, framework-agnostic reducer + factories that own
