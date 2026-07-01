@@ -122,6 +122,8 @@ export const GameEngine = {
   moveSelectedTo(state: GameState, target: Coord): GameState {
     const selected = GameEngine.selectedPiece(state);
     if (!selected) return state;
+    // Turn ownership gate — mirrors selectPiece.
+    if (ownerToPlayer(selected.owner) !== state.currentPlayer) return state;
     const bounds = GameEngine.bounds(state);
     if (!MovementEngine.isLegalMove(selected, target, bounds)) return state;
 
@@ -135,6 +137,8 @@ export const GameEngine = {
     const occupant = PieceManager.findAt(state.pieces, target.row, target.column);
     if (occupant && occupant.owner === selected.owner) return state;
 
+    const nextPlayer = GameEngine.nextPlayer(state.currentPlayer);
+
     if (defender) {
       const { pieces, result } = CombatEngine.resolve({
         pieces: state.pieces,
@@ -147,6 +151,7 @@ export const GameEngine = {
         pieces,
         selectedPieceId: null,
         lastCombat: result,
+        currentPlayer: nextPlayer,
       };
     }
 
@@ -156,7 +161,12 @@ export const GameEngine = {
       target,
       bounds,
     );
-    return { ...state, pieces, selectedPieceId: null };
+    return {
+      ...state,
+      pieces,
+      selectedPieceId: null,
+      currentPlayer: nextPlayer,
+    };
   },
 
   reduce(state: GameState, action: GameAction): GameState {
