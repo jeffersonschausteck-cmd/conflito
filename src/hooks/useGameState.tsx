@@ -13,15 +13,20 @@ import type {
   GameStateConfig,
 } from "@/types/gameState";
 import type { Piece, PieceId } from "@/types/piece";
+import type { CombatResult } from "@/types/combat";
 
 export interface GameStateApi {
   state: GameState;
   selectedPiece: Piece | null;
   /** Set of "row-col" keys for tiles that the selected piece may move to. */
   legalMoves: Set<string>;
+  /** Most recent combat result, or null. */
+  lastCombat: CombatResult | null;
   selectPiece: (id: PieceId | null) => void;
   /** Attempt a move to (row, col); no-op unless legal per MovementEngine. */
   moveSelectedTo: (row: number, col: number) => void;
+  /** Clear the last combat record (UI hook after feedback animation ends). */
+  clearLastCombat: () => void;
   reset: () => void;
   dispatch: (action: GameAction) => void;
 }
