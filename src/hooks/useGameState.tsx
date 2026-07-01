@@ -61,6 +61,10 @@ export function GameStateProvider({ config, children }: GameStateProviderProps) 
     dispatch({ type: "RESET" });
   }, []);
 
+  const clearLastCombat = useCallback(() => {
+    dispatch({ type: "CLEAR_LAST_COMBAT" });
+  }, []);
+
   const selectedPiece = useMemo(
     () => GameEngine.selectedPiece(state),
     [state],
@@ -76,12 +80,22 @@ export function GameStateProvider({ config, children }: GameStateProviderProps) 
       state,
       selectedPiece,
       legalMoves,
+      lastCombat: state.lastCombat,
       selectPiece,
       moveSelectedTo,
+      clearLastCombat,
       reset,
       dispatch,
     }),
-    [state, selectedPiece, legalMoves, selectPiece, moveSelectedTo, reset],
+    [
+      state,
+      selectedPiece,
+      legalMoves,
+      selectPiece,
+      moveSelectedTo,
+      clearLastCombat,
+      reset,
+    ],
   );
 
   return (
