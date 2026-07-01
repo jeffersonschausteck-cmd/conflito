@@ -105,6 +105,7 @@ function GamePage() {
         <RevealLogProvider>
           <section className="relative z-10 grid grid-cols-1 gap-6 px-4 py-8 lg:grid-cols-[1fr_320px] lg:px-8">
             <div className="flex flex-col items-center justify-center">
+              <AIThinkingBanner />
               <BoardWithPieces />
             </div>
             <RevealLogPanel />
