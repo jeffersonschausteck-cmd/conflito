@@ -1,4 +1,5 @@
 import { createInitialBoard } from "@/services/boardEngine";
+import { CombatEngine } from "@/services/combatEngine";
 import { InitialSetup } from "@/services/initialSetup";
 import { MovementEngine } from "@/services/movementEngine";
 import { PieceManager } from "@/services/pieceManager";
