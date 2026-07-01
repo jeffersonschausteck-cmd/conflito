@@ -17,7 +17,11 @@ import type { Piece, PieceId } from "@/types/piece";
 export interface GameStateApi {
   state: GameState;
   selectedPiece: Piece | null;
+  /** Set of "row-col" keys for tiles that the selected piece may move to. */
+  legalMoves: Set<string>;
   selectPiece: (id: PieceId | null) => void;
+  /** Attempt a move to (row, col); no-op unless legal per MovementEngine. */
+  moveSelectedTo: (row: number, col: number) => void;
   reset: () => void;
   dispatch: (action: GameAction) => void;
 }
@@ -44,6 +48,10 @@ export function GameStateProvider({ config, children }: GameStateProviderProps) 
     dispatch({ type: "SELECT_PIECE", pieceId: id });
   }, []);
 
+  const moveSelectedTo = useCallback((row: number, col: number) => {
+    dispatch({ type: "MOVE_SELECTED", row, column: col });
+  }, []);
+
   const reset = useCallback(() => {
     dispatch({ type: "RESET" });
   }, []);
@@ -53,9 +61,22 @@ export function GameStateProvider({ config, children }: GameStateProviderProps) 
     [state],
   );
 
+  const legalMoves = useMemo(
+    () => GameEngine.legalMovesForSelection(state),
+    [state],
+  );
+
   const value = useMemo<GameStateApi>(
-    () => ({ state, selectedPiece, selectPiece, reset, dispatch }),
-    [state, selectedPiece, selectPiece, reset],
+    () => ({
+      state,
+      selectedPiece,
+      legalMoves,
+      selectPiece,
+      moveSelectedTo,
+      reset,
+      dispatch,
+    }),
+    [state, selectedPiece, legalMoves, selectPiece, moveSelectedTo, reset],
   );
 
   return (
