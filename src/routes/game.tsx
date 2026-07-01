@@ -156,3 +156,60 @@ function SelectedUnitPanel() {
     </footer>
   );
 }
+
+function RevealLogPanel() {
+  const { log } = useRevealLog();
+
+  return (
+    <aside
+      className="border border-primary/25 bg-card/40 p-4 backdrop-blur-md lg:sticky lg:top-24 lg:self-start"
+      style={{
+        clipPath:
+          "polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)",
+      }}
+    >
+      <div className="mb-3 flex items-center justify-between">
+        <div className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+          Intel · Reveal Log
+        </div>
+        <span className="font-display text-[10px] tabular-nums text-primary/70">
+          {String(log.length).padStart(2, "0")}
+        </span>
+      </div>
+
+      {log.length === 0 ? (
+        <div className="rounded border border-dashed border-border/50 p-3 font-display text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+          No enemy units identified.
+        </div>
+      ) : (
+        <ul className="space-y-1.5">
+          {log.map((entry) => {
+            const isBlue = entry.owner === "blue";
+            const color = isBlue ? "text-cyan-300" : "text-rose-300";
+            const dot = isBlue ? "bg-cyan-400" : "bg-rose-400";
+            return (
+              <li
+                key={entry.id}
+                className="flex items-center gap-2 border border-border/40 bg-background/40 px-2.5 py-1.5"
+              >
+                <span
+                  aria-hidden
+                  className={`inline-block h-2 w-2 rounded-full ${dot} shadow-[0_0_8px_currentColor]`}
+                />
+                <span className={`font-display text-[11px] uppercase tracking-[0.18em] ${color}`}>
+                  {entry.owner === "blue" ? "Blue" : "Red"} unit revealed:
+                </span>
+                <span className="font-display text-[11px] uppercase tracking-[0.18em] text-foreground">
+                  {entry.pieceType}
+                </span>
+                <span className="ml-auto font-display text-[10px] text-muted-foreground">
+                  R{entry.rank}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </aside>
+  );
+}
