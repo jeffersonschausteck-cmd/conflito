@@ -37,6 +37,7 @@ export const GameEngine = {
       pieces: InitialSetup.generate({ rows: merged.rows, cols: merged.cols }),
       selectedPieceId: null,
       currentPlayer: "BLUE",
+      lastCombat: null,
     };
   },
 
