@@ -35,38 +35,38 @@ const PIECE_TYPES_ORDER: PieceType[] = [
 
 const PIECE_NAMES: Record<PieceType, string> = {
   commander: "Commander",
-  officer:   "Officer",
-  sniper:    "Sniper",
-  engineer:  "Engineer",
-  infantry:  "Infantry",
-  scout:     "Scout",
-  spy:       "Spy",
-  bomb:      "Bomb",
-  flag:      "Flag",
+  officer: "Officer",
+  sniper: "Sniper",
+  engineer: "Engineer",
+  infantry: "Infantry",
+  scout: "Scout",
+  spy: "Spy",
+  bomb: "Bomb",
+  flag: "Flag",
 };
 
 const PIECE_LIMITS: Record<PieceType, number> = {
-  flag:      2,
-  bomb:      2,
+  flag: 2,
+  bomb: 2,
   commander: 1,
-  officer:   5,
-  spy:       2,
-  sniper:    4,
-  engineer:  4,
-  infantry:  10,
-  scout:     10,
+  officer: 5,
+  spy: 2,
+  sniper: 4,
+  engineer: 4,
+  infantry: 10,
+  scout: 10,
 };
 
 function getRankForType(type: PieceType): number {
   switch (type) {
     case "commander": return 10;
-    case "officer":   return 8;
-    case "sniper":    return 7;
-    case "engineer":  return 5;
-    case "infantry":  return 4;
-    case "scout":     return 2;
-    case "spy":       return 1;
-    default:          return 0;
+    case "officer": return 8;
+    case "sniper": return 7;
+    case "engineer": return 5;
+    case "infantry": return 4;
+    case "scout": return 2;
+    case "spy": return 1;
+    default: return 0;
   }
 }
 
@@ -175,7 +175,7 @@ function DeploymentPage() {
           const activePiece = pieces.find((ap) => ap.id === selectedBoardPieceId);
           return {
             ...p,
-            currentRow:    activePiece ? activePiece.currentRow    : -1,
+            currentRow: activePiece ? activePiece.currentRow : -1,
             currentColumn: activePiece ? activePiece.currentColumn : -1,
           };
         }
@@ -206,7 +206,7 @@ function DeploymentPage() {
   const handleReset = () => {
     const updated = pieces.map((p) => ({
       ...p,
-      currentRow:    -1,
+      currentRow: -1,
       currentColumn: -1,
     }));
     setPieces(updated);
@@ -231,7 +231,7 @@ function DeploymentPage() {
 
   const handleConfirm = () => {
     if (!isReady) return;
-    const aiPieces   = DeploymentManager.generateAIDeployment(rows, cols);
+    const aiPieces = DeploymentManager.generateAIDeployment(rows, cols);
     const finalPieces = [...pieces, ...aiPieces];
     if (typeof window !== "undefined") {
       window.sessionStorage.setItem("psc:initial-pieces", JSON.stringify(finalPieces));
@@ -298,23 +298,22 @@ function DeploymentPage() {
               {Array.from({ length: rows }).map((_, r) =>
                 Array.from({ length: cols }).map((_, c) => {
                   const isDark = (r + c) % 2 === 1;
-                  const piece  = pieces.find((p) => p.currentRow === r && p.currentColumn === c);
+                  const piece = pieces.find((p) => p.currentRow === r && p.currentColumn === c);
                   const isPlayerZone = r >= 6;
-                  const isMidfield   = r === 4 || r === 5;
+                  const isMidfield = r === 4 || r === 5;
 
                   return (
                     <div
                       key={`cell-${r}-${c}`}
                       onClick={() => handleCellClick(r, c)}
-                      className={`relative aspect-square w-full select-none outline-none border transition-all duration-150 ease-out flex items-center justify-center ${
-                        isPlayerZone
+                      className={`relative aspect-square w-full select-none outline-none border transition-all duration-150 ease-out flex items-center justify-center ${isPlayerZone
                           ? isDark
                             ? "bg-slate-900/60 border-cyan-500/10 hover:bg-cyan-500/10 hover:border-cyan-400/30 cursor-pointer"
                             : "bg-slate-900/30 border-cyan-500/15 hover:bg-cyan-500/10 hover:border-cyan-400/30 cursor-pointer"
                           : isMidfield
-                          ? "bg-slate-950/40 border-slate-900/30 cursor-not-allowed"
-                          : "bg-red-950/10 border-red-950/20 cursor-not-allowed"
-                      }`}
+                            ? "bg-slate-950/40 border-slate-900/30 cursor-not-allowed"
+                            : "bg-red-950/10 border-red-950/20 cursor-not-allowed"
+                        }`}
                     >
                       {piece && piece.id === selectedBoardPieceId && (
                         <div
@@ -485,14 +484,14 @@ function DeploymentPage() {
 
                   const isSelected = selectedTrayPieceType === type;
                   const dummyPiece: PieceModel = {
-                    id:            `tray-preview-${type}`,
-                    owner:         "blue",
-                    pieceType:     type,
-                    rank:          getRankForType(type),
-                    canMove:       type !== "flag" && type !== "bomb",
-                    isAlive:       true,
-                    isRevealed:    true,
-                    currentRow:    -1,
+                    id: `tray-preview-${type}`,
+                    owner: "blue",
+                    pieceType: type,
+                    rank: getRankForType(type),
+                    canMove: type !== "flag" && type !== "bomb",
+                    isAlive: true,
+                    isRevealed: true,
+                    currentRow: -1,
                     currentColumn: -1,
                   };
 

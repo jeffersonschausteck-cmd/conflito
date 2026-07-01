@@ -71,7 +71,7 @@ export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) 
   };
 
   return (
-    <div className="relative w-full max-w-[min(90vh,90vw)] mx-auto">
+    <div className="relative mx-auto aspect-square h-full max-h-[920px] w-full max-w-[920px]">
       <Board rows={rows} cols={cols} />
 
       {/* Inner overlay — matches Board's p-3 inner padding. */}
