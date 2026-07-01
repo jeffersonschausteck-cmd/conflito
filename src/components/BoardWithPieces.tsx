@@ -95,31 +95,62 @@ export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) 
             </div>
           )}
 
+          {/* Combat flash — brief neon-magenta pulse on the combat tile. */}
+          {lastCombat && combatTick === lastCombat.id && (
+            <div
+              key={`combat-${lastCombat.id}`}
+              className="combat-flash pointer-events-none absolute"
+              style={{
+                top: `${lastCombat.tile.row * cellH}%`,
+                left: `${lastCombat.tile.column * cellW}%`,
+                width: `${cellW}%`,
+                height: `${cellH}%`,
+              }}
+            />
+          )}
+
           {/* Pieces layer — smooth 250ms ease-in-out slide. */}
           <div className="absolute inset-0">
             {pieces
               .filter((p) => p.isAlive)
-              .map((piece) => (
-                <div
-                  key={piece.id}
-                  className="pointer-events-auto absolute flex items-center justify-center"
-                  style={{
-                    top: `${piece.currentRow * cellH}%`,
-                    left: `${piece.currentColumn * cellW}%`,
-                    width: `${cellW}%`,
-                    height: `${cellH}%`,
-                    transition:
-                      "top 250ms ease-in-out, left 250ms ease-in-out",
-                    willChange: "top, left",
-                  }}
-                >
-                  <Piece
-                    piece={piece}
-                    selected={piece.id === selectedPieceId}
-                    onClick={handlePieceClick}
-                  />
-                </div>
-              ))}
+              .map((piece) => {
+                const isCombatTile =
+                  lastCombat &&
+                  combatTick === lastCombat.id &&
+                  piece.currentRow === lastCombat.tile.row &&
+                  piece.currentColumn === lastCombat.tile.column;
+                const isWinner =
+                  lastCombat &&
+                  combatTick === lastCombat.id &&
+                  lastCombat.survivorId === piece.id;
+                const fxClass = [
+                  isCombatTile ? "combat-shake" : "",
+                  isWinner ? "combat-winner-glow" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+                return (
+                  <div
+                    key={piece.id}
+                    className={`pointer-events-auto absolute flex items-center justify-center ${fxClass}`}
+                    style={{
+                      top: `${piece.currentRow * cellH}%`,
+                      left: `${piece.currentColumn * cellW}%`,
+                      width: `${cellW}%`,
+                      height: `${cellH}%`,
+                      transition:
+                        "top 250ms ease-in-out, left 250ms ease-in-out",
+                      willChange: "top, left",
+                    }}
+                  >
+                    <Piece
+                      piece={piece}
+                      selected={piece.id === selectedPieceId}
+                      onClick={handlePieceClick}
+                    />
+                  </div>
+                );
+              })}
           </div>
 
           {/* Click capture: only legal destination tiles are interactive. */}
