@@ -1,4 +1,5 @@
 import { createInitialBoard } from "@/services/boardEngine";
+import { CombatEngine } from "@/services/combatEngine";
 import { InitialSetup } from "@/services/initialSetup";
 import { MovementEngine } from "@/services/movementEngine";
 import { PieceManager } from "@/services/pieceManager";
@@ -36,6 +37,7 @@ export const GameEngine = {
       pieces: InitialSetup.generate({ rows: merged.rows, cols: merged.cols }),
       selectedPieceId: null,
       currentPlayer: "BLUE",
+      lastCombat: null,
     };
   },
 
@@ -85,10 +87,18 @@ export const GameEngine = {
    * rule knowledge lives in the movement layer.
    */
   legalMovesForSelection(state: GameState): Set<string> {
-    return MovementEngine.legalMoveSet(
-      GameEngine.selectedPiece(state),
-      GameEngine.bounds(state),
-    );
+    const selected = GameEngine.selectedPiece(state);
+    if (!selected) return new Set();
+    const raw = MovementEngine.getLegalMoves(selected, GameEngine.bounds(state));
+    const out = new Set<string>();
+    for (const c of raw) {
+      const occupant = PieceManager.findAt(state.pieces, c.row, c.column);
+      // Friendly-occupied tiles are illegal; enemy-occupied tiles are
+      // legal and route through CombatEngine at execution time.
+      if (occupant && occupant.owner === selected.owner) continue;
+      out.add(`${c.row}-${c.column}`);
+    }
+    return out;
   },
 
   /**
@@ -96,12 +106,42 @@ export const GameEngine = {
    * unchanged state when there is no selection or the target is not
    * a legal destination — the UI is intentionally forbidden from
    * making that determination itself.
+   *
+   * If the target tile holds a live enemy piece, resolution is
+   * delegated to CombatEngine and its result is stored on
+   * `state.lastCombat` for UI feedback.
    */
   moveSelectedTo(state: GameState, target: Coord): GameState {
     const selected = GameEngine.selectedPiece(state);
     if (!selected) return state;
     const bounds = GameEngine.bounds(state);
     if (!MovementEngine.isLegalMove(selected, target, bounds)) return state;
+
+    const defender = CombatEngine.detectCollision(
+      state.pieces,
+      selected.id,
+      target,
+    );
+
+    // Friendly occupancy is rejected up-front (mirrors legalMovesForSelection).
+    const occupant = PieceManager.findAt(state.pieces, target.row, target.column);
+    if (occupant && occupant.owner === selected.owner) return state;
+
+    if (defender) {
+      const { pieces, result } = CombatEngine.resolve({
+        pieces: state.pieces,
+        attackerId: selected.id,
+        defenderId: defender.id,
+        tile: target,
+      });
+      return {
+        ...state,
+        pieces,
+        selectedPieceId: null,
+        lastCombat: result,
+      };
+    }
+
     const { pieces } = MovementEngine.execute(
       state.pieces,
       selected.id,
@@ -120,6 +160,8 @@ export const GameEngine = {
           row: action.row,
           column: action.column,
         });
+      case "CLEAR_LAST_COMBAT":
+        return state.lastCombat ? { ...state, lastCombat: null } : state;
       case "RESET":
         return GameEngine.createInitialState(state.config);
       default:

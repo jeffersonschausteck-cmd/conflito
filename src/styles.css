@@ -170,3 +170,53 @@
   border-radius: 0.25rem;
   animation: legal-tile-pulse 1.4s ease-in-out infinite;
 }
+
+@keyframes combat-flash {
+  0% {
+    background: color-mix(in oklab, var(--neon-magenta) 0%, transparent);
+    box-shadow: 0 0 0px transparent;
+  }
+  25% {
+    background: color-mix(in oklab, var(--neon-magenta) 55%, transparent);
+    box-shadow:
+      inset 0 0 24px color-mix(in oklab, var(--neon-magenta) 70%, transparent),
+      0 0 40px color-mix(in oklab, var(--neon-magenta) 65%, transparent);
+  }
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0px transparent;
+  }
+}
+
+@keyframes combat-shake {
+  0%, 100% { transform: translate(0, 0); }
+  15% { transform: translate(-3px, 2px); }
+  30% { transform: translate(3px, -2px); }
+  45% { transform: translate(-2px, -3px); }
+  60% { transform: translate(2px, 3px); }
+  75% { transform: translate(-1px, 1px); }
+}
+
+@keyframes combat-winner-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 10px color-mix(in oklab, var(--neon-cyan) 85%, transparent))
+      drop-shadow(0 0 20px color-mix(in oklab, var(--neon-cyan) 60%, transparent));
+  }
+}
+
+@utility combat-flash {
+  animation: combat-flash 600ms ease-out forwards;
+  border-radius: 0.25rem;
+}
+
+@utility combat-shake {
+  animation: combat-shake 350ms ease-in-out;
+}
+
+@utility combat-winner-glow {
+  animation: combat-winner-glow 900ms ease-in-out;
+}
