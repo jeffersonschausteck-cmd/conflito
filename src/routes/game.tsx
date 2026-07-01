@@ -101,12 +101,17 @@ function GamePage() {
 
       {/* Board */}
       <GameStateProvider>
-        <section className="relative z-10 flex flex-col items-center justify-center px-4 py-8">
-          <BoardWithPieces />
-        </section>
+        <RevealLogProvider>
+          <section className="relative z-10 grid grid-cols-1 gap-6 px-4 py-8 lg:grid-cols-[1fr_320px] lg:px-8">
+            <div className="flex flex-col items-center justify-center">
+              <BoardWithPieces />
+            </div>
+            <RevealLogPanel />
+          </section>
 
-        {/* Bottom panel: selected piece */}
-        <SelectedUnitPanel />
+          {/* Bottom panel: selected piece */}
+          <SelectedUnitPanel />
+        </RevealLogProvider>
       </GameStateProvider>
     </main>
   );
