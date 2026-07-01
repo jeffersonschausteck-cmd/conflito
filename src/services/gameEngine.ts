@@ -1,5 +1,6 @@
 import { createInitialBoard } from "@/services/boardEngine";
 import { InitialSetup } from "@/services/initialSetup";
+import { MovementEngine } from "@/services/movementEngine";
 import { PieceManager } from "@/services/pieceManager";
 import type {
   GameAction,
@@ -7,6 +8,7 @@ import type {
   GameStateConfig,
   Player,
 } from "@/types/gameState";
+import type { BoardBounds, Coord } from "@/types/movement";
 import type { Piece, PieceId } from "@/types/piece";
 
 /**
