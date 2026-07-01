@@ -34,15 +34,21 @@ export const GameEngine = {
 
   createInitialState(config: Partial<GameStateConfig> = {}): GameState {
     const merged: GameStateConfig = { ...GameEngine.defaultConfig(), ...config };
+    const turn = TurnEngine.initial("BLUE");
     return {
       config: merged,
       board: createInitialBoard(merged.rows, merged.cols),
       pieces: InitialSetup.generate({ rows: merged.rows, cols: merged.cols }),
       selectedPieceId: null,
-      currentPlayer: "BLUE",
+      currentPlayer: turn.currentPlayer,
+      turnNumber: turn.turnNumber,
+      actionLocked: turn.actionLocked,
+      gameOver: turn.gameOver,
+      winner: turn.winner,
       lastCombat: null,
     };
   },
+
 
   /** Pure lookup helpers — never mutate. */
   findPieceById(state: GameState, id: PieceId): Piece | null {
