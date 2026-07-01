@@ -30,6 +30,18 @@ export interface GameState {
   pieces: Piece[];
   selectedPieceId: PieceId | null;
   currentPlayer: Player;
+  /** Monotonic turn counter starting at 1. Owned by TurnEngine. */
+  turnNumber: number;
+  /**
+   * True while the active player has already consumed their single
+   * action for the current turn. Owned by TurnEngine — no other
+   * subsystem may set this.
+   */
+  actionLocked: boolean;
+  /** True once a victory condition has been detected. */
+  gameOver: boolean;
+  /** Winner set by TurnEngine.checkVictory, or null if ongoing. */
+  winner: Player | null;
   /**
    * Most recent combat resolution, or null if none has occurred since
    * the last RESET. UI reads this to drive flash / shake feedback and
@@ -42,5 +54,7 @@ export interface GameState {
 export type GameAction =
   | { type: "SELECT_PIECE"; pieceId: PieceId | null }
   | { type: "MOVE_SELECTED"; row: number; column: number }
+  | { type: "END_TURN" }
   | { type: "CLEAR_LAST_COMBAT" }
   | { type: "RESET" };
+
