@@ -119,6 +119,25 @@ function GamePage() {
   );
 }
 
+function AIThinkingBanner() {
+  const { thinking, aiPlayer } = useAITurn();
+  return (
+    <div className="mb-4 h-6">
+      {thinking ? (
+        <div className="flex items-center gap-2 border border-rose-400/40 bg-rose-500/10 px-3 py-1 font-display text-[10px] uppercase tracking-[0.3em] text-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.25)]">
+          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-rose-400 shadow-[0_0_8px_currentColor]" />
+          {aiPlayer} · AI thinking
+          <span className="inline-flex gap-0.5">
+            <span className="animate-pulse [animation-delay:0ms]">.</span>
+            <span className="animate-pulse [animation-delay:150ms]">.</span>
+            <span className="animate-pulse [animation-delay:300ms]">.</span>
+          </span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function SelectedUnitPanel() {
   const { selectedPiece, state } = useGameState();
   const label = selectedPiece
