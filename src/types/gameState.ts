@@ -3,6 +3,7 @@
 
 import type { BoardState } from "@/types/board";
 import type { Piece, PieceId, PlayerOwner } from "@/types/piece";
+import type { CombatResult } from "@/types/combat";
 
 /** Canonical player identifier used by the game state. */
 export type Player = "BLUE" | "RED";
@@ -29,10 +30,17 @@ export interface GameState {
   pieces: Piece[];
   selectedPieceId: PieceId | null;
   currentPlayer: Player;
+  /**
+   * Most recent combat resolution, or null if none has occurred since
+   * the last RESET. UI reads this to drive flash / shake feedback and
+   * reveal panels — write-only from the engine.
+   */
+  lastCombat: CombatResult | null;
 }
 
 /** Discriminated-union action set — extensible for future systems. */
 export type GameAction =
   | { type: "SELECT_PIECE"; pieceId: PieceId | null }
   | { type: "MOVE_SELECTED"; row: number; column: number }
+  | { type: "CLEAR_LAST_COMBAT" }
   | { type: "RESET" };
