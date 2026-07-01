@@ -5,6 +5,7 @@ import { BoardWithPieces } from "@/components/BoardWithPieces";
 import { FACTIONS, flowState } from "@/services/flowState";
 import { FactionIcon } from "@/components/FactionIcon";
 import { GameStateProvider, useGameState } from "@/hooks/useGameState";
+import { RevealLogProvider, useRevealLog } from "@/hooks/useRevealLog";
 
 export const Route = createFileRoute("/game")({
   head: () => ({
