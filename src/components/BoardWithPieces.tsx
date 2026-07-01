@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Board } from "@/components/Board";
 import { Piece } from "@/components/Piece";
 import { useGameState } from "@/hooks/useGameState";
+import { useRevealLog } from "@/hooks/useRevealLog";
+import { FogOfWarEngine, LOCAL_VIEWER } from "@/services/fogOfWarEngine";
 import { GameEngine } from "@/services/gameEngine";
 import type { Piece as PieceModel } from "@/types/piece";
 
