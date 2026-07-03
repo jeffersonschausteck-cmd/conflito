@@ -14,6 +14,7 @@ import { Modal } from "@/components/ui/Modal";
 import { GameTooltip } from "@/components/ui/GameTooltip";
 import { theme } from "@/design/theme";
 import { RightSidebar } from "@/components/game/RightSidebar";
+import { TacticalGuide } from "@/components/game/TacticalGuide";
 
 export const Route = createFileRoute("/game")({
   head: () => ({
@@ -164,13 +165,21 @@ function GamePage() {
 
           <TurnBanner />
 
-          <section className="relative z-10 flex h-[calc(100vh-64px)] gap-5 px-5 py-5">
+          <section className="relative z-10 flex h-[calc(100vh-64px)] gap-6 px-6 py-5 overflow-hidden">
+
+            {/* GUIA */}
+
+            <div className="w-[260px] shrink-0">
+
+              <TacticalGuide />
+
+            </div>
 
             {/* TABULEIRO */}
 
-            <div className="flex flex-1 items-center justify-center overflow-hidden rounded-xl border border-cyan-500/10 bg-slate-950/20">
+            <div className="flex flex-1 items-center justify-center">
 
-              <div className="flex flex-col items-center">
+              <div className="w-full max-w-[1180px]">
 
                 <AIThinkingBanner />
 
@@ -180,9 +189,13 @@ function GamePage() {
 
             </div>
 
-            {/* PAINEL LATERAL */}
+            {/* PAINEL DIREITO */}
 
-            <RightSidebar />
+            <div className="w-[420px] shrink-0">
+
+              <RightSidebar />
+
+            </div>
 
           </section>
 

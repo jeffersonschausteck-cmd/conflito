@@ -2,13 +2,16 @@ import { GamePanel } from "@/components/ui/GamePanel";
 
 export function TacticalGuide() {
     return (
-        <GamePanel variant="default">
+        <GamePanel
+            variant="default"
+            className="h-full"
+        >
 
-            <h2 className="mb-5 text-center text-lg font-bold uppercase tracking-[0.35em] text-cyan-300">
+            <h2 className="mb-3 text-center text-lg font-bold uppercase tracking-[0.35em] text-cyan-300">
                 GUIA TÁTICO
             </h2>
 
-            <div className="space-y-5 text-sm">
+            <div className="space-y-3 text-[13px]">
 
                 {/* Objetivo */}
                 <section>
@@ -17,7 +20,7 @@ export function TacticalGuide() {
                         🎯 Objetivo
                     </h3>
 
-                    <p className="leading-6 text-slate-300">
+                    <p className="leading-5 text-slate-300">
                         Capture a <strong>Bandeira</strong> inimiga para vencer a partida.
                     </p>
 
@@ -33,7 +36,7 @@ export function TacticalGuide() {
                         🚶 Movimento
                     </h3>
 
-                    <ul className="space-y-1 text-slate-300">
+                    <ul className="space-y-0.5 text-slate-300">
 
                         <li>• Todas as unidades movem 1 casa.</li>
 

@@ -1,34 +1,38 @@
 import { CommandCenter } from "./CommandCenter";
+import { BattleStatus } from "./BattleStatus";
 import { RevealLogPanel } from "./RevealLogPanel";
-import { TacticalGuide } from "./TacticalGuide";
 
 export function RightSidebar() {
     return (
+
         <aside
             className="
-                flex
+                grid
                 h-full
-                w-[340px]
-                shrink-0
-                flex-col
-                gap-5
+                grid-cols-2
+                gap-4
             "
         >
-            {/* CENTRO DE COMANDO */}
-            <div className="flex-[1.2] min-h-0">
+
+            {/* COLUNA ESQUERDA */}
+
+            <div className="flex flex-col gap-4">
+
                 <CommandCenter />
-            </div>
 
-            {/* REGISTRO DE INTELIGÊNCIA */}
-            <div className="flex-1 min-h-0 overflow-hidden">
                 <RevealLogPanel />
+
             </div>
 
-            {/* GUIA TÁTICO */}
-            <div className="flex-1 min-h-0 overflow-hidden">
-                <TacticalGuide />
+            {/* COLUNA DIREITA */}
+
+            <div className="flex flex-col gap-4">
+
+                <BattleStatus />
+
             </div>
 
         </aside>
+
     );
 }

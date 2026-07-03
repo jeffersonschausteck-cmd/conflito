@@ -75,7 +75,7 @@ export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) 
       <Board rows={rows} cols={cols} />
 
       {/* Inner overlay — matches Board's p-3 inner padding. */}
-      <div className="pointer-events-none absolute inset-0 p-3">
+      <div className="pointer-events-none absolute inset-3">
         <div className="relative h-full w-full">
           {/* Highlight layer: legal destination tiles */}
           {legalMoves.size > 0 && (
@@ -87,10 +87,9 @@ export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) 
                     key={`hl-${key}`}
                     className="legal-tile absolute"
                     style={{
-                      top: `${r * cellH}%`,
-                      left: `${c * cellW}%`,
-                      width: `${cellW}%`,
-                      height: `${cellH}%`,
+                      width: `calc(100% / ${cols})`,
+                      height: `calc(100% / ${rows})`,
+                      transform: `translate(${c * 100}%, ${r * 100}%)`,
                     }}
                   />
                 );
@@ -104,10 +103,9 @@ export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) 
               key={`combat-${lastCombat.id}`}
               className="combat-flash pointer-events-none absolute"
               style={{
-                top: `${lastCombat.tile.row * cellH}%`,
-                left: `${lastCombat.tile.column * cellW}%`,
-                width: `${cellW}%`,
-                height: `${cellH}%`,
+                width: `calc(100% / ${cols})`,
+                height: `calc(100% / ${rows})`,
+                transform: `translate(${lastCombat.tile.column * 100}%, ${lastCombat.tile.row * 100}%)`,
               }}
             />
           )}
@@ -140,13 +138,11 @@ export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) 
                     key={piece.id}
                     className={`pointer-events-auto absolute flex items-center justify-center ${fxClass}`}
                     style={{
-                      top: `${piece.currentRow * cellH}%`,
-                      left: `${piece.currentColumn * cellW}%`,
-                      width: `${cellW}%`,
-                      height: `${cellH}%`,
-                      transition:
-                        "top 250ms ease-in-out, left 250ms ease-in-out",
-                      willChange: "top, left",
+                      width: `calc(100% / ${cols})`,
+                      height: `calc(100% / ${rows})`,
+                      transform: `translate(${piece.currentColumn * 100}%, ${piece.currentRow * 100}%)`,
+                      transition: "transform 250ms ease-in-out",
+                      willChange: "transform",
                     }}
                   >
                     <Piece
@@ -176,10 +172,9 @@ export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) 
                     }}
                     className="pointer-events-auto absolute cursor-pointer bg-transparent outline-none"
                     style={{
-                      top: `${r * cellH}%`,
-                      left: `${c * cellW}%`,
-                      width: `${cellW}%`,
-                      height: `${cellH}%`,
+                      width: `calc(100% / ${cols})`,
+                      height: `calc(100% / ${rows})`,
+                      transform: `translate(${c * 100}%, ${r * 100}%)`,
                     }}
                   />
                 );
