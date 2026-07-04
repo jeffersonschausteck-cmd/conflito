@@ -147,9 +147,28 @@ export const GameEngine = {
       actionLocked: turn.actionLocked,
     };
     const winner = TurnEngine.checkVictory(withTurn);
+
     if (winner) {
-      return { ...withTurn, gameOver: true, winner, selectedPieceId: null };
+
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(
+          "conflict:lastResult",
+          JSON.stringify({
+            winner,
+            turn: withTurn.turnNumber,
+            finishedAt: Date.now(),
+          }),
+        );
+      }
+
+      return {
+        ...withTurn,
+        gameOver: true,
+        winner,
+        selectedPieceId: null,
+      };
     }
+
     return withTurn;
   },
 

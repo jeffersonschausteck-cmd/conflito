@@ -10,7 +10,7 @@ import { FACTIONS, flowState, type FactionId } from "@/services/flowState";
 
 export const Route = createFileRoute("/faction")({
   head: () => ({
-    meta: [{ title: "Faction Select — Shadow Command" }],
+    meta: [{ title: "Seleção de Facção — Conflito" }],
   }),
   component: FactionSelectPage,
 });
@@ -30,9 +30,9 @@ function FactionSelectPage() {
 
   return (
     <ScreenShell
-      eyebrow="// STEP 02 / 03"
-      title="Select Faction"
-      subtitle="Each cell has a doctrine. Pick yours."
+      eyebrow="// ETAPA 02 / 03"
+      title="Escolha sua Facção"
+      subtitle="Cada facção possui uma doutrina de combate. Escolha a sua."
       backTo="/mode"
     >
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -81,7 +81,7 @@ function FactionSelectPage() {
           disabled={!selected}
           onClick={confirm}
         >
-          Deploy ▶
+          Iniciar Missão ▶
         </GameButton>
       </div>
     </ScreenShell>

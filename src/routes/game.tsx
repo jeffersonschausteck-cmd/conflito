@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, } from "@tanstack/react-router";
 import { CyberBackground } from "@/components/CyberBackground";
 import { BoardWithPieces } from "@/components/BoardWithPieces";
 import { FACTIONS, flowState } from "@/services/flowState";
@@ -34,6 +34,7 @@ export const Route = createFileRoute("/game")({
 // ─────────────────────────────────────────────────────────────
 
 function GamePage() {
+  const navigate = useNavigate();
   const [seconds, setSeconds] = useState(45);
   const [turn, setTurn] = useState(1);
 
@@ -140,7 +141,7 @@ function GamePage() {
         {/* BOTÃO */}
 
         <GameTooltip
-          content="Encerrar a missão"
+          content="Render-se"
           position="bottom"
         >
 

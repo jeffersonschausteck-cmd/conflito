@@ -45,12 +45,11 @@ export function GameLogo() {
       {/* Wordmark */}
       <div className="text-center">
         <div className="font-display text-xs uppercase tracking-[0.6em] text-primary/70 animate-flicker">
-          // Project
+          PREPARADO PARA O
         </div>
-        <h1 className="font-display text-5xl font-black uppercase tracking-[0.15em] text-foreground text-glow sm:text-6xl md:text-7xl">
-          Shadow
-          <span className="ml-3 bg-gradient-to-r from-primary-glow to-primary bg-clip-text text-transparent">
-            Command
+        <h1 className="font-display text-5xl font-black uppercase tracking-[0.18em] text-glow sm:text-6xl md:text-7xl">
+          <span className="bg-gradient-to-r from-white via-primary-glow to-primary bg-clip-text text-transparent">
+            CONFLITO
           </span>
         </h1>
       </div>

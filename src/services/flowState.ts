@@ -36,32 +36,32 @@ export const FACTIONS: Array<{
   color: string;
   glow: string;
 }> = [
-  {
-    id: "atlas",
-    name: "Atlas",
-    tagline: "Bulwark Division",
-    color: "#3b82f6",
-    glow: "rgba(59,130,246,0.55)",
-  },
-  {
-    id: "novatech",
-    name: "NovaTech",
-    tagline: "Signal Operations",
-    color: "#22d3ee",
-    glow: "rgba(34,211,238,0.55)",
-  },
-  {
-    id: "phantom",
-    name: "Phantom",
-    tagline: "Shadow Cell",
-    color: "#a855f7",
-    glow: "rgba(168,85,247,0.55)",
-  },
-  {
-    id: "helix",
-    name: "Helix",
-    tagline: "Bio-Synthetic Corps",
-    color: "#22c55e",
-    glow: "rgba(34,197,94,0.55)",
-  },
-];
+    {
+      id: "atlas",
+      name: "Atlas",
+      tagline: "Defesa e blindagem",
+      color: "#3b82f6",
+      glow: "rgba(59,130,246,0.55)",
+    },
+    {
+      id: "novatech",
+      name: "NovaTech",
+      tagline: "Tecnologia e drones",
+      color: "#22d3ee",
+      glow: "rgba(34,211,238,0.55)",
+    },
+    {
+      id: "phantom",
+      name: "Phantom",
+      tagline: "Infiltração e espionagem",
+      color: "#a855f7",
+      glow: "rgba(168,85,247,0.55)",
+    },
+    {
+      id: "helix",
+      name: "Helix",
+      tagline: "Biotecnologia e regeneração",
+      color: "#22c55e",
+      glow: "rgba(34,197,94,0.55)",
+    },
+  ];

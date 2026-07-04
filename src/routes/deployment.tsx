@@ -14,7 +14,7 @@ import type { Piece as PieceModel, PieceType } from "@/types/piece";
 
 export const Route = createFileRoute("/deployment")({
   head: () => ({
-    meta: [{ title: "Deployment Phase — Shadow Command" }],
+    meta: [{ title: "Fase de Posicionamento — Conflito" }],
   }),
   component: DeploymentPage,
 });
@@ -34,15 +34,15 @@ const PIECE_TYPES_ORDER: PieceType[] = [
 ];
 
 const PIECE_NAMES: Record<PieceType, string> = {
-  commander: "Commander",
-  officer: "Officer",
-  sniper: "Sniper",
-  engineer: "Engineer",
-  infantry: "Infantry",
-  scout: "Scout",
-  spy: "Spy",
-  bomb: "Bomb",
-  flag: "Flag",
+  commander: "Comandante",
+  officer: "Oficial",
+  sniper: "Atirador",
+  engineer: "Engenheiro",
+  infantry: "Infantaria",
+  scout: "Batedor",
+  spy: "Espião",
+  bomb: "Bomba",
+  flag: "Bandeira",
 };
 
 const PIECE_LIMITS: Record<PieceType, number> = {
@@ -253,7 +253,7 @@ function DeploymentPage() {
           <FactionIcon faction={faction.id} color={faction.color} size={28} />
           <div>
             <div className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-              Operator
+              Comandante
             </div>
             <div className="font-display text-sm font-bold uppercase tracking-[0.15em] text-foreground">
               {faction.name}
@@ -264,9 +264,9 @@ function DeploymentPage() {
         <div className="flex items-center gap-6 text-center">
           <div>
             <div className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-              Phase
+              Fase
             </div>
-            <StatusBadge color="blue" label="DEPLOYMENT" />
+            <StatusBadge color="blue" label="POSICIONAMENTO" />
           </div>
         </div>
 
@@ -276,7 +276,7 @@ function DeploymentPage() {
             size="sm"
             onClick={() => navigate({ to: "/" })}
           >
-            ⛔ Cancel Mission
+            ⛔ Cancelar Missão
           </GameButton>
         </GameTooltip>
       </header>
@@ -307,12 +307,12 @@ function DeploymentPage() {
                       key={`cell-${r}-${c}`}
                       onClick={() => handleCellClick(r, c)}
                       className={`relative aspect-square w-full select-none outline-none border transition-all duration-150 ease-out flex items-center justify-center ${isPlayerZone
-                          ? isDark
-                            ? "bg-slate-900/60 border-cyan-500/10 hover:bg-cyan-500/10 hover:border-cyan-400/30 cursor-pointer"
-                            : "bg-slate-900/30 border-cyan-500/15 hover:bg-cyan-500/10 hover:border-cyan-400/30 cursor-pointer"
-                          : isMidfield
-                            ? "bg-slate-950/40 border-slate-900/30 cursor-not-allowed"
-                            : "bg-red-950/10 border-red-950/20 cursor-not-allowed"
+                        ? isDark
+                          ? "bg-slate-900/60 border-cyan-500/10 hover:bg-cyan-500/10 hover:border-cyan-400/30 cursor-pointer"
+                          : "bg-slate-900/30 border-cyan-500/15 hover:bg-cyan-500/10 hover:border-cyan-400/30 cursor-pointer"
+                        : isMidfield
+                          ? "bg-slate-950/40 border-slate-900/30 cursor-not-allowed"
+                          : "bg-red-950/10 border-red-950/20 cursor-not-allowed"
                         }`}
                     >
                       {piece && piece.id === selectedBoardPieceId && (
@@ -359,10 +359,10 @@ function DeploymentPage() {
                     className="font-display text-[9px] uppercase tracking-[0.3em] animate-pulse"
                     style={{ color: theme.colors.primaryRed }}
                   >
-                    ⚠️ ENEMY SECTOR ENCRYPTED ⚠️
+                    ⚠️ SETOR INIMIGO ⚠️
                   </div>
                   <div className="mt-1 font-display text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/80">
-                    CLASSIFIED ZONE
+                    ÁREA RESTRITA
                   </div>
                 </div>
               </div>
@@ -373,7 +373,7 @@ function DeploymentPage() {
                 style={{ top: `${4 * cellH}%`, height: `${2 * cellH}%` }}
               >
                 <div className="font-display text-[8px] uppercase tracking-[0.4em] text-muted-foreground/40">
-                  // NEUTRAL BUFFER ZONE //
+                  // ZONA NEUTRA //
                 </div>
               </div>
             </div>
@@ -384,17 +384,17 @@ function DeploymentPage() {
         <aside className="flex flex-col gap-6">
 
           {/* Operations Panel */}
-          <GamePanel variant="blue" eyebrow="// OPERATIONS PANEL">
+          <GamePanel variant="blue" eyebrow="// PAINEL DE OPERAÇÕES">
             <div className="space-y-3 font-display text-[10px] uppercase tracking-[0.25em]">
               <div className="flex justify-between border-b border-border/40 pb-2">
-                <span className="text-muted-foreground">Formation Status:</span>
+                <span className="text-muted-foreground">Status da Formação:</span>
                 <StatusBadge
                   color={isReady ? "green" : "red"}
-                  label={isReady ? "FORMATION READY" : "INCOMPLETE"}
+                  label={isReady ? "FORMAÇÃO PRONTA" : "INCOMPLETA"}
                 />
               </div>
               <div className="flex justify-between border-b border-border/40 pb-2">
-                <span className="text-muted-foreground">Unplaced Assets:</span>
+                <span className="text-muted-foreground">Unidades não posicionadas:</span>
                 <StatusBadge
                   color={piecesRemaining > 0 ? "blue" : "green"}
                   label={`${piecesRemaining} / 40`}
@@ -414,10 +414,10 @@ function DeploymentPage() {
                   className="font-display text-[9px] uppercase tracking-[0.2em]"
                   style={{ color: theme.colors.primaryBlue }}
                 >
-                  Selected Unit:
+                  Unidade Selecionada:
                 </div>
                 <div className="mt-1 font-display text-sm font-bold uppercase tracking-[0.1em] text-foreground">
-                  {PIECE_NAMES[selectedBoardPiece.pieceType]} (Rank {selectedBoardPiece.rank})
+                  {PIECE_NAMES[selectedBoardPiece.pieceType]} (Patente {selectedBoardPiece.rank})
                 </div>
                 <GameButton
                   variant="danger"
@@ -425,7 +425,7 @@ function DeploymentPage() {
                   className="mt-3 w-full"
                   onClick={handleRecallSelected}
                 >
-                  Recall to Tray
+                  Retornar à Reserva
                 </GameButton>
               </div>
             )}
@@ -440,40 +440,40 @@ function DeploymentPage() {
               onClick={handleConfirm}
               className="w-full"
             >
-              Start Battle ▶
+              Iniciar Batalha ▶
             </GameButton>
 
             <div className="grid grid-cols-2 gap-2">
-              <GameTooltip content="Place all units automatically" position="top">
+              <GameTooltip content="Posicionar automaticamente todas as unidades" position="top">
                 <GameButton
                   variant="secondary"
                   size="sm"
                   onClick={handleAutoFill}
                   className="w-full"
                 >
-                  Auto-Fill
+                  Posicionar Automaticamente
                 </GameButton>
               </GameTooltip>
-              <GameTooltip content="Return all units to the tray" position="top">
+              <GameTooltip content="Retornar todas as unidades para a reserva" position="top">
                 <GameButton
                   variant="danger"
                   size="sm"
                   onClick={handleReset}
                   className="w-full"
                 >
-                  Reset Layout
+                  Limpar Posicionamento
                 </GameButton>
               </GameTooltip>
             </div>
           </div>
 
           {/* Unit Tray */}
-          <GamePanel variant="default" eyebrow="// UNIT TRAY" className="flex-1 min-h-[300px] overflow-y-auto">
+          <GamePanel variant="default" eyebrow="// RESERVA DE UNIDADES" className="flex-1 min-h-[300px] overflow-y-auto">
             {piecesRemaining === 0 ? (
               <div className="flex flex-col items-center justify-center text-center py-8">
-                <StatusBadge color="green" label="✓ All Forces Deployed" className="mb-3" />
+                <StatusBadge color="green" label="✓ Todas as unidades posicionadas" className="mb-3" />
                 <div className="font-display text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
-                  Customize layout by selecting and swapping assets on the map.
+                  Você pode reorganizar suas unidades selecionando e trocando suas posições no mapa.
                 </div>
               </div>
             ) : (

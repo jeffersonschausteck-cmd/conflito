@@ -7,9 +7,9 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Link } from "@tanstack/react-router";
 
 const STATS = [
-  { badge: "12" as const, label: "Factions", color: "blue" as const },
-  { badge: "1v1" as const, label: "Ranked",   color: "green" as const },
-  { badge: "∞" as const,  label: "Strategies",color: "yellow" as const },
+  { badge: "12", label: "Facções", color: "blue" },
+  { badge: "1v1", label: "Competitivo", color: "green" },
+  { badge: "∞", label: "Estratégias", color: "yellow" },
 ];
 
 export function HomePage() {
@@ -22,21 +22,21 @@ export function HomePage() {
         <GameLogo />
 
         <p className="max-w-2xl text-balance font-display text-base uppercase tracking-[0.3em] text-muted-foreground sm:text-lg">
-          A modern strategy board game
+          Um jogo moderno de estratégia
           <span className="mx-2 text-primary">//</span>
-          where every move matters.
+          onde cada decisão define a guerra.
         </p>
 
         {/* CTA buttons */}
         <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:gap-5">
           <Link to="/mode">
-            <GameButton variant="primary" size="lg">▶ New Game</GameButton>
+            <GameButton variant="primary" size="lg">▶ Jogar</GameButton>
           </Link>
           <Link to="/settings">
-            <GameButton variant="secondary" size="md">⚙ Settings</GameButton>
+            <GameButton variant="secondary" size="md">⚙ Configurações</GameButton>
           </Link>
           <Link to="/about">
-            <GameButton variant="ghost" size="md">◇ About</GameButton>
+            <GameButton variant="ghost" size="md">◇ Créditos</GameButton>
           </Link>
         </div>
 

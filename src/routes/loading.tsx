@@ -4,18 +4,18 @@ import { CyberBackground } from "@/components/CyberBackground";
 
 export const Route = createFileRoute("/loading")({
   head: () => ({
-    meta: [{ title: "Initializing — Shadow Command" }],
+    meta: [{ title: "Inicializando — Conflito" }],
   }),
   component: LoadingPage,
 });
 
 const MESSAGES = [
-  "// Calibrating tactical grid…",
-  "// Encrypting command channels…",
-  "// Deploying field assets…",
-  "// Synchronizing neural HUD…",
-  "// Establishing shadow uplink…",
-  "// Arming countermeasures…",
+  "// Estabelecendo canal seguro...",
+  "// Identificando comandante...",
+  "// Carregando mapa operacional...",
+  "// Posicionando tropas...",
+  "// Sincronizando inteligência tática...",
+  "// Missão pronta...",
 ];
 
 function LoadingPage() {
@@ -50,10 +50,10 @@ function LoadingPage() {
       <CyberBackground />
       <div className="relative z-10 flex w-full max-w-2xl flex-col items-center gap-8 px-6 text-center">
         <div className="font-display text-[10px] uppercase tracking-[0.5em] text-primary/80 animate-flicker">
-          // SECURE CHANNEL ACQUIRED
+          // CANAL SEGURO ESTABELECIDO
         </div>
         <h2 className="font-display text-2xl font-bold uppercase tracking-[0.2em] text-foreground sm:text-3xl text-glow">
-          Initializing Mission
+          Preparando Operação
         </h2>
 
         {/* Progress */}
@@ -70,7 +70,7 @@ function LoadingPage() {
             />
           </div>
           <div className="mt-2 flex justify-between font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-            <span>BOOT SEQUENCE</span>
+            <span>SEQUÊNCIA DE INICIALIZAÇÃO</span>
             <span className="text-primary">{Math.floor(progress)}%</span>
           </div>
         </div>

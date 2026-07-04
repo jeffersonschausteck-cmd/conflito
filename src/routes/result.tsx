@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ScreenShell } from "@/components/ScreenShell";
 import { GameButton } from "@/components/ui/GameButton";
@@ -6,53 +5,56 @@ import { GamePanel } from "@/components/ui/GamePanel";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { GameCard } from "@/components/ui/GameCard";
 
-type Outcome = "victory" | "defeat";
+const result = JSON.parse(
+  sessionStorage.getItem("conflict:lastResult") ?? "{}"
+);
+
+const isWin = result.winner === "BLUE";
 
 export const Route = createFileRoute("/result")({
   head: () => ({
-    meta: [{ title: "Mission Result — Shadow Command" }],
+    meta: [{ title: "Resultado da Missão — Conflito" }],
   }),
   component: ResultPage,
 });
 
 function ResultPage() {
-  const [outcome, setOutcome] = useState<Outcome>("victory");
-  const isWin = outcome === "victory";
+  const result = JSON.parse(
+    sessionStorage.getItem("conflict:lastResult") ?? "{}"
+  );
+
+  const isWin = result.winner === "BLUE";
 
   const stats = [
-    { label: "Turns",     value: "24" },
-    { label: "Units Lost", value: "07" },
-    { label: "Captures",  value: "12" },
-    { label: "Accuracy",  value: "78%" },
+    { label: "Turnos", value: String(result.turn ?? "--") },
   ];
 
   return (
-    <ScreenShell backTo="/" backLabel="← Home">
+    <ScreenShell backTo="/" backLabel="← Início">
       <div className="flex flex-col items-center gap-8">
         {/* Mission complete label */}
         <div className="font-display text-[10px] uppercase tracking-[0.5em] text-primary/80">
-          // MISSION COMPLETE
+          // MISSÃO CONCLUÍDA
         </div>
 
         {/* Victory / Defeat headline */}
         <div className="flex flex-col items-center gap-3">
           <StatusBadge
             color={isWin ? "green" : "red"}
-            label={isWin ? "Victory" : "Defeat"}
+            label={isWin ? "Vitória" : "Derrota"}
             className="text-lg px-4 py-1"
           />
           <h1
             className="font-display text-6xl font-black uppercase tracking-[0.25em] sm:text-8xl"
             style={{
               color: isWin ? "var(--primary)" : "var(--destructive)",
-              textShadow: `0 0 40px ${
-                isWin
-                  ? "color-mix(in oklab, var(--primary) 60%, transparent)"
-                  : "color-mix(in oklab, var(--destructive) 60%, transparent)"
-              }`,
+              textShadow: `0 0 40px ${isWin
+                ? "color-mix(in oklab, var(--primary) 60%, transparent)"
+                : "color-mix(in oklab, var(--destructive) 60%, transparent)"
+                }`,
             }}
           >
-            {isWin ? "Victory" : "Defeat"}
+            {isWin ? "VITÓRIA: Sua estratégia foi bem-sucedida. O objetivo da missão foi concluído com êxito." : "DERROTA: As forças inimigas dominaram o campo de batalha. Reorganize sua estratégia e tente novamente"}
           </h1>
         </div>
 
@@ -77,18 +79,12 @@ function ResultPage() {
         {/* Actions */}
         <div className="mt-6 flex flex-col items-center gap-4 sm:flex-row">
           <Link to="/mode">
-            <GameButton variant="primary" size="lg">▶ Play Again</GameButton>
+            <GameButton variant="primary" size="lg">▶ Nova Partida</GameButton>
           </Link>
           <Link to="/">
-            <GameButton variant="secondary" size="md">Home</GameButton>
+            <GameButton variant="secondary" size="md">Menu Principal</GameButton>
           </Link>
-          <GameButton
-            variant="ghost"
-            size="md"
-            onClick={() => setOutcome(isWin ? "defeat" : "victory")}
-          >
-            Toggle Preview
-          </GameButton>
+
         </div>
       </div>
     </ScreenShell>

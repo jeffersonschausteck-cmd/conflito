@@ -7,7 +7,7 @@ import { flowState, type GameMode } from "@/services/flowState";
 
 export const Route = createFileRoute("/mode")({
   head: () => ({
-    meta: [{ title: "Mode Select — Shadow Command" }],
+    meta: [{ title: "Modo de Jogo — Conflito" }],
   }),
   component: ModeSelectPage,
 });
@@ -23,17 +23,35 @@ interface ModeCard {
 const MODES: ModeCard[] = [
   {
     id: "classic",
-    name: "Classic Mode",
-    tagline: "Standard 10×10 doctrine",
-    description:
-      "The original ruleset. Fog of war, hidden ranks, and asymmetric reveals.",
+    name: "Campanha",
+    tagline: "Missões Oficiais",
+    description: "Jogue a campanha principal.",
   },
   {
     id: "modern",
-    name: "Modern Mode",
-    tagline: "Augmented tactics // Coming Soon",
-    description:
-      "Adaptive abilities, cyber warfare layers, and dynamic terrain. Locked.",
+    name: "Escaramuça",
+    tagline: "Contra a IA",
+    description: "Partidas rápidas contra o computador.",
+  },
+  {
+    id: "modern",
+    name: "Multijogador",
+    tagline: "Online",
+    description: "Dispute partidas contra outros comandantes.",
+    disabled: true,
+  },
+  {
+    id: "modern",
+    name: "Criar Sala",
+    tagline: "Personalizada",
+    description: "Crie uma sala privada para seus amigos.",
+    disabled: true,
+  },
+  {
+    id: "modern",
+    name: "Entrar em Sala",
+    tagline: "Código de Convite",
+    description: "Entre utilizando um código de partida.",
     disabled: true,
   },
 ];
@@ -49,11 +67,11 @@ function ModeSelectPage() {
 
   return (
     <ScreenShell
-      eyebrow="// STEP 01 / 03"
-      title="Select Mode"
-      subtitle="Choose your operational doctrine."
+      eyebrow="// ETAPA 01 / 03"
+      title="CENTRO DE OPEÇÕES"
+      subtitle="Escolha sua próxima missão."
       backTo="/"
-      backLabel="← Home"
+      backLabel="← Início"
     >
       <div className="grid gap-6 sm:grid-cols-2">
         {MODES.map((m) => (
@@ -70,7 +88,7 @@ function ModeSelectPage() {
                   {m.tagline}
                 </div>
                 {m.disabled && (
-                  <StatusBadge color="red" label="Locked" />
+                  <StatusBadge color="red" label="Bloqueado" />
                 )}
               </div>
               <h3 className="font-display text-2xl font-bold uppercase tracking-[0.1em] text-foreground">
@@ -83,7 +101,7 @@ function ModeSelectPage() {
                 {m.disabled ? (
                   <span className="text-destructive/70">⛔ Locked</span>
                 ) : (
-                  <StatusBadge color="green" label="▶ Select" />
+                  <StatusBadge color="green" label="▶ ▶ Selecionar" />
                 )}
               </div>
             </div>
@@ -93,7 +111,7 @@ function ModeSelectPage() {
 
       <div className="mt-12 flex justify-center">
         <Link to="/">
-          <GameButton variant="ghost" size="md">Cancel</GameButton>
+          <GameButton variant="ghost" size="md">Cancelar</GameButton>
         </Link>
       </div>
     </ScreenShell>
