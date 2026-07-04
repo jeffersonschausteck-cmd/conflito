@@ -41,12 +41,7 @@ export function BoardTerrain({
     return (
 
         <div
-            className="
-grid
-h-full
-w-full
-pointer-events-none
-"
+            className="absolute inset-0 grid pointer-events-none"
             style={{
                 gridTemplateColumns: `repeat(${cols},1fr)`,
                 gridTemplateRows: `repeat(${rows},1fr)`,

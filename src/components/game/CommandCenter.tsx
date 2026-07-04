@@ -7,7 +7,7 @@ export function CommandCenter() {
 
     if (!selectedPiece) {
         return (
-            <div className="flex h-full flex-col rounded-2xl border border-cyan-500/20 bg-slate-900/70 p-6 backdrop-blur-xl shadow-[0_0_30px_rgba(0,255,255,0.08)]">
+            <div className="flex max-h-[85vh] flex-col rounded-2xl border border-cyan-500/20 bg-slate-900/70 p-6 backdrop-blur-xl shadow-[0_0_30px_rgba(0,255,255,0.08)]">
 
                 <h2 className="mb-8 text-center text-lg font-bold uppercase tracking-[0.35em] text-cyan-300">
                     CENTRO DE COMANDO
@@ -45,7 +45,7 @@ export function CommandCenter() {
             : "VERMELHA";
 
     return (
-        <div className="flex h-full flex-col rounded-2xl border border-cyan-500/20 bg-slate-900/70 p-6 backdrop-blur-xl shadow-[0_0_35px_rgba(0,255,255,0.08)]">
+        <div className="flex max-h-[85vh] flex-col rounded-2xl border border-cyan-500/20 bg-slate-900/70 p-6 backdrop-blur-xl shadow-[0_0_35px_rgba(0,255,255,0.08)]">
 
             {/* TÍTULO */}
 

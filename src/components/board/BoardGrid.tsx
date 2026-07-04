@@ -36,14 +36,14 @@ export function BoardGrid({
 
     return (
         <svg
-            className="h-full w-full pointer-events-none"
+            className="absolute inset-0 h-full w-full pointer-events-none"
             viewBox="0 0 100 100"
             preserveAspectRatio="none"
         >
             <g
-                stroke="#53D8FF"
-                strokeWidth="0.15"
-                opacity="0.28"
+                stroke="#00FFFF"
+                strokeWidth="0.45"
+                opacity="1"
             >
                 {horizontal}
                 {vertical}

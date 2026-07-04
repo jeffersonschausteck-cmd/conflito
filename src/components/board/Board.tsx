@@ -31,65 +31,38 @@ export function Board({
           MOLDURA
       ============================ */}
 
-            <BoardFrame
+            <BoardFrame />
+
+            {/* Coordenadas */}
+
+            <BoardCoordinates
                 rows={rows}
                 cols={cols}
             />
 
-            {/* ============================
-          PLAY AREA
-      ============================ */}
+            {/* Play Area */}
 
             <div
-                className="absolute"
+                className="absolute inset-0"
                 style={{
                     top: BOARD_CONFIG.playArea.top,
                     right: BOARD_CONFIG.playArea.right,
                     bottom: BOARD_CONFIG.playArea.bottom,
                     left: BOARD_CONFIG.playArea.left,
+                    overflow: "hidden",
                 }}
             >
-                {/* Terreno */}
 
-                <BoardTerrain
-                    rows={rows}
-                    cols={cols}
-                />
+                <BoardTerrain />
 
-                {/* Grade */}
+                <BoardGrid />
 
-                <BoardGrid
-                    rows={rows}
-                    cols={cols}
-                />
+                <BoardPieces />
 
-                {/* Coordenadas */}
+                <BoardEffects />
 
-                <BoardCoordinates
-                    rows={rows}
-                    cols={cols}
-                />
+                <BoardFog />
 
-                {/* Peças */}
-
-                <BoardPieces
-                    rows={rows}
-                    cols={cols}
-                />
-
-                {/* Efeitos */}
-
-                <BoardEffects
-                    rows={rows}
-                    cols={cols}
-                />
-
-                {/* Fog */}
-
-                <BoardFog
-                    rows={rows}
-                    cols={cols}
-                />
             </div>
         </div>
     );

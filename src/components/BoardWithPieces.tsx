@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Board } from "@/components/Board";
+import { Board } from "@/components/board";
 import { Piece } from "@/components/Piece";
 import { useGameState } from "@/hooks/useGameState";
 import { useRevealLog } from "@/hooks/useRevealLog";
 import { FogOfWarEngine, LOCAL_VIEWER } from "@/services/fogOfWarEngine";
 import { GameEngine } from "@/services/gameEngine";
 import type { Piece as PieceModel } from "@/types/piece";
+import { BOARD_CONFIG } from "@/components/board/constants";
 
 export interface BoardWithPiecesProps {
   rows?: number;
@@ -75,7 +76,15 @@ export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) 
       <Board rows={rows} cols={cols} />
 
       {/* Inner overlay — matches Board's p-3 inner padding. */}
-      <div className="pointer-events-none absolute inset-3">
+      <div
+        className="pointer-events-none absolute"
+        style={{
+          top: BOARD_CONFIG.playArea.top,
+          right: BOARD_CONFIG.playArea.right,
+          bottom: BOARD_CONFIG.playArea.bottom,
+          left: BOARD_CONFIG.playArea.left,
+        }}
+      >
         <div className="relative h-full w-full">
           {/* Highlight layer: legal destination tiles */}
           {legalMoves.size > 0 && (

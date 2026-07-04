@@ -4,7 +4,7 @@ export function TacticalGuide() {
     return (
         <GamePanel
             variant="default"
-            className="h-full"
+            className="h-[85vh]"
         >
 
             <h2 className="mb-3 text-center text-lg font-bold uppercase tracking-[0.35em] text-cyan-300">

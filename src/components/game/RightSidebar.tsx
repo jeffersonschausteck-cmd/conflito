@@ -7,29 +7,29 @@ export function RightSidebar() {
 
         <aside
             className="
-                grid
-                h-full
-                grid-cols-2
-                gap-4
-            "
+        grid
+        h-full
+        grid-cols-[280px_320px_220px]
+        gap-4
+    "
         >
 
-            {/* COLUNA ESQUERDA */}
+            {/* CENTRO DE COMANDO */}
 
-            <div className="flex flex-col gap-4">
-
+            <div className="h-full">
                 <CommandCenter />
-
-                <RevealLogPanel />
-
             </div>
 
-            {/* COLUNA DIREITA */}
+            {/* REGISTRO DE INTELIGÊNCIA */}
 
-            <div className="flex flex-col gap-4">
+            <div className="h-full">
+                <RevealLogPanel />
+            </div>
 
+            {/* ESTADO DA BATALHA */}
+
+            <div className="h-full">
                 <BattleStatus />
-
             </div>
 
         </aside>

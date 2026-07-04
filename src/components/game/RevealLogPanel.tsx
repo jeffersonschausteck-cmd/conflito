@@ -6,7 +6,7 @@ export function RevealLogPanel() {
     const { log } = useRevealLog();
 
     return (
-        <div className="flex h-full flex-col rounded-2xl border border-cyan-500/20 bg-slate-900/70 p-5 backdrop-blur-xl shadow-[0_0_30px_rgba(0,255,255,0.08)]">
+        <div className="flex max-h-[85vh] flex-col rounded-2xl border border-cyan-500/20 bg-slate-900/70 p-5 backdrop-blur-xl shadow-[0_0_30px_rgba(0,255,255,0.08)]">
 
             {/* TÍTULO */}
 
@@ -34,7 +34,7 @@ export function RevealLogPanel() {
 
                 {log.length === 0 ? (
 
-                    <div className="flex h-full flex-col items-center justify-center text-center">
+                    <div className="flex max-h-[85vh] flex-col items-center justify-center text-center">
 
                         <div className="mb-3 text-5xl opacity-30">
                             📡
@@ -97,8 +97,8 @@ export function RevealLogPanel() {
 
                                             <span
                                                 className={`h-3 w-3 rounded-full ${azul
-                                                        ? "bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.9)]"
-                                                        : "bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.9)]"
+                                                    ? "bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.9)]"
+                                                    : "bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.9)]"
                                                     }`}
                                             />
 

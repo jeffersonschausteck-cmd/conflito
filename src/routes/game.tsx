@@ -191,7 +191,7 @@ function GamePage() {
 
             {/* PAINEL DIREITO */}
 
-            <div className="w-[420px] shrink-0">
+            <div className="w-[860px] shrink-0">
 
               <RightSidebar />
 
