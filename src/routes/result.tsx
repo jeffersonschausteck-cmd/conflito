@@ -5,12 +5,6 @@ import { GamePanel } from "@/components/ui/GamePanel";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { GameCard } from "@/components/ui/GameCard";
 
-const result = JSON.parse(
-  sessionStorage.getItem("conflict:lastResult") ?? "{}"
-);
-
-const isWin = result.winner === "BLUE";
-
 export const Route = createFileRoute("/result")({
   head: () => ({
     meta: [{ title: "Resultado da Missão — Conflito" }],
@@ -19,9 +13,12 @@ export const Route = createFileRoute("/result")({
 });
 
 function ResultPage() {
-  const result = JSON.parse(
-    sessionStorage.getItem("conflict:lastResult") ?? "{}"
-  );
+  const result =
+    typeof window !== "undefined"
+      ? JSON.parse(
+        window.sessionStorage.getItem("conflict:lastResult") ?? "{}"
+      )
+      : {};
 
   const isWin = result.winner === "BLUE";
 
