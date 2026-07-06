@@ -1,16 +1,20 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CyberBackground } from "@/components/CyberBackground";
-import { FactionIcon } from "@/components/FactionIcon";
 import { Piece } from "@/components/Piece";
-import { FACTIONS, flowState } from "@/services/flowState";
-import { DeploymentManager } from "@/services/deploymentManager";
+import { PIECES } from "@/config/pieces";
+import { DeploymentManager, DEPLOYMENT_DEPTH } from "@/services/deploymentManager";
 import { GameButton } from "@/components/ui/GameButton";
 import { GamePanel } from "@/components/ui/GamePanel";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { GameTooltip } from "@/components/ui/GameTooltip";
 import { theme } from "@/design/theme";
-import type { Piece as PieceModel, PieceType } from "@/types/piece";
+import { HexBoard } from "@/components/board/hex/HexBoard";
+import { HexPieceLayer } from "@/components/board/hex/HexPieceLayer";
+import { ACTIVE_MAP, getBlockedTiles } from "@/maps";
+import { flowState } from "@/services/flowState";
+import { ensureConnected } from "@/multiplayer/networkSingleton";
+import type { Piece as PieceModel, PieceType, PlayerOwner } from "@/types/piece";
 
 export const Route = createFileRoute("/deployment")({
   head: () => ({
@@ -33,58 +37,65 @@ const PIECE_TYPES_ORDER: PieceType[] = [
   "flag",
 ];
 
-const PIECE_NAMES: Record<PieceType, string> = {
-  commander: "Comandante",
-  officer: "Oficial",
-  sniper: "Atirador",
-  engineer: "Engenheiro",
-  infantry: "Infantaria",
-  scout: "Batedor",
-  spy: "Espião",
-  bomb: "Bomba",
-  flag: "Bandeira",
-};
+// Nomes, quantidades e forças vêm de PIECES (fonte única — Documento 06).
+// Nenhum valor é redigitado aqui para evitar divergência.
+const PIECE_NAMES: Record<PieceType, string> = Object.fromEntries(
+  PIECE_TYPES_ORDER.map((type) => [type, PIECES[type].nome]),
+) as Record<PieceType, string>;
 
-const PIECE_LIMITS: Record<PieceType, number> = {
-  flag: 2,
-  bomb: 2,
-  commander: 1,
-  officer: 5,
-  spy: 2,
-  sniper: 4,
-  engineer: 4,
-  infantry: 10,
-  scout: 10,
-};
+const PIECE_LIMITS: Record<PieceType, number> = Object.fromEntries(
+  PIECE_TYPES_ORDER.map((type) => [type, PIECES[type].quantidade]),
+) as Record<PieceType, number>;
 
 function getRankForType(type: PieceType): number {
-  switch (type) {
-    case "commander": return 10;
-    case "officer": return 8;
-    case "sniper": return 7;
-    case "engineer": return 5;
-    case "infantry": return 4;
-    case "scout": return 2;
-    case "spy": return 1;
-    default: return 0;
-  }
+  return PIECES[type].patente ?? 0;
 }
 
 // ─── DeploymentPage ──────────────────────────────────────────────────────────
 
 function DeploymentPage() {
   const navigate = useNavigate();
+
   const flow = flowState.read();
-  const faction = FACTIONS.find((f) => f.id === flow.faction) ?? FACTIONS[1];
+  const isOnline = flow.online === true;
+  // Sprint MP-02: online, o jogador pode ter sido designado Vermelho
+  // (segundo a entrar na sala) — offline, é sempre Azul, como sempre foi.
+  const myOwner: PlayerOwner = isOnline ? flow.onlineOwner ?? "blue" : "blue";
+  const [waitingOpponent, setWaitingOpponent] = useState(false);
 
   const [pieces, setPieces] = useState<PieceModel[]>(() =>
-    DeploymentManager.createDefaultPlayerDeployment()
+    DeploymentManager.createDefaultPlayerDeployment(ACTIVE_MAP.rows, ACTIVE_MAP.cols, myOwner)
   );
   const [selectedBoardPieceId, setSelectedBoardPieceId] = useState<string | null>(null);
   const [selectedTrayPieceType, setSelectedTrayPieceType] = useState<PieceType | null>(null);
 
-  const rows = 10;
-  const cols = 10;
+  const rows = ACTIVE_MAP.rows;
+  const cols = ACTIVE_MAP.cols;
+  const blockedTiles = useMemo(() => getBlockedTiles(ACTIVE_MAP), []);
+
+  // Sprint 2.5: Azul posiciona à esquerda, Vermelho à direita. A zona do
+  // jogador acompanha `myOwner` (Sprint MP-02) para funcionar dos dois
+  // lados no modo online; offline continua sempre a zona da esquerda.
+  const playerZoneStart = myOwner === "blue" ? 0 : Math.max(0, cols - DEPLOYMENT_DEPTH);
+  const playerZoneEnd = myOwner === "blue" ? DEPLOYMENT_DEPTH : cols;
+  const enemyZoneStart = myOwner === "blue" ? Math.max(DEPLOYMENT_DEPTH, cols - DEPLOYMENT_DEPTH) : 0;
+  const enemyZoneEndExclusive = myOwner === "blue" ? cols : Math.min(DEPLOYMENT_DEPTH, cols);
+
+  useEffect(() => {
+    if (!isOnline) return;
+    const client = ensureConnected();
+    return client.onEvent((event) => {
+      if (event.type === "GameStarted") {
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem("conflito:online-state", JSON.stringify(event.state));
+        }
+        navigate({ to: "/game" });
+      }
+      if (event.type === "ActionRejected") {
+        setWaitingOpponent(false);
+      }
+    });
+  }, [isOnline, navigate]);
 
   const trayCounts = useMemo(() => {
     const counts = { ...PIECE_LIMITS };
@@ -102,8 +113,8 @@ function DeploymentPage() {
   );
 
   const isReady = useMemo(
-    () => DeploymentManager.validateDeployment(pieces, rows, cols),
-    [pieces]
+    () => DeploymentManager.validateDeployment(pieces, rows, cols, blockedTiles, myOwner),
+    [pieces, rows, cols, blockedTiles, myOwner]
   );
 
   const selectedBoardPiece = useMemo(
@@ -114,7 +125,8 @@ function DeploymentPage() {
   // ── Handlers (game logic unchanged) ────────────────────────────────────────
 
   const handleCellClick = (r: number, c: number) => {
-    if (r < 6 || r > 9) return;
+    if (c < playerZoneStart || c >= playerZoneEnd) return;
+    if (blockedTiles.has(`${r}-${c}`)) return;
 
     const existingPiece = pieces.find(
       (p) => p.currentRow === r && p.currentColumn === c
@@ -215,7 +227,7 @@ function DeploymentPage() {
   };
 
   const handleAutoFill = () => {
-    setPieces(DeploymentManager.createDefaultPlayerDeployment());
+    setPieces(DeploymentManager.createDefaultPlayerDeployment(rows, cols, myOwner));
     setSelectedBoardPieceId(null);
     setSelectedTrayPieceType(null);
   };
@@ -231,7 +243,16 @@ function DeploymentPage() {
 
   const handleConfirm = () => {
     if (!isReady) return;
-    const aiPieces = DeploymentManager.generateAIDeployment(rows, cols);
+
+    if (isOnline) {
+      // Sprint MP-02: o servidor mescla os dois lados e só inicia a
+      // partida quando ambos confirmarem (Room.confirmDeployment).
+      setWaitingOpponent(true);
+      ensureConnected().send({ type: "ConfirmDeployment", pieces });
+      return;
+    }
+
+    const aiPieces = DeploymentManager.generateAIDeployment(rows, cols, blockedTiles);
     const finalPieces = [...pieces, ...aiPieces];
     if (typeof window !== "undefined") {
       window.sessionStorage.setItem("psc:initial-pieces", JSON.stringify(finalPieces));
@@ -239,7 +260,10 @@ function DeploymentPage() {
     navigate({ to: "/game" });
   };
 
-  const cellH = 10;
+  const playerZoneWidthPct = ((playerZoneEnd - playerZoneStart) / cols) * 100;
+  const playerZoneLeftPct = (playerZoneStart / cols) * 100;
+  const enemyZoneWidthPct = ((enemyZoneEndExclusive - enemyZoneStart) / cols) * 100;
+  const enemyZoneLeftPct = (enemyZoneStart / cols) * 100;
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -249,14 +273,16 @@ function DeploymentPage() {
 
       {/* ── Header HUD ───────────────────────────────────────────────────── */}
       <header className="relative z-10 flex items-center justify-between border-b border-primary/20 bg-background/40 px-6 py-3 backdrop-blur-md sm:px-10">
-        <div className="flex items-center gap-3" style={{ color: faction.color }}>
-          <FactionIcon faction={faction.id} color={faction.color} size={28} />
+        <div
+          className="flex items-center gap-3"
+          style={{ color: myOwner === "blue" ? theme.colors.primaryBlue : theme.colors.primaryRed }}
+        >
           <div>
             <div className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
               Comandante
             </div>
             <div className="font-display text-sm font-bold uppercase tracking-[0.15em] text-foreground">
-              {faction.name}
+              Facção {myOwner === "blue" ? "Azul" : "Vermelha"}
             </div>
           </div>
         </div>
@@ -281,104 +307,10 @@ function DeploymentPage() {
         </GameTooltip>
       </header>
 
-      {/* ── Grid + Sidebar ───────────────────────────────────────────────── */}
-      <section className="relative z-10 grid grid-cols-1 gap-6 px-4 py-8 lg:grid-cols-[1fr_360px] lg:px-8">
-
-        {/* ── Tactical Map ─────────────────────────────────────────────── */}
-        <div className="flex flex-col items-center justify-center">
-          <div
-            className="relative w-full max-w-[min(80vh,80vw)] mx-auto p-3 rounded-lg border backdrop-blur-sm"
-            style={{
-              borderColor: `${theme.colors.primaryBlue}4D`, // 30% opacity
-              background: "rgba(2,6,23,0.7)",
-              boxShadow: theme.shadows.blueGlow,
-            }}
-          >
-            <div className="grid gap-[2px] grid-cols-10 grid-rows-10 aspect-square w-full relative">
-              {Array.from({ length: rows }).map((_, r) =>
-                Array.from({ length: cols }).map((_, c) => {
-                  const isDark = (r + c) % 2 === 1;
-                  const piece = pieces.find((p) => p.currentRow === r && p.currentColumn === c);
-                  const isPlayerZone = r >= 6;
-                  const isMidfield = r === 4 || r === 5;
-
-                  return (
-                    <div
-                      key={`cell-${r}-${c}`}
-                      onClick={() => handleCellClick(r, c)}
-                      className={`relative aspect-square w-full select-none outline-none border transition-all duration-150 ease-out flex items-center justify-center ${isPlayerZone
-                        ? isDark
-                          ? "bg-slate-900/60 border-cyan-500/10 hover:bg-cyan-500/10 hover:border-cyan-400/30 cursor-pointer"
-                          : "bg-slate-900/30 border-cyan-500/15 hover:bg-cyan-500/10 hover:border-cyan-400/30 cursor-pointer"
-                        : isMidfield
-                          ? "bg-slate-950/40 border-slate-900/30 cursor-not-allowed"
-                          : "bg-red-950/10 border-red-950/20 cursor-not-allowed"
-                        }`}
-                    >
-                      {piece && piece.id === selectedBoardPieceId && (
-                        <div
-                          className="absolute inset-0 border-2 animate-pulse"
-                          style={{
-                            borderColor: theme.colors.primaryBlue,
-                            background: `${theme.colors.primaryBlue}1A`,
-                            boxShadow: theme.shadows.blueGlow,
-                          }}
-                        />
-                      )}
-                      {piece && (
-                        <Piece
-                          piece={piece}
-                          selected={piece.id === selectedBoardPieceId}
-                          hidden={false}
-                          onClick={handlePieceClick}
-                        />
-                      )}
-                    </div>
-                  );
-                })
-              )}
-
-              {/* Enemy Zone overlay */}
-              <div
-                className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center justify-center border backdrop-blur-[2px]"
-                style={{
-                  height: `${4 * cellH}%`,
-                  borderColor: `${theme.colors.primaryRed}33`,
-                  background: `${theme.colors.primaryRed}08`,
-                }}
-              >
-                <div
-                  className="border px-4 py-2 text-center"
-                  style={{
-                    borderColor: `${theme.colors.primaryRed}66`,
-                    background: "rgba(2,6,23,0.9)",
-                    boxShadow: theme.shadows.redGlow,
-                  }}
-                >
-                  <div
-                    className="font-display text-[9px] uppercase tracking-[0.3em] animate-pulse"
-                    style={{ color: theme.colors.primaryRed }}
-                  >
-                    ⚠️ SETOR INIMIGO ⚠️
-                  </div>
-                  <div className="mt-1 font-display text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/80">
-                    ÁREA RESTRITA
-                  </div>
-                </div>
-              </div>
-
-              {/* Midfield buffer */}
-              <div
-                className="pointer-events-none absolute inset-x-0 border-y border-dashed border-primary/20 bg-primary/5 flex items-center justify-center"
-                style={{ top: `${4 * cellH}%`, height: `${2 * cellH}%` }}
-              >
-                <div className="font-display text-[8px] uppercase tracking-[0.4em] text-muted-foreground/40">
-                  // ZONA NEUTRA //
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* ── Sidebar + Grid ───────────────────────────────────────────────── */}
+      {/* Sprint 2.5: a barra lateral fica à esquerda, ao lado da zona Azul,
+          para uma transição natural entre posicionamento e partida. */}
+      <section className="relative z-10 grid grid-cols-1 gap-6 px-4 py-8 lg:grid-cols-[360px_1fr] lg:px-8">
 
         {/* ── Sidebar ──────────────────────────────────────────────────── */}
         <aside className="flex flex-col gap-6">
@@ -434,13 +366,13 @@ function DeploymentPage() {
           {/* Action Buttons */}
           <div className="grid gap-2">
             <GameButton
-              variant={isReady ? "primary" : "disabled"}
+              variant={isReady && !waitingOpponent ? "primary" : "disabled"}
               size="lg"
-              disabled={!isReady}
+              disabled={!isReady || waitingOpponent}
               onClick={handleConfirm}
               className="w-full"
             >
-              Iniciar Batalha ▶
+              {waitingOpponent ? "Aguardando adversário..." : "Iniciar Batalha ▶"}
             </GameButton>
 
             <div className="grid grid-cols-2 gap-2">
@@ -485,7 +417,7 @@ function DeploymentPage() {
                   const isSelected = selectedTrayPieceType === type;
                   const dummyPiece: PieceModel = {
                     id: `tray-preview-${type}`,
-                    owner: "blue",
+                    owner: myOwner,
                     pieceType: type,
                     rank: getRankForType(type),
                     canMove: type !== "flag" && type !== "bomb",
@@ -538,6 +470,68 @@ function DeploymentPage() {
             )}
           </GamePanel>
         </aside>
+
+        {/* ── Tactical Map ─────────────────────────────────────────────── */}
+        <div className="flex flex-col items-center justify-center">
+          <div className="relative w-full">
+            <HexBoard
+              map={ACTIVE_MAP}
+              onTileClick={handleCellClick}
+              isDimmed={(_r, c) => c < playerZoneStart || c >= playerZoneEnd}
+            >
+              <HexPieceLayer
+                pieces={pieces}
+                size={42}
+                selectedPieceId={selectedBoardPieceId}
+                onPieceClick={handlePieceClick}
+                respectFogOfWar={false}
+              />
+            </HexBoard>
+
+            {/* Enemy Zone overlay — lado oposto ao do jogador (Sprint MP-02: acompanha myOwner) */}
+            <div
+              className="pointer-events-none absolute inset-y-3 flex flex-col items-center justify-center border backdrop-blur-[2px]"
+              style={{
+                left: `calc(${enemyZoneLeftPct}% + ${enemyZoneStart === 0 ? "0.75rem" : "0px"})`,
+                width: `calc(${enemyZoneWidthPct}% - 0.75rem)`,
+                borderColor: `${theme.colors.primaryRed}33`,
+                background: `${theme.colors.primaryRed}08`,
+              }}
+            >
+              <div
+                className="border px-4 py-2 text-center"
+                style={{
+                  borderColor: `${theme.colors.primaryRed}66`,
+                  background: "rgba(2,6,23,0.9)",
+                  boxShadow: theme.shadows.redGlow,
+                }}
+              >
+                <div
+                  className="font-display text-[9px] uppercase tracking-[0.3em] animate-pulse"
+                  style={{ color: theme.colors.primaryRed }}
+                >
+                  ⚠️ SETOR INIMIGO ⚠️
+                </div>
+                <div className="mt-1 font-display text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/80">
+                  ÁREA RESTRITA
+                </div>
+              </div>
+            </div>
+
+            {/* Neutral zone buffer (center) — colunas fixas do mapa, independentes de quem é o jogador local */}
+            <div
+              className="pointer-events-none absolute inset-y-3 border-x border-dashed border-primary/20 bg-primary/5 flex items-center justify-center"
+              style={{
+                left: `${(DEPLOYMENT_DEPTH / cols) * 100}%`,
+                width: `${((cols - 2 * DEPLOYMENT_DEPTH) / cols) * 100}%`,
+              }}
+            >
+              <div className="font-display text-[8px] uppercase tracking-[0.4em] text-muted-foreground/40">
+                // ZONA NEUTRA //
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
   );

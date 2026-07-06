@@ -1,7 +1,4 @@
-import { MovementEngine } from "@/services/movementEngine";
 import type { GameState, Player } from "@/types/gameState";
-import { playerToOwner } from "@/types/gameState";
-import type { BoardBounds } from "@/types/movement";
 
 /**
  * TurnEngine — pure, single source of truth for turn lifecycle.
@@ -73,37 +70,18 @@ export const TurnEngine = {
   },
 
   /**
-   * Foundation win-condition hook.
-   *
-   * A player loses if they have no living piece with a legal action
-   * (i.e. no movable piece with at least one in-bounds neighbour that
-   * isn't friendly-occupied). Returns the winner, or null if the game
-   * continues.
+   * Official win condition (Documento 04 §12-13): a player wins the
+   * instant the opponent's Bandeira is captured. There is no other
+   * victory condition in v1.0 — no draw, no elimination, no stalemate.
    */
   checkVictory(state: GameState): Player | null {
-    const bounds: BoardBounds = { rows: state.config.rows, cols: state.config.cols };
-    const hasAction = (player: Player): boolean => {
-      const owner = playerToOwner(player);
-      for (const p of state.pieces) {
-        if (!p.isAlive || p.owner !== owner || !p.canMove) continue;
-        const moves = MovementEngine.getLegalMoves(p, bounds);
-        for (const m of moves) {
-          const occupant = state.pieces.find(
-            (q) =>
-              q.isAlive && q.currentRow === m.row && q.currentColumn === m.column,
-          );
-          if (!occupant || occupant.owner !== owner) return true;
-        }
-      }
-      return false;
-    };
+    const flagAlive = (owner: "blue" | "red"): boolean =>
+      state.pieces.some(
+        (p) => p.isAlive && p.owner === owner && p.pieceType === "flag",
+      );
 
-    const blueAlive = state.pieces.some((p) => p.isAlive && p.owner === "blue");
-    const redAlive = state.pieces.some((p) => p.isAlive && p.owner === "red");
-    if (!blueAlive) return "RED";
-    if (!redAlive) return "BLUE";
-    if (!hasAction("BLUE")) return "RED";
-    if (!hasAction("RED")) return "BLUE";
+    if (!flagAlive("blue")) return "RED";
+    if (!flagAlive("red")) return "BLUE";
     return null;
   },
 };

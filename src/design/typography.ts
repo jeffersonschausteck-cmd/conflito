@@ -1,6 +1,6 @@
 /**
  * Design System — Typography
- * Fonts, sizes, weights, and letter-spacing for Shadow Command's futuristic UI.
+ * Fonts, sizes, weights, and letter-spacing for Conflito's futuristic UI.
  */
 export const typography = {
   fonts: {

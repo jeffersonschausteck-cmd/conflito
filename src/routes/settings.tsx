@@ -3,7 +3,7 @@ import { ScreenShell } from "@/components/ScreenShell";
 import { GamePanel } from "@/components/ui/GamePanel";
 
 export const Route = createFileRoute("/settings")({
-  head: () => ({ meta: [{ title: "Settings — Shadow Command" }] }),
+  head: () => ({ meta: [{ title: "Settings — Conflito" }] }),
   component: SettingsPage,
 });
 

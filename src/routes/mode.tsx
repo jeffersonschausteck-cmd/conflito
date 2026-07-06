@@ -4,6 +4,7 @@ import { GameButton } from "@/components/ui/GameButton";
 import { GameCard } from "@/components/ui/GameCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { flowState, type GameMode } from "@/services/flowState";
+import { AuthClient } from "@/multiplayer/AuthClient";
 
 export const Route = createFileRoute("/mode")({
   head: () => ({
@@ -17,6 +18,7 @@ interface ModeCard {
   name: string;
   tagline: string;
   description: string;
+  online?: boolean;
   disabled?: boolean;
 }
 
@@ -37,22 +39,8 @@ const MODES: ModeCard[] = [
     id: "modern",
     name: "Multijogador",
     tagline: "Online",
-    description: "Dispute partidas contra outros comandantes.",
-    disabled: true,
-  },
-  {
-    id: "modern",
-    name: "Criar Sala",
-    tagline: "Personalizada",
-    description: "Crie uma sala privada para seus amigos.",
-    disabled: true,
-  },
-  {
-    id: "modern",
-    name: "Entrar em Sala",
-    tagline: "Código de Convite",
-    description: "Entre utilizando um código de partida.",
-    disabled: true,
+    description: "Dispute partidas contra outros comandantes. Requer login.",
+    online: true,
   },
 ];
 
@@ -61,8 +49,16 @@ function ModeSelectPage() {
 
   const onSelect = (mode: ModeCard) => {
     if (mode.disabled) return;
-    flowState.write({ mode: mode.id });
-    navigate({ to: "/faction" });
+
+    if (mode.online) {
+      flowState.write({ mode: mode.id, online: true });
+      const destination = AuthClient.isAuthenticated() ? "/online-lobby" : "/login";
+      navigate({ to: destination });
+      return;
+    }
+
+    flowState.write({ mode: mode.id, online: false });
+    navigate({ to: "/loading" });
   };
 
   return (
@@ -76,7 +72,7 @@ function ModeSelectPage() {
       <div className="grid gap-6 sm:grid-cols-2">
         {MODES.map((m) => (
           <GameCard
-            key={m.id}
+            key={m.name}
             state={m.disabled ? "disabled" : "default"}
             hoverable={!m.disabled}
             onClick={() => onSelect(m)}

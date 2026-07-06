@@ -1,0 +1,214 @@
+# DOCUMENTAÇÃO OFICIAL DO CONFLITO
+
+# 16 - Sistema de Contas
+
+**Projeto:** Conflito
+
+**Versão:** 1.0
+
+**Status:** Aprovado
+
+**Última atualização:** Julho de 2026
+
+---
+
+# Objetivo
+
+Este documento define o funcionamento do Sistema de Contas do Conflito.
+
+O Sistema de Contas será responsável pela identificação dos jogadores, autenticação, armazenamento de dados pessoais e integração com os serviços online do jogo.
+
+Nenhuma funcionalidade online poderá ser utilizada sem que o jogador esteja autenticado.
+
+---
+
+# Objetivos do Sistema
+
+O Sistema de Contas deverá permitir:
+
+- Cadastro de novos jogadores.
+- Autenticação.
+- Gerenciamento de perfil.
+- Recuperação de acesso.
+- Armazenamento do progresso.
+- Integração com o Multiplayer.
+- Integração com estatísticas.
+
+---
+
+# Cadastro
+
+Cada jogador deverá possuir uma conta única.
+
+Durante o cadastro serão informados:
+
+- Nome de usuário (Nickname)
+- E-mail
+- Senha
+
+O sistema poderá exigir confirmação do endereço de e-mail.
+
+---
+
+# Autenticação
+
+O acesso ao Conflito será realizado através de autenticação.
+
+Após a autenticação bem-sucedida, o jogador terá acesso aos recursos online disponíveis.
+
+Enquanto não estiver autenticado, o acesso ficará limitado às funcionalidades definidas para visitantes.
+
+---
+
+# Perfil do Jogador
+
+Cada conta possuirá um perfil individual.
+
+O perfil poderá armazenar:
+
+- Nickname
+- Avatar
+- Data de criação
+- Estatísticas
+- Histórico de partidas
+- Configurações pessoais
+
+---
+
+# Nickname
+
+Cada jogador deverá possuir um nome público.
+
+O Nickname será utilizado em:
+
+- Partidas online
+- Ranking
+- Histórico
+- Convites
+- Perfil
+
+O sistema deverá impedir a existência de dois Nicknames iguais.
+
+---
+
+# Avatar
+
+Cada jogador poderá selecionar um avatar.
+
+Na versão 1.0 poderão ser utilizados:
+
+- Avatares oficiais do jogo.
+
+O suporte para imagens personalizadas poderá ser implementado em versões futuras.
+
+---
+
+# Recuperação de Conta
+
+O Sistema deverá oferecer mecanismos seguros para recuperação de acesso.
+
+Exemplos:
+
+- Recuperação por e-mail.
+- Redefinição de senha.
+
+---
+
+# Sessão
+
+Após autenticação será criada uma sessão segura.
+
+Enquanto a sessão permanecer válida, o jogador não precisará realizar novo login.
+
+O sistema deverá permitir o encerramento manual da sessão.
+
+---
+
+# Integração com Multiplayer
+
+O Multiplayer utilizará a conta autenticada para:
+
+- Identificar o jogador.
+- Criar partidas.
+- Entrar em partidas.
+- Registrar resultados.
+- Controlar desconexões.
+
+---
+
+# Estatísticas
+
+Cada conta poderá armazenar:
+
+- Partidas disputadas.
+- Vitórias.
+- Derrotas.
+- Taxa de vitória.
+- Tempo de jogo.
+- Último acesso.
+
+Novas estatísticas poderão ser adicionadas em versões futuras.
+
+---
+
+# Segurança
+
+O Sistema de Contas deverá priorizar:
+
+- Proteção dos dados pessoais.
+- Comunicação segura.
+- Armazenamento seguro das credenciais.
+- Validação de autenticação.
+
+Senhas nunca deverão ser armazenadas em texto puro.
+
+---
+
+# Privacidade
+
+O Sistema deverá respeitar a privacidade dos jogadores.
+
+Somente as informações necessárias para o funcionamento do jogo poderão ser armazenadas.
+
+O tratamento dos dados deverá seguir a legislação aplicável.
+
+---
+
+# Evolução
+
+O Sistema de Contas deverá permitir futuramente:
+
+- Amigos.
+- Lista de bloqueados.
+- Sistema de convites.
+- Clãs.
+- Conquistas.
+- Ranking global.
+- Temporadas.
+- Integração com plataformas externas.
+
+---
+
+# Visão para a Versão 1.0
+
+Na versão 1.0 o Sistema de Contas deverá permitir:
+
+- Cadastro de jogadores.
+- Login.
+- Recuperação de senha.
+- Perfil individual.
+- Integração com Multiplayer.
+- Registro de estatísticas.
+- Sessão segura.
+
+---
+
+# Histórico de Alterações
+
+## Versão 1.0
+
+- Criação do documento oficial do Sistema de Contas.
+- Definição do cadastro e autenticação.
+- Definição do perfil do jogador.
+- Definição da integração com o Multiplayer.
+- Definição das diretrizes de segurança.

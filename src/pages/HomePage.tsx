@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Link } from "@tanstack/react-router";
 
 const STATS = [
-  { badge: "12", label: "Facções", color: "blue" },
+  { badge: "2", label: "Facções", color: "blue" },
   { badge: "1v1", label: "Competitivo", color: "green" },
   { badge: "∞", label: "Estratégias", color: "yellow" },
 ];

@@ -7,7 +7,6 @@ export function StatusBar() {
       </div>
       <div className="hidden items-center gap-6 sm:flex">
         <span>VERSÃO 0.1.0-ALPHA</span>
-        <span>REGIÃO: AURORA-7</span>
       </div>
       <div className="flex items-center gap-2">
         <span className="text-primary">◆</span>

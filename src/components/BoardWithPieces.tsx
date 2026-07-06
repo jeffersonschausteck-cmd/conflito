@@ -1,32 +1,28 @@
 import { useEffect, useState } from "react";
-import { Board } from "@/components/board";
-import { Piece } from "@/components/Piece";
+import { HexBoard, HEX_SIZE } from "@/components/board/hex/HexBoard";
+import { HexPieceLayer } from "@/components/board/hex/HexPieceLayer";
+import { HexEffectsLayer } from "@/components/board/hex/HexEffectsLayer";
 import { useGameState } from "@/hooks/useGameState";
 import { useRevealLog } from "@/hooks/useRevealLog";
-import { FogOfWarEngine, LOCAL_VIEWER } from "@/services/fogOfWarEngine";
 import { GameEngine } from "@/services/gameEngine";
+import { ACTIVE_MAP } from "@/maps";
+import type { MapDefinition } from "@/maps/types";
 import type { Piece as PieceModel } from "@/types/piece";
-import { BOARD_CONFIG } from "@/components/board/constants";
 
 export interface BoardWithPiecesProps {
-  rows?: number;
-  cols?: number;
+  map?: MapDefinition;
+  /** Notifies the parent screen of the last clicked cell (for the Terrain Panel). */
+  onTileClick?: (row: number, col: number) => void;
 }
 
 /**
- * Composes the Board with a non-invasive piece + movement overlay
- * driven entirely by the global GameState. Board and Piece remain
- * presentation-only; movement rules live in MovementEngine, combat
- * in CombatEngine — this component only *displays* their results.
- *
- * Layering (top -> bottom):
- *   1. Tile click overlay  (captures clicks on legal destination tiles)
- *   2. Pieces layer        (absolutely positioned, 250ms slide transitions)
- *   3. Combat feedback     (flash on the combat tile)
- *   4. Highlight layer     (cyan glow on legal tiles)
- *   5. Board               (existing visual + tile grid)
+ * Composes the modular hex board (Mapa → Terrenos → Hexágonos) with a
+ * non-invasive piece + effects overlay driven entirely by the global
+ * GameState. The board and its layers remain presentation-only;
+ * movement rules live in MovementEngine, combat in CombatEngine — this
+ * component only *displays* their results.
  */
-export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) {
+export function BoardWithPieces({ map = ACTIVE_MAP, onTileClick }: BoardWithPiecesProps) {
   const {
     state,
     selectedPiece,
@@ -39,9 +35,6 @@ export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) 
   const pieces = state.pieces;
   const selectedPieceId = selectedPiece?.id ?? null;
   const { justRevealed } = useRevealLog();
-
-  const cellW = 100 / cols;
-  const cellH = 100 / rows;
 
   // Auto-clear combat feedback after the flash animation completes so
   // the tile does not stay stuck in the animated state.
@@ -56,6 +49,8 @@ export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) 
     return () => window.clearTimeout(t);
   }, [lastCombat, clearLastCombat]);
 
+  const combatActive = combatTick !== null && lastCombat?.id === combatTick;
+
   const handlePieceClick = (piece: PieceModel) => {
     // If a piece is selected and the clicked piece sits on a legal
     // (enemy) destination, treat the click as an attack rather than a
@@ -66,133 +61,32 @@ export function BoardWithPieces({ rows = 10, cols = 10 }: BoardWithPiecesProps) 
       legalMoves.has(`${piece.currentRow}-${piece.currentColumn}`)
     ) {
       moveSelectedTo(piece.currentRow, piece.currentColumn);
-      return;
+    } else {
+      selectPiece(piece.id === selectedPieceId ? null : piece.id);
     }
-    selectPiece(piece.id === selectedPieceId ? null : piece.id);
+    onTileClick?.(piece.currentRow, piece.currentColumn);
+  };
+
+  const handleTileClick = (row: number, col: number) => {
+    if (legalMoves.has(`${row}-${col}`)) {
+      moveSelectedTo(row, col);
+    }
+    onTileClick?.(row, col);
   };
 
   return (
-    <div className="relative mx-auto aspect-square h-full max-h-[920px] w-full max-w-[920px]">
-      <Board rows={rows} cols={cols} />
-
-      {/* Inner overlay — matches Board's p-3 inner padding. */}
-      <div
-        className="pointer-events-none absolute"
-        style={{
-          top: BOARD_CONFIG.playArea.top,
-          right: BOARD_CONFIG.playArea.right,
-          bottom: BOARD_CONFIG.playArea.bottom,
-          left: BOARD_CONFIG.playArea.left,
-        }}
-      >
-        <div className="relative h-full w-full">
-          {/* Highlight layer: legal destination tiles */}
-          {legalMoves.size > 0 && (
-            <div className="pointer-events-none absolute inset-0">
-              {Array.from(legalMoves).map((key) => {
-                const [r, c] = key.split("-").map(Number);
-                return (
-                  <div
-                    key={`hl-${key}`}
-                    className="legal-tile absolute"
-                    style={{
-                      width: `calc(100% / ${cols})`,
-                      height: `calc(100% / ${rows})`,
-                      transform: `translate(${c * 100}%, ${r * 100}%)`,
-                    }}
-                  />
-                );
-              })}
-            </div>
-          )}
-
-          {/* Combat flash — brief neon-magenta pulse on the combat tile. */}
-          {lastCombat && combatTick === lastCombat.id && (
-            <div
-              key={`combat-${lastCombat.id}`}
-              className="combat-flash pointer-events-none absolute"
-              style={{
-                width: `calc(100% / ${cols})`,
-                height: `calc(100% / ${rows})`,
-                transform: `translate(${lastCombat.tile.column * 100}%, ${lastCombat.tile.row * 100}%)`,
-              }}
-            />
-          )}
-
-          {/* Pieces layer — smooth 250ms ease-in-out slide. */}
-          <div className="absolute inset-0">
-            {pieces
-              .filter((p) => p.isAlive)
-              .map((piece) => {
-                const isCombatTile =
-                  lastCombat &&
-                  combatTick === lastCombat.id &&
-                  piece.currentRow === lastCombat.tile.row &&
-                  piece.currentColumn === lastCombat.tile.column;
-                const isWinner =
-                  lastCombat &&
-                  combatTick === lastCombat.id &&
-                  lastCombat.survivorId === piece.id;
-                const isRevealPulse = justRevealed.has(piece.id);
-                const fxClass = [
-                  isCombatTile ? "combat-shake" : "",
-                  isWinner ? "combat-winner-glow" : "",
-                  isRevealPulse ? "piece-reveal-pulse" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ");
-                const hidden = FogOfWarEngine.isHiddenFrom(piece, LOCAL_VIEWER);
-                return (
-                  <div
-                    key={piece.id}
-                    className={`pointer-events-auto absolute flex items-center justify-center ${fxClass}`}
-                    style={{
-                      width: `calc(100% / ${cols})`,
-                      height: `calc(100% / ${rows})`,
-                      transform: `translate(${piece.currentColumn * 100}%, ${piece.currentRow * 100}%)`,
-                      transition: "transform 250ms ease-in-out",
-                      willChange: "transform",
-                    }}
-                  >
-                    <Piece
-                      piece={piece}
-                      selected={piece.id === selectedPieceId}
-                      hidden={hidden}
-                      onClick={handlePieceClick}
-                    />
-                  </div>
-                );
-              })}
-          </div>
-
-          {/* Click capture: only legal destination tiles are interactive. */}
-          {legalMoves.size > 0 && (
-            <div className="absolute inset-0">
-              {Array.from(legalMoves).map((key) => {
-                const [r, c] = key.split("-").map(Number);
-                return (
-                  <button
-                    key={`click-${key}`}
-                    type="button"
-                    aria-label={`Move to ${r},${c}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      moveSelectedTo(r, c);
-                    }}
-                    className="pointer-events-auto absolute cursor-pointer bg-transparent outline-none"
-                    style={{
-                      width: `calc(100% / ${cols})`,
-                      height: `calc(100% / ${rows})`,
-                      transform: `translate(${c * 100}%, ${r * 100}%)`,
-                    }}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+    <HexBoard map={map} legalTiles={legalMoves} onTileClick={handleTileClick}>
+      <HexEffectsLayer size={HEX_SIZE} lastCombat={lastCombat} active={combatActive} />
+      <HexPieceLayer
+        pieces={pieces}
+        size={HEX_SIZE}
+        selectedPieceId={selectedPieceId}
+        onPieceClick={handlePieceClick}
+        lastCombat={lastCombat}
+        combatActive={combatActive}
+        justRevealed={justRevealed}
+      />
+    </HexBoard>
   );
 }
 

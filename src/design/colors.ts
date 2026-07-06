@@ -1,6 +1,6 @@
 /**
  * Design System — Colors
- * Shadow Command cyberpunk palette.
+ * Conflito cyberpunk palette.
  */
 export const colors = {
   // Backgrounds

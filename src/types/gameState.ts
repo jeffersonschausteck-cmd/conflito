@@ -17,6 +17,12 @@ export const playerToOwner = (player: Player): PlayerOwner =>
 export interface GameStateConfig {
   rows: number;
   cols: number;
+  /**
+   * Coordinates ("row-col") that are permanently impassable (Sprint 2.5:
+   * terrain obstacles). Supplied by the Interface from the active map —
+   * the Engine treats it as opaque data, never as a map/terrain concept.
+   */
+  blockedTiles?: ReadonlySet<string>;
 }
 
 /**

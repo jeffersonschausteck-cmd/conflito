@@ -1,6 +1,6 @@
 /**
  * Design System — Shadows
- * Neon glow and ambient drop-shadow strings for Shadow Command's UI.
+ * Neon glow and ambient drop-shadow strings for Conflito's UI.
  */
 export const shadows = {
   /** Neon glow — Blue */

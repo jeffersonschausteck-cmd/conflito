@@ -12,9 +12,13 @@ import type { CombatOutcome, CombatResult } from "@/types/combat";
  *   - Reveal both combatants
  *   - Produce a new pieces array + CombatResult record
  *
- * Version 0.1 rules:
+ * Rules (Documento 04 §10-11):
  *   - Higher rank wins; loser removed.
  *   - Equal rank => mutual destruction (both removed).
+ *   - Special exceptions (checked before rank comparison):
+ *     - Espião attacking the Comandante always wins, regardless of rank.
+ *     - Only the Engenheiro defeats a Bomba; any other attacker is
+ *       eliminated and the Bomba remains on the board.
  *   - Winner occupies the target tile.
  *   - Both pieces become isRevealed after combat.
  *
@@ -39,6 +43,15 @@ export interface ResolveOutcome {
 }
 
 function decide(attacker: Piece, defender: Piece): CombatOutcome {
+  // Espião: vence o Comandante sempre, mas apenas quando ataca.
+  if (attacker.pieceType === "spy" && defender.pieceType === "commander") {
+    return "ATTACKER_WINS";
+  }
+  // Bomba: só o Engenheiro a neutraliza; qualquer outro atacante morre
+  // e a bomba permanece no tabuleiro (a defesa "vence" nesse caso).
+  if (defender.pieceType === "bomb") {
+    return attacker.pieceType === "engineer" ? "ATTACKER_WINS" : "DEFENDER_WINS";
+  }
   if (attacker.rank > defender.rank) return "ATTACKER_WINS";
   if (attacker.rank < defender.rank) return "DEFENDER_WINS";
   return "MUTUAL_DESTRUCTION";

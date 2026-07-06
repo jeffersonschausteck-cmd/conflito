@@ -4,13 +4,13 @@ import { HomePage } from "@/pages/HomePage";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Project Shadow Command — Turn-Based Strategy" },
+      { title: "Conflito — Turn-Based Strategy" },
       {
         name: "description",
         content:
-          "A modern turn-based strategy board game where every move matters. Command your forces in the shadows.",
+          "A modern turn-based strategy board game where every move matters. Command your forces on the battlefield.",
       },
-      { property: "og:title", content: "Project Shadow Command" },
+      { property: "og:title", content: "Conflito" },
       {
         property: "og:description",
         content:

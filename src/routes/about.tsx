@@ -4,14 +4,14 @@ import { GamePanel } from "@/components/ui/GamePanel";
 import { GameCard } from "@/components/ui/GameCard";
 
 export const Route = createFileRoute("/about")({
-  head: () => ({ meta: [{ title: "About — Shadow Command" }] }),
+  head: () => ({ meta: [{ title: "About — Conflito" }] }),
   component: AboutPage,
 });
 
 const BUILD_INFO = [
   ["VER",    "0.1.0"],
-  ["ENGINE", "SHADE"],
-  ["REGION", "AURORA-7"],
+  ["ENGINE", "CONFLITO"],
+  ["STATUS", "ONLINE"],
 ] as const;
 
 function AboutPage() {
@@ -19,17 +19,16 @@ function AboutPage() {
     <ScreenShell
       eyebrow="// DOSSIER"
       title="About"
-      subtitle="Project Shadow Command — Build 0.1.0-Alpha"
+      subtitle="Conflito — Build 0.1.0-Alpha"
       backTo="/"
       backLabel="← Home"
     >
       <div className="mx-auto max-w-2xl space-y-6 text-left">
         <GamePanel variant="blue" eyebrow="// INTEL BRIEF">
           <p className="text-sm leading-relaxed text-muted-foreground">
-            <span className="text-primary">Shadow Command</span> is a modern
+            <span className="text-primary">Conflito</span> is a modern
             turn-based strategy board game where every move matters. Command
-            asymmetric forces across a 10×10 tactical grid in a near-future
-            cyberpunk theatre.
+            asymmetric forces across a 10×10 tactical grid.
           </p>
         </GamePanel>
 
@@ -53,7 +52,7 @@ function AboutPage() {
         </div>
 
         <p className="text-center font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground/70">
-          © 2049 SHADOWNET INDUSTRIES // ALL OPERATIONS CLASSIFIED
+          © 2026 SCHAUSTECK GAME STUDIO
         </p>
       </div>
     </ScreenShell>

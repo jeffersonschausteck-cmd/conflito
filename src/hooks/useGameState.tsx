@@ -31,7 +31,14 @@ export interface GameStateApi {
   dispatch: (action: GameAction) => void;
 }
 
-const GameStateContext = createContext<GameStateApi | null>(null);
+/**
+ * Exportado (além do hook) para que `OnlineGameStateProvider`
+ * (Sprint MP-02) possa alimentar o mesmo contexto com dados vindos do
+ * servidor — assim toda a Interface existente (BoardWithPieces,
+ * CommandCenter, PlayerPanel, MatchActionsBar etc.) funciona sem
+ * nenhuma mudança, seja a partida local ou online.
+ */
+export const GameStateContext = createContext<GameStateApi | null>(null);
 
 export interface GameStateProviderProps {
   config?: Partial<GameStateConfig>;

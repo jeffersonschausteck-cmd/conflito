@@ -108,23 +108,27 @@ export const GameEngine = {
     return { rows: state.config.rows, cols: state.config.cols };
   },
 
+  /** Blocked-tile set derived from the current config — pure helper. */
+  blockedTiles(state: GameState): ReadonlySet<string> {
+    return state.config.blockedTiles ?? new Set();
+  },
+
   /**
    * Legal destination tiles for the currently selected piece under
-   * MovementEngine v0.1 rules (1-tile orthogonal). Delegated so all
-   * rule knowledge lives in the movement layer.
+   * MovementEngine's official rules. Delegated so all rule knowledge
+   * (including occupancy and terrain obstacles) lives in the movement layer.
    */
   legalMovesForSelection(state: GameState): Set<string> {
     if (state.gameOver || state.actionLocked) return new Set();
     const selected = GameEngine.selectedPiece(state);
     if (!selected) return new Set();
-    const raw = MovementEngine.getLegalMoves(selected, GameEngine.bounds(state));
-    const out = new Set<string>();
-    for (const c of raw) {
-      const occupant = PieceManager.findAt(state.pieces, c.row, c.column);
-      if (occupant && occupant.owner === selected.owner) continue;
-      out.add(`${c.row}-${c.column}`);
-    }
-    return out;
+    const raw = MovementEngine.getLegalMoves(
+      selected,
+      state.pieces,
+      GameEngine.bounds(state),
+      GameEngine.blockedTiles(state),
+    );
+    return new Set(raw.map((c) => `${c.row}-${c.column}`));
   },
 
   /**
@@ -178,7 +182,16 @@ export const GameEngine = {
     if (!selected) return state;
     if (ownerToPlayer(selected.owner) !== state.currentPlayer) return state;
     const bounds = GameEngine.bounds(state);
-    if (!MovementEngine.isLegalMove(selected, target, bounds)) return state;
+    if (
+      !MovementEngine.isLegalMove(
+        selected,
+        state.pieces,
+        target,
+        bounds,
+        GameEngine.blockedTiles(state),
+      )
+    )
+      return state;
 
     const defender = CombatEngine.detectCollision(
       state.pieces,

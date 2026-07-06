@@ -1,5 +1,6 @@
 import { useGameState } from "@/hooks/useGameState";
 import { PIECES } from "@/config/pieces";
+import { GamePanel } from "@/components/ui/GamePanel";
 import { SpriteIcon } from "./SpriteIcon";
 
 export function CommandCenter() {
@@ -7,17 +8,12 @@ export function CommandCenter() {
 
     if (!selectedPiece) {
         return (
-            <div className="flex max-h-[85vh] flex-col rounded-2xl border border-cyan-500/20 bg-slate-900/70 p-6 backdrop-blur-xl shadow-[0_0_30px_rgba(0,255,255,0.08)]">
-
-                <h2 className="mb-8 text-center text-lg font-bold uppercase tracking-[0.35em] text-cyan-300">
-                    CENTRO DE COMANDO
-                </h2>
-
-                <div className="flex flex-1 items-center justify-center">
+            <GamePanel variant="blue" eyebrow="// COMANDO" title="Peça Selecionada" className="flex h-full flex-col">
+                <div className="flex flex-1 items-center justify-center py-4">
 
                     <div className="text-center">
 
-                        <div className="mb-3 text-6xl opacity-30">
+                        <div className="mb-3 text-5xl opacity-30">
                             🎖️
                         </div>
 
@@ -32,8 +28,7 @@ export function CommandCenter() {
                     </div>
 
                 </div>
-
-            </div>
+            </GamePanel>
         );
     }
 
@@ -45,73 +40,46 @@ export function CommandCenter() {
             : "VERMELHA";
 
     return (
-        <div className="flex max-h-[85vh] flex-col rounded-2xl border border-cyan-500/20 bg-slate-900/70 p-6 backdrop-blur-xl shadow-[0_0_35px_rgba(0,255,255,0.08)]">
+        <GamePanel
+            variant={selectedPiece.owner === "blue" ? "blue" : "red"}
+            eyebrow="// COMANDO"
+            title="Peça Selecionada"
+            className="max-h-[38vh] overflow-y-auto"
+        >
+            {/* IMAGEM + NOME */}
 
-            {/* TÍTULO */}
+            <div className="flex items-center gap-4">
 
-            <h2 className="text-center text-lg font-bold uppercase tracking-[0.35em] text-cyan-300">
-                CENTRO DE COMANDO
-            </h2>
-
-            {/* IMAGEM */}
-
-            <div className="my-6 flex justify-center">
-
-                <div className="rounded-full border border-cyan-500/30 bg-slate-950/70 p-4 shadow-[0_0_25px_rgba(0,255,255,0.15)]">
+                <div className="shrink-0 rounded-full border border-cyan-500/30 bg-slate-950/70 p-2 shadow-[0_0_25px_rgba(0,255,255,0.15)]">
 
                     <SpriteIcon
                         type={selectedPiece.pieceType}
                         faction={selectedPiece.owner}
-                        size={150}
+                        size={64}
                     />
 
                 </div>
 
-            </div>
-
-            {/* NOME */}
-
-            <div className="text-center">
-
-                <div className="text-cyan-500 tracking-[0.4em]">
-                    ★★★★★
-                </div>
-
-                <h3 className="mt-2 text-2xl font-bold uppercase tracking-[0.18em] text-white">
-                    {info.nome}
-                </h3>
-
-                <div className="mt-2 text-cyan-500 tracking-[0.4em]">
-                    ★★★★★
+                <div>
+                    <h3 className="font-bold uppercase tracking-[0.18em] text-white">
+                        {info.nome}
+                    </h3>
+                    <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
+                        Equipe {equipe}
+                    </div>
                 </div>
 
             </div>
 
             {/* DADOS */}
 
-            <div className="my-6 rounded-xl border border-cyan-500/15 bg-slate-950/40 p-4">
+            <div className="my-4 rounded-xl border border-cyan-500/15 bg-slate-950/40 p-3">
 
                 <Linha titulo="Patente" valor={info.patente ? String(info.patente) : "—"} />
 
                 <Linha titulo="Movimento" valor={`${info.movimento} casas`} />
 
-                <Linha titulo="Equipe" valor={equipe} />
-
                 <Linha titulo="Estado" valor="PRONTO" />
-
-            </div>
-
-            {/* DESCRIÇÃO */}
-
-            <div className="mb-5">
-
-                <div className="mb-2 border-b border-cyan-500/15 pb-2 text-xs font-bold uppercase tracking-[0.35em] text-cyan-300">
-                    DESCRIÇÃO
-                </div>
-
-                <p className="text-sm leading-6 text-slate-300">
-                    {info.descricao}
-                </p>
 
             </div>
 
@@ -119,17 +87,17 @@ export function CommandCenter() {
 
             <div>
 
-                <div className="mb-2 border-b border-cyan-500/15 pb-2 text-xs font-bold uppercase tracking-[0.35em] text-cyan-300">
-                    HABILIDADE
+                <div className="mb-1 text-xs font-bold uppercase tracking-[0.3em] text-cyan-300">
+                    Habilidade
                 </div>
 
-                <p className="text-sm leading-6 text-slate-300">
+                <p className="text-xs leading-5 text-slate-300">
                     {info.habilidade}
                 </p>
 
             </div>
 
-        </div>
+        </GamePanel>
     );
 }
 
@@ -142,13 +110,13 @@ function Linha({
 }) {
     return (
 
-        <div className="flex items-center justify-between border-b border-slate-800 py-2 last:border-0">
+        <div className="flex items-center justify-between border-b border-slate-800 py-1.5 last:border-0">
 
-            <span className="text-sm uppercase tracking-[0.15em] text-slate-400">
+            <span className="text-xs uppercase tracking-[0.1em] text-slate-400">
                 {titulo}
             </span>
 
-            <span className="font-bold uppercase tracking-[0.08em] text-cyan-300">
+            <span className="text-xs font-bold uppercase tracking-[0.08em] text-cyan-300">
                 {valor}
             </span>
 

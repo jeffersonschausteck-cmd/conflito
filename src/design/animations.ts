@@ -1,6 +1,6 @@
 /**
  * Design System — Animations
- * Transition presets and reusable keyframe helpers for Shadow Command's UI.
+ * Transition presets and reusable keyframe helpers for Conflito's UI.
  */
 export const animations = {
   /** Duration presets (ms strings) */

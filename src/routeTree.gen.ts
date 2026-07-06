@@ -9,16 +9,23 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WaitingRoomRouteImport } from './routes/waiting-room'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ResultRouteImport } from './routes/result'
+import { Route as OnlineLobbyRouteImport } from './routes/online-lobby'
 import { Route as ModeRouteImport } from './routes/mode'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as LoadingRouteImport } from './routes/loading'
 import { Route as GameRouteImport } from './routes/game'
-import { Route as FactionRouteImport } from './routes/faction'
 import { Route as DeploymentRouteImport } from './routes/deployment'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 
+const WaitingRoomRoute = WaitingRoomRouteImport.update({
+  id: '/waiting-room',
+  path: '/waiting-room',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -29,9 +36,19 @@ const ResultRoute = ResultRouteImport.update({
   path: '/result',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnlineLobbyRoute = OnlineLobbyRouteImport.update({
+  id: '/online-lobby',
+  path: '/online-lobby',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ModeRoute = ModeRouteImport.update({
   id: '/mode',
   path: '/mode',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoadingRoute = LoadingRouteImport.update({
@@ -42,11 +59,6 @@ const LoadingRoute = LoadingRouteImport.update({
 const GameRoute = GameRouteImport.update({
   id: '/game',
   path: '/game',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FactionRoute = FactionRouteImport.update({
-  id: '/faction',
-  path: '/faction',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeploymentRoute = DeploymentRouteImport.update({
@@ -69,35 +81,41 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/deployment': typeof DeploymentRoute
-  '/faction': typeof FactionRoute
   '/game': typeof GameRoute
   '/loading': typeof LoadingRoute
+  '/login': typeof LoginRoute
   '/mode': typeof ModeRoute
+  '/online-lobby': typeof OnlineLobbyRoute
   '/result': typeof ResultRoute
   '/settings': typeof SettingsRoute
+  '/waiting-room': typeof WaitingRoomRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/deployment': typeof DeploymentRoute
-  '/faction': typeof FactionRoute
   '/game': typeof GameRoute
   '/loading': typeof LoadingRoute
+  '/login': typeof LoginRoute
   '/mode': typeof ModeRoute
+  '/online-lobby': typeof OnlineLobbyRoute
   '/result': typeof ResultRoute
   '/settings': typeof SettingsRoute
+  '/waiting-room': typeof WaitingRoomRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/deployment': typeof DeploymentRoute
-  '/faction': typeof FactionRoute
   '/game': typeof GameRoute
   '/loading': typeof LoadingRoute
+  '/login': typeof LoginRoute
   '/mode': typeof ModeRoute
+  '/online-lobby': typeof OnlineLobbyRoute
   '/result': typeof ResultRoute
   '/settings': typeof SettingsRoute
+  '/waiting-room': typeof WaitingRoomRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -105,50 +123,65 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/deployment'
-    | '/faction'
     | '/game'
     | '/loading'
+    | '/login'
     | '/mode'
+    | '/online-lobby'
     | '/result'
     | '/settings'
+    | '/waiting-room'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/deployment'
-    | '/faction'
     | '/game'
     | '/loading'
+    | '/login'
     | '/mode'
+    | '/online-lobby'
     | '/result'
     | '/settings'
+    | '/waiting-room'
   id:
     | '__root__'
     | '/'
     | '/about'
     | '/deployment'
-    | '/faction'
     | '/game'
     | '/loading'
+    | '/login'
     | '/mode'
+    | '/online-lobby'
     | '/result'
     | '/settings'
+    | '/waiting-room'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   DeploymentRoute: typeof DeploymentRoute
-  FactionRoute: typeof FactionRoute
   GameRoute: typeof GameRoute
   LoadingRoute: typeof LoadingRoute
+  LoginRoute: typeof LoginRoute
   ModeRoute: typeof ModeRoute
+  OnlineLobbyRoute: typeof OnlineLobbyRoute
   ResultRoute: typeof ResultRoute
   SettingsRoute: typeof SettingsRoute
+  WaitingRoomRoute: typeof WaitingRoomRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/waiting-room': {
+      id: '/waiting-room'
+      path: '/waiting-room'
+      fullPath: '/waiting-room'
+      preLoaderRoute: typeof WaitingRoomRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -163,11 +196,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResultRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/online-lobby': {
+      id: '/online-lobby'
+      path: '/online-lobby'
+      fullPath: '/online-lobby'
+      preLoaderRoute: typeof OnlineLobbyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mode': {
       id: '/mode'
       path: '/mode'
       fullPath: '/mode'
       preLoaderRoute: typeof ModeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/loading': {
@@ -182,13 +229,6 @@ declare module '@tanstack/react-router' {
       path: '/game'
       fullPath: '/game'
       preLoaderRoute: typeof GameRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/faction': {
-      id: '/faction'
-      path: '/faction'
-      fullPath: '/faction'
-      preLoaderRoute: typeof FactionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/deployment': {
@@ -219,12 +259,14 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   DeploymentRoute: DeploymentRoute,
-  FactionRoute: FactionRoute,
   GameRoute: GameRoute,
   LoadingRoute: LoadingRoute,
+  LoginRoute: LoginRoute,
   ModeRoute: ModeRoute,
+  OnlineLobbyRoute: OnlineLobbyRoute,
   ResultRoute: ResultRoute,
   SettingsRoute: SettingsRoute,
+  WaitingRoomRoute: WaitingRoomRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

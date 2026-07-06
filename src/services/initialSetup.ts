@@ -1,67 +1,32 @@
+import { PIECES } from "@/config/pieces";
 import { PieceManager } from "@/services/pieceManager";
 import type { Piece, PieceType, PlayerOwner } from "@/types/piece";
 
 /**
- * Temporary deployment template. Each row is 10 columns wide and maps
- * column index -> piece archetype. Ranks are placeholders; rules will
- * own the canonical values later.
+ * Deployment template — 4 columns deep x 10 rows per side. Only the
+ * piece TYPE is declared here; rank and mobility are derived from
+ * `PIECES` (the single official source of truth — Documento 06) so
+ * this grid can never drift out of sync with the rest of the app.
  *
- * Row 0 = back rank (closest to the player's home edge).
- * Row 3 = front rank (closest to the midfield).
+ * Counts match Documento 06 exactly: 1 Comandante, 2 Oficiais,
+ * 3 Franco-atiradores, 12 Infantarias, 8 Engenheiros, 6 Exploradores,
+ * 1 Espião, 6 Bombas, 1 Bandeira = 40 peças.
+ *
+ * Sprint 2.5: teams now face each other left/right instead of
+ * top/bottom, so the outer index is DEPTH (columns from the player's
+ * home edge, 0 = back rank) and the inner index is POSITION along the
+ * shared vertical edge (row). The array content is unchanged from
+ * Sprint 2 — only how it's read changed.
  */
-const DEPLOYMENT: Array<{ type: PieceType; rank: number; canMove?: boolean }[]> = [
-  // Back rank — command + objective
-  [
-    { type: "flag", rank: 0, canMove: false },
-    { type: "bomb", rank: 0, canMove: false },
-    { type: "officer", rank: 8 },
-    { type: "commander", rank: 10 },
-    { type: "officer", rank: 8 },
-    { type: "officer", rank: 8 },
-    { type: "spy", rank: 1 },
-    { type: "bomb", rank: 0, canMove: false },
-    { type: "sniper", rank: 7 },
-    { type: "flag", rank: 0, canMove: false },
-  ],
-  // Mid-back — specialists
-  [
-    { type: "sniper", rank: 7 },
-    { type: "engineer", rank: 5 },
-    { type: "engineer", rank: 5 },
-    { type: "officer", rank: 8 },
-    { type: "spy", rank: 1 },
-    { type: "engineer", rank: 5 },
-    { type: "engineer", rank: 5 },
-    { type: "sniper", rank: 7 },
-    { type: "officer", rank: 8 },
-    { type: "sniper", rank: 7 },
-  ],
-  // Mid-front — infantry line
-  [
-    { type: "infantry", rank: 4 },
-    { type: "infantry", rank: 4 },
-    { type: "infantry", rank: 4 },
-    { type: "infantry", rank: 4 },
-    { type: "infantry", rank: 4 },
-    { type: "infantry", rank: 4 },
-    { type: "infantry", rank: 4 },
-    { type: "infantry", rank: 4 },
-    { type: "infantry", rank: 4 },
-    { type: "infantry", rank: 4 },
-  ],
-  // Front rank — scouts
-  [
-    { type: "scout", rank: 2 },
-    { type: "scout", rank: 2 },
-    { type: "scout", rank: 2 },
-    { type: "scout", rank: 2 },
-    { type: "scout", rank: 2 },
-    { type: "scout", rank: 2 },
-    { type: "scout", rank: 2 },
-    { type: "scout", rank: 2 },
-    { type: "scout", rank: 2 },
-    { type: "scout", rank: 2 },
-  ],
+const DEPLOYMENT: PieceType[][] = [
+  // Back rank (depth 0) — command + objective
+  ["bomb", "officer", "bomb", "commander", "flag", "bomb", "officer", "bomb", "bomb", "bomb"],
+  // Mid-back (depth 1) — specialists
+  ["engineer", "engineer", "engineer", "spy", "engineer", "engineer", "sniper", "engineer", "engineer", "engineer"],
+  // Mid-front (depth 2) — infantry line
+  ["infantry", "infantry", "infantry", "infantry", "infantry", "infantry", "infantry", "infantry", "infantry", "infantry"],
+  // Front rank (depth 3) — scouts + remaining snipers/infantry
+  ["scout", "scout", "sniper", "infantry", "scout", "scout", "infantry", "sniper", "scout", "scout"],
 ];
 
 export interface InitialSetupOptions {
@@ -71,8 +36,8 @@ export interface InitialSetupOptions {
 
 /**
  * Generates every piece for both players. Performs NO legality checks
- * — that's the rules service's job. Blue deploys at the bottom, red
- * mirrors at the top.
+ * — that's the rules service's job. Azul deploys on the left edge,
+ * Vermelho mirrors on the right edge (Sprint 2.5 orientation).
  */
 export const InitialSetup = {
   generate({ rows = 10, cols = 10 }: InitialSetupOptions = {}): Piece[] {
@@ -85,35 +50,37 @@ export const InitialSetup = {
       return i;
     };
 
-    for (let r = 0; r < DEPLOYMENT.length; r++) {
-      for (let c = 0; c < Math.min(cols, DEPLOYMENT[r].length); c++) {
-        const spec = DEPLOYMENT[r][c];
+    for (let depth = 0; depth < DEPLOYMENT.length; depth++) {
+      for (let pos = 0; pos < Math.min(rows, DEPLOYMENT[depth].length); pos++) {
+        const type = DEPLOYMENT[depth][pos];
+        const info = PIECES[type];
+        const rank = info?.patente ?? 0;
+        const canMove = info?.podeMover ?? true;
 
-        // Blue — bottom of the board, rows [rows-4 .. rows-1].
-        const blueRow = rows - 1 - r;
+        // Blue — left edge, columns [0 .. 3].
         pieces.push(
           PieceManager.create({
             owner: "blue",
-            pieceType: spec.type,
-            rank: spec.rank,
-            row: blueRow,
-            column: c,
-            index: nextIndex("blue", spec.type),
-            canMove: spec.canMove ?? true,
+            pieceType: type,
+            rank,
+            row: pos,
+            column: depth,
+            index: nextIndex("blue", type),
+            canMove,
             isRevealed: false, // fog of war — owner visibility resolved by FogOfWarEngine
           }),
         );
 
-        // Red — top of the board, mirrored.
+        // Red — right edge, mirrored across the vertical center line.
         pieces.push(
           PieceManager.create({
             owner: "red",
-            pieceType: spec.type,
-            rank: spec.rank,
-            row: r,
-            column: cols - 1 - c,
-            index: nextIndex("red", spec.type),
-            canMove: spec.canMove ?? true,
+            pieceType: type,
+            rank,
+            row: pos,
+            column: cols - 1 - depth,
+            index: nextIndex("red", type),
+            canMove,
             isRevealed: false,
           }),
         );

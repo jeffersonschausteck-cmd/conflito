@@ -45,8 +45,8 @@ export function useMovement(options: UseMovementOptions = {}): UseMovementApi {
   } = usePieces({ rows, cols });
 
   const legalMoves = useMemo(
-    () => MovementEngine.legalMoveSet(selectedPiece, bounds),
-    [selectedPiece, bounds],
+    () => MovementEngine.legalMoveSet(selectedPiece, pieces, bounds),
+    [selectedPiece, pieces, bounds],
   );
 
   const onPieceClick = useCallback(
@@ -59,7 +59,7 @@ export function useMovement(options: UseMovementOptions = {}): UseMovementApi {
   const onTileClick = useCallback(
     (coord: Coord) => {
       if (!selectedPiece) return;
-      if (!MovementEngine.isLegalMove(selectedPiece, coord, bounds)) {
+      if (!MovementEngine.isLegalMove(selectedPiece, pieces, coord, bounds)) {
         selectPiece(null);
         return;
       }
@@ -68,7 +68,7 @@ export function useMovement(options: UseMovementOptions = {}): UseMovementApi {
       movePiece(selectedPiece.id, coord.row, coord.column);
       selectPiece(null);
     },
-    [selectedPiece, bounds, movePiece, selectPiece],
+    [selectedPiece, pieces, bounds, movePiece, selectPiece],
   );
 
   return {

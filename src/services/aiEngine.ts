@@ -57,7 +57,12 @@ export const AIEngine = {
     const candidates: ScoredMove[] = [];
 
     for (const piece of own) {
-      const moves = MovementEngine.getLegalMoves(piece, bounds);
+      const moves = MovementEngine.getLegalMoves(
+        piece,
+        state.pieces,
+        bounds,
+        state.config.blockedTiles,
+      );
       for (const target of moves) {
         // Skip friendly-occupied tiles — GameEngine would reject them.
         const occupant = PieceManager.findAt(

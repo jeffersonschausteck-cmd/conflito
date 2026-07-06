@@ -4,47 +4,65 @@ export interface PieceInfo {
     movimento: number;
     descricao: string;
     habilidade: string;
+    /** Quantidade oficial por exército (Documento 06). Fonte única — não duplicar em outros arquivos. */
+    quantidade: number;
+    /** Fonte única para a regra "peças imóveis" (Documento 04 §9). */
+    podeMover: boolean;
+    /** Fonte única para a regra especial de movimento do Explorador (Documento 04 §11). */
+    movimentoEmLinha: boolean;
 }
 
 export const PIECES: Record<string, PieceInfo> = {
     commander: {
         nome: "Comandante",
-        patente: 9,
+        patente: 7,
         movimento: 2,
         descricao:
             "Líder máximo das tropas. Sua captura encerra a missão.",
         habilidade:
             "Coordena as unidades e protege a Bandeira.",
+        quantidade: 1,
+        podeMover: true,
+        movimentoEmLinha: false,
     },
 
     officer: {
         nome: "Oficial",
-        patente: 8,
+        patente: 6,
         movimento: 2,
         descricao:
             "Veterano responsável por comandar a linha de frente.",
         habilidade:
             "Excelente em confrontos diretos.",
+        quantidade: 2,
+        podeMover: true,
+        movimentoEmLinha: false,
     },
 
     sniper: {
         nome: "Atirador",
-        patente: 7,
+        patente: 5,
         movimento: 2,
         descricao:
             "Especialista em combate de precisão.",
         habilidade:
             "Grande poder ofensivo.",
+        quantidade: 3,
+        podeMover: true,
+        movimentoEmLinha: false,
     },
 
     engineer: {
         nome: "Engenheiro",
-        patente: 5,
+        patente: 3,
         movimento: 2,
         descricao:
             "Responsável por suporte técnico e operações especiais.",
         habilidade:
             "Versátil em campo.",
+        quantidade: 8,
+        podeMover: true,
+        movimentoEmLinha: false,
     },
 
     infantry: {
@@ -55,6 +73,9 @@ export const PIECES: Record<string, PieceInfo> = {
             "Soldado padrão utilizado na maior parte das missões.",
         habilidade:
             "Equilibrado em ataque e defesa.",
+        quantidade: 12,
+        podeMover: true,
+        movimentoEmLinha: false,
     },
 
     scout: {
@@ -65,6 +86,9 @@ export const PIECES: Record<string, PieceInfo> = {
             "Unidade de reconhecimento extremamente veloz.",
         habilidade:
             "Move-se por diversas casas em linha reta.",
+        quantidade: 6,
+        podeMover: true,
+        movimentoEmLinha: true,
     },
 
     spy: {
@@ -75,6 +99,9 @@ export const PIECES: Record<string, PieceInfo> = {
             "Especialista em infiltração.",
         habilidade:
             "Pode eliminar unidades de alta patente quando ataca primeiro.",
+        quantidade: 1,
+        podeMover: true,
+        movimentoEmLinha: false,
     },
 
     bomb: {
@@ -85,6 +112,9 @@ export const PIECES: Record<string, PieceInfo> = {
             "Armadilha explosiva posicionada no campo.",
         habilidade:
             "Destrói quase qualquer unidade atacante.",
+        quantidade: 6,
+        podeMover: false,
+        movimentoEmLinha: false,
     },
 
     flag: {
@@ -95,5 +125,8 @@ export const PIECES: Record<string, PieceInfo> = {
             "Objetivo principal da missão.",
         habilidade:
             "Se capturada, a partida termina.",
+        quantidade: 1,
+        podeMover: false,
+        movimentoEmLinha: false,
     },
 };

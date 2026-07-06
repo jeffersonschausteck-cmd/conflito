@@ -1,3 +1,4 @@
+import { PIECES } from "@/config/pieces";
 import { PieceManager } from "@/services/pieceManager";
 import type { Piece, PieceId } from "@/types/piece";
 import type { BoardBounds, Coord, Move, MoveResult } from "@/types/movement";
@@ -11,10 +12,19 @@ import type { BoardBounds, Coord, Move, MoveResult } from "@/types/movement";
  *   - Execute a move (returns a new pieces array + Move record)
  *   - Cancel a pending move (returns null selection)
  *
- * Version 0.1 rules:
- *   - Movable pieces step exactly one tile orthogonally (N/S/E/W).
- *   - No diagonal movement.
- *   - Occupancy, combat, fog-of-war and victory are intentionally ignored.
+ * Rules (Documento 04 §8, §9, §11):
+ *   - Most pieces step exactly one tile orthogonally (N/S/E/W).
+ *   - The Explorador (scout) moves any number of tiles in a straight
+ *     line, stopping the instant it reaches the board edge, a
+ *     friendly piece (blocked), or an enemy piece (attack target).
+ *   - No diagonal movement for any piece.
+ *   - A piece may never land on a tile occupied by its own team, and
+ *     may never move through another piece — both are enforced here
+ *     so the Motor remains the sole authority on legality (doc 07).
+ *   - Terrain obstacles (Sprint 2.5: forest/water/mountain) behave like
+ *     a wall — a blocked coordinate can never be entered nor crossed.
+ *     The Engine only ever sees a plain `blockedTiles` coordinate set;
+ *     it has no notion of "forest" or any concrete map.
  *
  * The engine is pure so it can run identically in:
  *   - the local React app
@@ -37,34 +47,70 @@ function coordKey(c: Coord): string {
   return `${c.row}-${c.column}`;
 }
 
+function movesInLine(piece: Piece): boolean {
+  return PIECES[piece.pieceType]?.movimentoEmLinha === true;
+}
+
+const NO_BLOCKED_TILES: ReadonlySet<string> = new Set();
+
 export const MovementEngine = {
-  /** All legal destination tiles for a given piece under v0.1 rules. */
-  getLegalMoves(piece: Piece | null | undefined, bounds: BoardBounds): Coord[] {
+  /** All legal destination tiles for a given piece under the official rules. */
+  getLegalMoves(
+    piece: Piece | null | undefined,
+    pieces: Piece[],
+    bounds: BoardBounds,
+    blockedTiles: ReadonlySet<string> = NO_BLOCKED_TILES,
+  ): Coord[] {
     if (!piece || !piece.isAlive || !piece.canMove) return [];
+    const lineMover = movesInLine(piece);
     const out: Coord[] = [];
+
     for (const [dr, dc] of ORTHOGONAL_OFFSETS) {
-      const row = piece.currentRow + dr;
-      const column = piece.currentColumn + dc;
-      if (inBounds(row, column, bounds)) {
+      let row = piece.currentRow + dr;
+      let column = piece.currentColumn + dc;
+
+      while (inBounds(row, column, bounds)) {
+        if (blockedTiles.has(coordKey({ row, column }))) break;
+
+        const occupant = PieceManager.findAt(pieces, row, column);
+        if (occupant) {
+          // Cannot cross any piece. An enemy on this tile is a legal
+          // attack destination; a friendly piece blocks entirely.
+          if (occupant.owner !== piece.owner) out.push({ row, column });
+          break;
+        }
         out.push({ row, column });
+        if (!lineMover) break;
+        row += dr;
+        column += dc;
       }
     }
+
     return out;
   },
 
   /** Quick set-based lookup helper for highlight rendering. */
-  legalMoveSet(piece: Piece | null | undefined, bounds: BoardBounds): Set<string> {
-    return new Set(MovementEngine.getLegalMoves(piece, bounds).map(coordKey));
+  legalMoveSet(
+    piece: Piece | null | undefined,
+    pieces: Piece[],
+    bounds: BoardBounds,
+    blockedTiles: ReadonlySet<string> = NO_BLOCKED_TILES,
+  ): Set<string> {
+    return new Set(
+      MovementEngine.getLegalMoves(piece, pieces, bounds, blockedTiles).map(coordKey),
+    );
   },
 
   /** True iff `target` is a legal destination for `piece`. */
   isLegalMove(
     piece: Piece | null | undefined,
+    pieces: Piece[],
     target: Coord,
     bounds: BoardBounds,
+    blockedTiles: ReadonlySet<string> = NO_BLOCKED_TILES,
   ): boolean {
     if (!piece) return false;
-    return MovementEngine.getLegalMoves(piece, bounds).some(
+    return MovementEngine.getLegalMoves(piece, pieces, bounds, blockedTiles).some(
       (c) => c.row === target.row && c.column === target.column,
     );
   },
@@ -78,10 +124,11 @@ export const MovementEngine = {
     pieceId: PieceId,
     target: Coord,
     bounds: BoardBounds,
+    blockedTiles: ReadonlySet<string> = NO_BLOCKED_TILES,
   ): MoveResult {
     const piece = PieceManager.findById(pieces, pieceId);
     if (!piece) throw new Error(`MovementEngine: unknown piece ${pieceId}`);
-    if (!MovementEngine.isLegalMove(piece, target, bounds)) {
+    if (!MovementEngine.isLegalMove(piece, pieces, target, bounds, blockedTiles)) {
       throw new Error(
         `MovementEngine: illegal move ${pieceId} -> ${target.row},${target.column}`,
       );
