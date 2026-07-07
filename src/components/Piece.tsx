@@ -1,4 +1,3 @@
-import { PieceFrame } from "@/components/game";
 import { memo } from "react";
 import { cn } from "@/lib/utils";
 import type { Piece as PieceModel, PieceType } from "@/types/piece";
@@ -25,9 +24,8 @@ function PieceBase({
     ? "rgb(103,232,249)"
     : "rgb(251,113,133)";
 
-  const glow = isBlue
-    ? "shadow-[0_0_30px_rgba(34,211,238,.85)]"
-    : "shadow-[0_0_30px_rgba(244,63,94,.85)]";
+  // Glow externo por equipe (peça é o elemento principal — sem moldura/círculo).
+  const glowColor = isBlue ? "#00D7FF" : "#FF4040";
 
   const label = hidden
     ? `${piece.owner} unknown unit`
@@ -38,97 +36,35 @@ function PieceBase({
       type="button"
       aria-label={label}
       aria-pressed={selected}
+      data-selected={selected}
       onClick={(e) => {
         e.stopPropagation();
         onClick?.(piece);
       }}
+      style={{ "--piece-glow-color": glowColor } as React.CSSProperties}
       className={cn(
-
+        "piece-glow",
         "group",
         "relative",
         "flex",
-        "h-[82%]",
-        "w-[82%]",
+        "h-[84%]",
+        "w-[84%]",
         "items-center",
         "justify-center",
-
-        "rounded-full",
-
-        "transition-all",
-        "duration-200",
-
         "outline-none",
-
-        isBlue
-          ? "border border-cyan-400/70 bg-slate-950/90"
-          : "border border-rose-400/70 bg-slate-950/90",
-
-        "backdrop-blur-xl",
-
-        "hover:scale-110",
-
-        "hover:-translate-y-[1px]",
-
-        "hover:shadow-[0_0_26px_rgba(34,211,238,.30)]",
-
         "active:scale-95",
-
-        selected &&
-        "scale-110",
-
-        selected && glow,
-
         "focus-visible:ring-2 focus-visible:ring-cyan-300"
       )}
     >
-
-      {/* Glow externo */}
-
-      <div
-        className={cn(
-          "pointer-events-none absolute -inset-2 rounded-full opacity-0 transition-all duration-300",
-
-          selected && "opacity-100",
-
-          isBlue
-            ? "bg-cyan-400/10"
-            : "bg-rose-400/10"
-        )}
-      />
-
-      {/* Halo */}
-
-      {selected && (
-
-        <div
-          className={cn(
-            "absolute -inset-1 rounded-full animate-pulse border",
-
-            isBlue
-              ? "border-cyan-300/70"
-              : "border-rose-300/70"
-          )}
+      {hidden ? (
+        <UnknownGlyph stroke={stroke} />
+      ) : (
+        <SpriteIcon
+          type={piece.pieceType}
+          faction={piece.owner}
+          size={72}
         />
-
       )}
-
-      {/* Moldura */}
-
-      <PieceFrame
-        selected={selected}
-        isBlue={isBlue}
-      >
-        {hidden ? (
-          <UnknownGlyph stroke={stroke} />
-        ) : (
-          <SpriteIcon
-            type={piece.pieceType}
-            faction={piece.owner}
-            size={58}
-          />
-        )}
-      </PieceFrame>
-
     </button>
   );
 }

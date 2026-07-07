@@ -251,6 +251,43 @@
   animation: piece-reveal-pulse 500ms ease-out;
 }
 
+/* ============ Peças — glow por equipe (sem moldura/círculo) ============ */
+@keyframes piece-selected-pulse {
+  0%, 100% {
+    filter:
+      drop-shadow(0 0 6px var(--piece-glow-color))
+      drop-shadow(0 0 16px color-mix(in oklab, var(--piece-glow-color) 80%, transparent))
+      drop-shadow(0 0 32px color-mix(in oklab, var(--piece-glow-color) 55%, transparent));
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 10px var(--piece-glow-color))
+      drop-shadow(0 0 26px color-mix(in oklab, var(--piece-glow-color) 90%, transparent))
+      drop-shadow(0 0 48px color-mix(in oklab, var(--piece-glow-color) 65%, transparent));
+  }
+}
+
+.piece-glow {
+  transition: filter 200ms ease, transform 200ms ease;
+  filter:
+    drop-shadow(0 0 3px var(--piece-glow-color))
+    drop-shadow(0 0 9px color-mix(in oklab, var(--piece-glow-color) 60%, transparent))
+    drop-shadow(0 0 18px color-mix(in oklab, var(--piece-glow-color) 35%, transparent));
+}
+
+.piece-glow:hover {
+  filter:
+    drop-shadow(0 0 4px var(--piece-glow-color))
+    drop-shadow(0 0 12px color-mix(in oklab, var(--piece-glow-color) 70%, transparent))
+    drop-shadow(0 0 24px color-mix(in oklab, var(--piece-glow-color) 45%, transparent));
+  transform: translateY(-2px) scale(1.03);
+}
+
+.piece-glow[data-selected="true"] {
+  animation: piece-selected-pulse 1.6s ease-in-out infinite;
+  transform: translateY(-3px) scale(1.05);
+}
+
 @keyframes turn-banner-in {
   0% {
     opacity: 0;

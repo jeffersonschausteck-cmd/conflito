@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { boardPixelSize } from "@/services/hexGeometry";
 import { TerrainLayer } from "./TerrainLayer";
+import { SCIFI_CLIP_PATH } from "@/components/ui/ScifiFrame";
 import type { MapDefinition } from "@/maps/types";
 
 /** Reference hex size used to compute the SVG viewBox. The SVG scales
@@ -37,7 +38,15 @@ export function HexBoard({
   const { width, height } = boardPixelSize(map.rows, map.cols, HEX_SIZE);
 
   return (
-    <div className="relative mx-auto h-full w-full max-w-[1400px] min-h-0 min-w-0 rounded-2xl border border-cyan-500/20 bg-slate-950/70 p-3 shadow-[0_0_60px_rgba(0,255,255,0.08)]">
+    <div
+      className="relative mx-auto h-full w-full max-w-[1400px] min-h-0 min-w-0 bg-slate-950/70 p-3"
+      style={{
+        clipPath: SCIFI_CLIP_PATH,
+        border: "1px solid rgba(34,211,238,0.35)",
+        boxShadow: "0 0 60px rgba(0,255,255,0.08), 0 0 18px rgba(34,211,238,0.35) inset",
+        backgroundImage: "linear-gradient(160deg, #152238, #0b1120)",
+      }}
+    >
       <svg
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="xMidYMid meet"

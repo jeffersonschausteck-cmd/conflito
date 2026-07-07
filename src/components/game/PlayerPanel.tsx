@@ -1,5 +1,5 @@
 import { useGameState } from "@/hooks/useGameState";
-import { GamePanel } from "@/components/ui/GamePanel";
+import { ScifiFrame } from "@/components/ui/ScifiFrame";
 import { PIECES } from "@/config/pieces";
 import type { PlayerOwner } from "@/types/piece";
 
@@ -40,8 +40,8 @@ export function PlayerPanel({ owner }: PlayerPanelProps) {
     alive.filter((p) => p.pieceType === type).length;
 
   return (
-    <GamePanel variant={variant} eyebrow="// COMANDO" title={label} className="flex h-full flex-col">
-      <div className="space-y-2 border-b border-border/40 pb-4">
+    <ScifiFrame variant={variant} eyebrow="// COMANDO" tabLabel={label.toUpperCase()} className="flex h-full flex-col">
+      <div className="space-y-2 border-b border-white/10 pb-4">
         <StatRow label="Peças Ativas" value={String(alive.length)} />
         <StatRow
           label="Comandante"
@@ -58,7 +58,7 @@ export function PlayerPanel({ owner }: PlayerPanelProps) {
           <StatRow key={type} label={PIECES[type].nome} value={String(countByType(type))} />
         ))}
       </div>
-    </GamePanel>
+    </ScifiFrame>
   );
 }
 

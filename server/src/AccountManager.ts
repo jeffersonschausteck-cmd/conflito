@@ -4,6 +4,13 @@
 // pública (register/login/getById) não muda quando isso for trocado
 // por persistência real no futuro. Nenhum dado de conta chega ao
 // Motor — só o Multiplayer (Room/RoomManager) conhece isso.
+//
+// Nota (Sprint MP-04): mantido apenas como referência local (Bun) até
+// a infraestrutura Cloudflare Durable Objects estar validada — depois
+// disso este arquivo é removido. Hash de senha via CryptoService
+// (nunca API de criptografia direta), igual ao `AccountsRoom` novo.
+
+import { CryptoService } from "@/services/cryptoService";
 
 export interface Account {
   id: string;
@@ -42,7 +49,7 @@ export class AccountManager {
       id: crypto.randomUUID(),
       nickname: nickname.trim(),
       email: email.trim(),
-      passwordHash: await Bun.password.hash(password),
+      passwordHash: await CryptoService.hash(password),
       createdAt: Date.now(),
     };
     this.byId.set(account.id, account);
@@ -60,7 +67,7 @@ export class AccountManager {
       return { ok: false, reason: "Nickname ou senha incorretos." };
     }
 
-    const valid = await Bun.password.verify(password, account.passwordHash);
+    const valid = await CryptoService.verify(password, account.passwordHash);
     if (!valid) {
       return { ok: false, reason: "Nickname ou senha incorretos." };
     }

@@ -1,6 +1,6 @@
 import { useGameState } from "@/hooks/useGameState";
 import { PIECES } from "@/config/pieces";
-import { GamePanel } from "@/components/ui/GamePanel";
+import { ScifiFrame } from "@/components/ui/ScifiFrame";
 import { SpriteIcon } from "./SpriteIcon";
 
 export function CommandCenter() {
@@ -8,7 +8,7 @@ export function CommandCenter() {
 
     if (!selectedPiece) {
         return (
-            <GamePanel variant="blue" eyebrow="// COMANDO" title="Peça Selecionada" className="flex h-full flex-col">
+            <ScifiFrame variant="blue" eyebrow="// COMANDO" tabLabel="PEÇA SELECIONADA" className="flex h-full flex-col">
                 <div className="flex flex-1 items-center justify-center py-4">
 
                     <div className="text-center">
@@ -28,7 +28,7 @@ export function CommandCenter() {
                     </div>
 
                 </div>
-            </GamePanel>
+            </ScifiFrame>
         );
     }
 
@@ -40,11 +40,11 @@ export function CommandCenter() {
             : "VERMELHA";
 
     return (
-        <GamePanel
+        <ScifiFrame
             variant={selectedPiece.owner === "blue" ? "blue" : "red"}
             eyebrow="// COMANDO"
-            title="Peça Selecionada"
-            className="max-h-[38vh] overflow-y-auto"
+            tabLabel="PEÇA SELECIONADA"
+            className="h-full overflow-y-auto"
         >
             {/* IMAGEM + NOME */}
 
@@ -97,7 +97,7 @@ export function CommandCenter() {
 
             </div>
 
-        </GamePanel>
+        </ScifiFrame>
     );
 }
 

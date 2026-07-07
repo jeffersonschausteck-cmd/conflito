@@ -1,4 +1,4 @@
-import { GamePanel } from "@/components/ui/GamePanel";
+import { ScifiFrame } from "@/components/ui/ScifiFrame";
 import { TERRAINS } from "@/maps/terrains";
 import type { TerrainId } from "@/maps/types";
 
@@ -18,7 +18,7 @@ export function TerrainPanel({ terrain, row, col }: TerrainPanelProps) {
   const info = terrain ? TERRAINS[terrain] : null;
 
   return (
-    <GamePanel variant="default" eyebrow="// RECONHECIMENTO" title="Terreno" className="max-h-[38vh] overflow-y-auto">
+    <ScifiFrame variant="cyan" eyebrow="// RECONHECIMENTO" tabLabel="TERRENO" className="h-full overflow-y-auto">
       {!info ? (
         <div className="flex flex-col items-center justify-center py-6 text-center">
           <div className="mb-3 text-4xl opacity-30">🗺️</div>
@@ -55,7 +55,7 @@ export function TerrainPanel({ terrain, row, col }: TerrainPanelProps) {
           )}
         </div>
       )}
-    </GamePanel>
+    </ScifiFrame>
   );
 }
 

@@ -1,5 +1,4 @@
 import { useGameState } from "@/hooks/useGameState";
-import { GamePanel } from "@/components/ui/GamePanel";
 import { GameButton } from "@/components/ui/GameButton";
 
 /**
@@ -8,6 +7,9 @@ import { GameButton } from "@/components/ui/GameButton";
  * já resolve o combate automaticamente (doc 04 §10). Por isso esta
  * barra só expõe ações que realmente existem no Motor: cancelar a
  * seleção atual e encerrar o turno.
+ *
+ * Faixa fina posicionada logo abaixo do tabuleiro (não é mais um painel
+ * de rodapé) para deixar o máximo de altura possível para o tabuleiro.
  */
 export function MatchActionsBar() {
   const { state, selectedPiece, selectPiece, dispatch } = useGameState();
@@ -15,20 +17,22 @@ export function MatchActionsBar() {
   const statusText = state.gameOver
     ? "Partida encerrada"
     : selectedPiece
-      ? "Peça selecionada — clique numa casa destacada para mover ou atacar"
-      : "Selecione uma peça para agir";
+      ? "Peça selecionada — mova ou ataque"
+      : "Selecione uma peça";
 
   return (
-    <GamePanel variant="default" eyebrow="// AÇÕES DISPONÍVEIS" className="flex h-full flex-col justify-between">
-      <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground">{statusText}</p>
+    <div className="flex w-full shrink-0 items-center justify-between gap-3 rounded-lg border border-cyan-500/20 bg-slate-900/70 px-4 py-2 backdrop-blur-md">
+      <p className="hidden truncate text-[10px] uppercase tracking-[0.15em] text-muted-foreground md:block">
+        {statusText}
+      </p>
 
-      <div className="mt-4 flex gap-3">
+      <div className="flex flex-1 gap-2 md:flex-none">
         <GameButton
           variant="secondary"
           size="sm"
           disabled={!selectedPiece}
           onClick={() => selectPiece(null)}
-          className="flex-1"
+          className="flex-1 md:flex-none"
         >
           Cancelar Seleção
         </GameButton>
@@ -38,11 +42,11 @@ export function MatchActionsBar() {
           size="sm"
           disabled={state.gameOver}
           onClick={() => dispatch({ type: "END_TURN" })}
-          className="flex-1"
+          className="flex-1 md:flex-none"
         >
           Finalizar Turno ▶
         </GameButton>
       </div>
-    </GamePanel>
+    </div>
   );
 }

@@ -1,9 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ScreenShell } from "@/components/ScreenShell";
 import { GameButton } from "@/components/ui/GameButton";
-import { GamePanel } from "@/components/ui/GamePanel";
-import { StatusBadge } from "@/components/ui/StatusBadge";
-import { GameCard } from "@/components/ui/GameCard";
+import { ScifiFrame } from "@/components/ui/ScifiFrame";
 
 export const Route = createFileRoute("/result")({
   head: () => ({
@@ -21,69 +19,54 @@ function ResultPage() {
       : {};
 
   const isWin = result.winner === "BLUE";
-
-  const stats = [
-    { label: "Turnos", value: String(result.turn ?? "--") },
-  ];
+  const loserLabel = result.winner === "BLUE" ? "Vermelha" : "Azul";
 
   return (
-    <ScreenShell backTo="/" backLabel="← Início">
-      <div className="flex flex-col items-center gap-8">
-        {/* Mission complete label */}
-        <div className="font-display text-[10px] uppercase tracking-[0.5em] text-primary/80">
-          // MISSÃO CONCLUÍDA
-        </div>
+    <ScreenShell
+      backTo="/"
+      backLabel="← Início"
+      title={isWin ? "MISSÃO CONCLUÍDA" : "MISSÃO FRACASSADA"}
+      subtitle={
+        isWin
+          ? "Sua ofensiva foi concluída com sucesso."
+          : "O exército inimigo capturou sua Bandeira."
+      }
+    >
+      <div className="mx-auto flex max-w-md flex-col items-center gap-8">
+        <ScifiFrame
+          variant={isWin ? "cyan" : "red"}
+          eyebrow="// RELATÓRIO"
+          tabLabel="RESUMO DA PARTIDA"
+          className="w-full text-left"
+        >
+          <div className="space-y-2">
+            <SummaryRow label="Resultado" value={isWin ? "Vitória" : "Derrota"} />
+            <SummaryRow label="Motivo do encerramento" value={`Bandeira ${loserLabel} capturada`} />
+            <SummaryRow label="Número de turnos" value={String(result.turn ?? "—")} />
+            <SummaryRow label="Tempo da partida" value="—" />
+            <SummaryRow label="Peças restantes (Azul)" value="—" />
+            <SummaryRow label="Peças restantes (Vermelho)" value="—" />
+          </div>
+        </ScifiFrame>
 
-        {/* Victory / Defeat headline */}
-        <div className="flex flex-col items-center gap-3">
-          <StatusBadge
-            color={isWin ? "green" : "red"}
-            label={isWin ? "Vitória" : "Derrota"}
-            className="text-lg px-4 py-1"
-          />
-          <h1
-            className="font-display text-6xl font-black uppercase tracking-[0.25em] sm:text-8xl"
-            style={{
-              color: isWin ? "var(--primary)" : "var(--destructive)",
-              textShadow: `0 0 40px ${isWin
-                ? "color-mix(in oklab, var(--primary) 60%, transparent)"
-                : "color-mix(in oklab, var(--destructive) 60%, transparent)"
-                }`,
-            }}
-          >
-            {isWin ? "VITÓRIA: Sua estratégia foi bem-sucedida. O objetivo da missão foi concluído com êxito." : "DERROTA: As forças inimigas dominaram o campo de batalha. Reorganize sua estratégia e tente novamente"}
-          </h1>
-        </div>
-
-        {/* Stats grid */}
-        <div className="grid w-full max-w-2xl grid-cols-2 gap-4 sm:grid-cols-4">
-          {stats.map((s) => (
-            <GamePanel
-              key={s.label}
-              variant={isWin ? "blue" : "red"}
-              className="text-center"
-            >
-              <div className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                {s.label}
-              </div>
-              <div className="mt-2 font-display text-2xl font-bold text-primary">
-                {s.value}
-              </div>
-            </GamePanel>
-          ))}
-        </div>
-
-        {/* Actions */}
-        <div className="mt-6 flex flex-col items-center gap-4 sm:flex-row">
+        <div className="flex flex-col items-center gap-4 sm:flex-row">
           <Link to="/mode">
             <GameButton variant="primary" size="lg">▶ Nova Partida</GameButton>
           </Link>
           <Link to="/">
             <GameButton variant="secondary" size="md">Menu Principal</GameButton>
           </Link>
-
         </div>
       </div>
     </ScreenShell>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between border-b border-white/10 py-1.5 text-xs last:border-0">
+      <span className="uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
+      <span className="font-bold uppercase tracking-[0.08em] text-game-text">{value}</span>
+    </div>
   );
 }
