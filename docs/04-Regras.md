@@ -93,6 +93,7 @@ Durante toda a partida:
 - Cada jogador conhece apenas suas próprias peças.
 - As peças adversárias permanecem ocultas.
 - Uma peça somente é revelada quando ocorre um combate.
+- Exceção: o Explorador que se move mais de uma casa em uma única ação é revelado para ambos os jogadores. Mover uma única casa não revela o Explorador.
 
 Após revelada, sua identidade passa a ser conhecida por ambos os jogadores.
 
@@ -166,6 +167,8 @@ Possui movimentação especial.
 Pode mover-se qualquer quantidade de casas em linha reta (horizontal ou vertical), desde que todas as casas do percurso estejam livres.
 
 Caso encontre uma peça inimiga, encerra imediatamente seu movimento e inicia o combate.
+
+Ao se mover mais de uma casa em uma única ação, o Explorador é revelado para ambos os jogadores (seção 7). Ao se mover uma única casa, permanece oculto.
 
 ---
 

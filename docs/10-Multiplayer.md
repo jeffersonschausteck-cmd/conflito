@@ -209,6 +209,14 @@ Na versão 1.0 o sistema Multiplayer deverá:
 
 ---
 
+# Visual dos Personagens
+
+O Multiplayer transporta o visual escolhido pelos jogadores (eventos SetSkins e SkinsUpdated). O servidor valida todo visual recebido, só o aceita antes da partida começar e nunca o usa em nenhuma regra ou sincronização do estado do jogo.
+
+A especificação completa está no documento 17 - Oficina do Exército.
+
+---
+
 # Histórico de Alterações
 
 ## Versão 1.0
@@ -218,3 +226,7 @@ Na versão 1.0 o sistema Multiplayer deverá:
 - Definição do fluxo de comunicação.
 - Definição dos princípios de sincronização.
 - Definição da integração com o Motor do Jogo.
+
+## Versão 1.1
+
+- Inclusão da seção sobre o visual dos personagens (documento 17).

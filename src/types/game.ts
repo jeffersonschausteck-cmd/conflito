@@ -16,10 +16,12 @@ export interface GameSettings {
   reduceMotion: boolean;
 }
 
+// Sprint AUDIO-02 — valores padrão do jogo (só usados quando o
+// jogador ainda não tem `psc:settings` salvo em localStorage).
 export const DEFAULT_SETTINGS: GameSettings = {
-  audioMaster: 0.8,
-  musicVolume: 0.6,
-  sfxVolume: 0.8,
+  audioMaster: 0.6,
+  musicVolume: 0.15,
+  sfxVolume: 0.5,
   highContrast: false,
   reduceMotion: false,
 };

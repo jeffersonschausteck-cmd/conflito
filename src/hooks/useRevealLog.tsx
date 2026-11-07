@@ -54,6 +54,12 @@ export function RevealLogProvider({ max = 24, children }: RevealLogProviderProps
     }
     lastHandledRef.current = lastCombat.id;
 
+    // Sprint AUDIO-01 — este é o único ponto do código que já detecta
+    // "houve um combate genuinamente novo" (via `lastHandledRef`), então
+    // é aqui que o som de Combate dispara — antes do reveal, que só
+    // acontece quando há identidade nova pra descobrir.
+    SoundHooks.playCombat();
+
     const entries = FogOfWarEngine.reveals(lastCombat, prevPiecesRef.current);
     prevPiecesRef.current = state.pieces;
 

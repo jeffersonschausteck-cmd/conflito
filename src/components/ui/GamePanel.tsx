@@ -21,8 +21,8 @@ export interface GamePanelProps extends React.HTMLAttributes<HTMLDivElement> {
 // ─── Lookup maps (rgba pulled from theme palette) ────────────────────────────
 
 const BORDER: Record<GamePanelVariant, string> = {
-  default: "border-game-border",
-  blue: "border-game-blue/40",
+  default: "border-cyan-400/25",
+  blue: "border-cyan-400/50",
   red: "border-game-red/40",
   green: "border-game-green/40",
   yellow: "border-game-yellow/40",
@@ -59,7 +59,7 @@ export function GamePanel({
   return (
     <div
       className={cn(
-        "relative border bg-game-panel/75 backdrop-blur-md",
+        "relative border bg-slate-950/80 backdrop-blur-md",
         // Padding via spacing system token (24px = 1.5rem = theme.spacing[24])
         "px-6 pt-6 pb-10",
         BORDER[variant],

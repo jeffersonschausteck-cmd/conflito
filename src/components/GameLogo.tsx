@@ -1,7 +1,10 @@
 export function GameLogo() {
   return (
-    <div className="flex flex-col items-center gap-4">
-      {/* Emblem */}
+    <div className="flex flex-col items-center gap-1.5 [@media(min-height:480px)]:gap-4">
+      {/* Emblem — Sprint MOBILE-01: tamanho fixo (120px) sobrava demais
+          em telas curtas de celular na horizontal; agora escala com a
+          altura da viewport (a limitação real em paisagem), voltando ao
+          tamanho original em telas mais altas (desktop/tablet). */}
       <div className="relative animate-pulse-glow">
         <svg
           width="120"
@@ -9,7 +12,7 @@ export function GameLogo() {
           viewBox="0 0 120 120"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="drop-shadow-[0_0_24px_var(--primary)]"
+          className="h-12 w-12 drop-shadow-[0_0_24px_var(--primary)] [@media(min-height:480px)]:h-[120px] [@media(min-height:480px)]:w-[120px]"
           aria-hidden
         >
           <defs>
@@ -44,10 +47,10 @@ export function GameLogo() {
 
       {/* Wordmark */}
       <div className="text-center">
-        <div className="font-display text-xs uppercase tracking-[0.6em] text-primary/70 animate-flicker">
+        <div className="font-display text-[9px] uppercase tracking-[0.4em] text-primary/70 animate-flicker [@media(min-height:480px)]:text-xs [@media(min-height:480px)]:tracking-[0.6em]">
           PREPARADO PARA O
         </div>
-        <h1 className="font-display text-5xl font-black uppercase tracking-[0.18em] text-glow sm:text-6xl md:text-7xl">
+        <h1 className="font-display text-2xl font-black uppercase tracking-[0.1em] text-glow [@media(min-height:480px)]:text-6xl [@media(min-height:480px)]:tracking-[0.18em]">
           <span className="bg-gradient-to-r from-white via-primary-glow to-primary bg-clip-text text-transparent">
             CONFLITO
           </span>

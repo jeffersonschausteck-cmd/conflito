@@ -212,12 +212,21 @@ export const GameEngine = {
       });
       next = { ...state, pieces, selectedPieceId: null, lastCombat: result };
     } else {
-      const { pieces } = MovementEngine.execute(
+      const { pieces: moved } = MovementEngine.execute(
         state.pieces,
         selected.id,
         target,
         bounds,
       );
+      // Explorador que anda mais de uma casa é visto por ambos os jogadores (doc 04, seção 7).
+      const steps = Math.max(
+        Math.abs(target.row - selected.currentRow),
+        Math.abs(target.column - selected.currentColumn),
+      );
+      const pieces =
+        selected.pieceType === "scout" && steps > 1
+          ? moved.map((p) => (p.id === selected.id ? { ...p, isRevealed: true } : p))
+          : moved;
       next = { ...state, pieces, selectedPieceId: null };
     }
 

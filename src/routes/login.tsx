@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ensureConnected } from "@/multiplayer/networkSingleton";
 import { AuthClient } from "@/multiplayer/AuthClient";
 import { flowState } from "@/services/flowState";
+import { useMenuMusic } from "@/hooks/useMenuMusic";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Login — Conflito" }] }),
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  useMenuMusic();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");

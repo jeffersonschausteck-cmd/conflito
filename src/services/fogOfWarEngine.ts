@@ -16,9 +16,6 @@ import type { CombatResult } from "@/types/combat";
  *   - Color + position are always public information.
  */
 
-/** Local player perspective. Multiplayer will inject this per-viewer. */
-export const LOCAL_VIEWER: PlayerOwner = "blue";
-
 export interface RevealEntry {
   /** Stable id: `${combatId}:${pieceId}` — safe as React key. */
   id: string;

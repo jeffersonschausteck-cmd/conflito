@@ -8,6 +8,15 @@ import type { Piece, PlayerOwner } from "@/types/piece";
  */
 export const DEPLOYMENT_DEPTH = 4;
 
+/**
+ * Sprint TIMER-01 — duração oficial da fase de Posicionamento (3
+ * minutos), em milissegundos. Fonte única: usada tanto pela Interface
+ * (offline, `deployment.tsx`) quanto pelo `GameRoom` (online,
+ * `multiplayer-worker/src/GameRoom.ts`, via o mesmo path alias
+ * `@/services/deploymentManager`) — nunca redigitada nos dois lados.
+ */
+export const DEPLOYMENT_DURATION_MS = 3 * 60 * 1000;
+
 const NO_BLOCKED_TILES: ReadonlySet<string> = new Set();
 
 /**

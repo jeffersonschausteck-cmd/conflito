@@ -1,6 +1,7 @@
 import React, { ReactNode, forwardRef } from "react";
 import { cn } from "@/lib/utils";
 import { theme } from "@/design/theme";
+import { SoundHooks } from "@/services/soundHooks";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -32,44 +33,42 @@ const SIZE: Record<GameButtonSize, string> = {
 // Inline style tokens pulled from theme for any value that can't be expressed
 // as a Tailwind class (e.g. exact rgba from the design palette).
 const GLOW_SHADOW: Partial<Record<GameButtonVariant, string>> = {
-  primary: theme.shadows.blueGlow,
-  danger:  theme.shadows.redGlow,
+  primary: "0 0 22px rgba(251, 191, 36, 0.38)",
+  danger:  "0 0 18px rgba(244, 63, 94, 0.32)",
+  secondary: "0 0 14px rgba(34, 211, 238, 0.16)",
 };
 
 const GLOW_HOVER_SHADOW: Partial<Record<GameButtonVariant, string>> = {
-  primary: theme.shadows.blueGlowStrong,
-  danger:  theme.shadows.redGlowStrong,
+  primary: "0 0 32px rgba(251, 191, 36, 0.6)",
+  danger:  "0 0 28px rgba(244, 63, 94, 0.5)",
+  secondary: "0 0 22px rgba(34, 211, 238, 0.35)",
 };
 
 const VARIANT_CLASSES: Record<GameButtonVariant, string> = {
   primary:
-    "border-game-blue bg-game-blue/10 text-game-blue " +
-    "hover:bg-game-blue/20 hover:scale-[1.02] " +
-    "active:scale-[0.97]",
+    "border-amber-300 bg-gradient-to-b from-amber-500 to-amber-700 text-white " +
+    "hover:brightness-110 active:scale-[0.97]",
   secondary:
-    "border-game-border bg-game-panel text-game-text " +
-    "hover:border-game-blue/40 hover:text-game-blue " +
-    "active:scale-[0.98]",
+    "border-cyan-400/55 bg-gradient-to-b from-sky-900/85 to-slate-950/90 text-sky-50 " +
+    "hover:border-cyan-300 active:scale-[0.98]",
   danger:
-    "border-game-red bg-game-red/10 text-game-red " +
-    "hover:bg-game-red/20 hover:scale-[1.02] " +
-    "active:scale-[0.97]",
+    "border-rose-400 bg-gradient-to-b from-rose-600 to-rose-900 text-white " +
+    "hover:brightness-110 active:scale-[0.97]",
   ghost:
-    "border-transparent bg-transparent text-muted-foreground " +
-    "hover:text-game-text hover:text-glow " +
-    "active:scale-[0.98]",
+    "border-transparent bg-transparent text-sky-100 [text-shadow:0_1px_2px_#000] " +
+    "hover:text-white active:scale-[0.98]",
   disabled:
-    "border-game-border bg-game-panel/40 text-muted-foreground " +
-    "opacity-55 cursor-not-allowed",
+    "border-slate-600 bg-slate-800/70 text-slate-400 " +
+    "opacity-60 cursor-not-allowed",
   loading:
-    "border-game-blue/40 bg-game-blue/5 text-game-blue/60 cursor-wait",
+    "border-cyan-400/40 bg-sky-900/40 text-cyan-200/70 cursor-wait",
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export const GameButton = forwardRef<HTMLButtonElement, GameButtonProps>(
   (
-    { variant = "primary", size = "md", children, className, disabled, style, ...props },
+    { variant = "primary", size = "md", children, className, disabled, style, onClick, ...props },
     ref
   ) => {
     const isReallyDisabled =
@@ -114,6 +113,14 @@ export const GameButton = forwardRef<HTMLButtonElement, GameButtonProps>(
               GLOW_SHADOW[variant] ?? "";
           }
           props.onMouseLeave?.(e);
+        }}
+        // Sprint AUDIO-01 — GameButton é o componente compartilhado por
+        // TODO botão de ação primária do jogo; centralizar o som de
+        // clique aqui evita espalhar `SoundHooks.playButtonClick()` em
+        // cada call site.
+        onClick={(e) => {
+          if (!isReallyDisabled) SoundHooks.playButtonClick();
+          onClick?.(e);
         }}
       >
         <span className="flex items-center justify-center gap-2">

@@ -29,6 +29,43 @@ const DEPLOYMENT: PieceType[][] = [
   ["scout", "scout", "sniper", "infantry", "scout", "scout", "infantry", "sniper", "scout", "scout"],
 ];
 
+/**
+ * Sprint POS-01 — linhas (0-indexed) puladas por cada coluna de
+ * profundidade ao espalhar as 10 peças do `DEPLOYMENT` pelas 12 linhas
+ * do tabuleiro ativo. Antes, `pos` (0-9) era usado direto como `row`,
+ * deixando as duas últimas linhas (10-11) sempre vazias na parte
+ * inferior do tabuleiro. Cada coluna agora pula 2 linhas DIFERENTES
+ * (nunca as mesmas duas em todas as colunas), então nenhuma linha
+ * inteira fica vazia — só peças isoladas ficam de fora, espalhadas,
+ * preenchendo visualmente toda a zona de posicionamento. Só a
+ * distribuição visual muda; contagem de peças, tipos e regras
+ * permanecem exatamente as mesmas.
+ */
+const DEPTH_SKIP_ROWS: number[][] = [
+  [2, 9],
+  [4, 11],
+  [0, 7],
+  [5, 10],
+];
+
+/**
+ * Mapeia os 10 itens de uma coluna de profundidade para linhas
+ * 0..totalRows-1, pulando `skipRows`. Se `totalRows` for pequeno demais
+ * pro pulo valer a pena (mapas menores que os 12 linhas padrão), volta
+ * a preencher sequencialmente sem pular nada — nunca perde peças.
+ */
+function rowsForDepth(totalRows: number, skipRows: number[]): number[] {
+  const skip = new Set(skipRows);
+  const rows: number[] = [];
+  for (let r = 0; r < totalRows && rows.length < 10; r++) {
+    if (!skip.has(r)) rows.push(r);
+  }
+  for (let r = 0; r < totalRows && rows.length < 10; r++) {
+    if (!rows.includes(r)) rows.push(r);
+  }
+  return rows;
+}
+
 export interface InitialSetupOptions {
   rows?: number;
   cols?: number;
@@ -51,11 +88,13 @@ export const InitialSetup = {
     };
 
     for (let depth = 0; depth < DEPLOYMENT.length; depth++) {
-      for (let pos = 0; pos < Math.min(rows, DEPLOYMENT[depth].length); pos++) {
+      const depthRows = rowsForDepth(rows, DEPTH_SKIP_ROWS[depth] ?? []);
+      for (let pos = 0; pos < Math.min(depthRows.length, DEPLOYMENT[depth].length); pos++) {
         const type = DEPLOYMENT[depth][pos];
         const info = PIECES[type];
         const rank = info?.patente ?? 0;
         const canMove = info?.podeMover ?? true;
+        const row = depthRows[pos];
 
         // Blue — left edge, columns [0 .. 3].
         pieces.push(
@@ -63,7 +102,7 @@ export const InitialSetup = {
             owner: "blue",
             pieceType: type,
             rank,
-            row: pos,
+            row,
             column: depth,
             index: nextIndex("blue", type),
             canMove,
@@ -77,7 +116,7 @@ export const InitialSetup = {
             owner: "red",
             pieceType: type,
             rank,
-            row: pos,
+            row,
             column: cols - 1 - depth,
             index: nextIndex("red", type),
             canMove,

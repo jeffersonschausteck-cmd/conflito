@@ -239,6 +239,14 @@ Na versão 1.0 a Interface deverá:
 
 ---
 
+# Oficina do Exército
+
+O menu principal possui uma tela chamada Oficina, onde o jogador escolhe a aparência dos seus personagens e salva o resultado. A Oficina é somente estética e não pode ser acessada para alterar o visual durante a partida.
+
+A especificação completa está no documento 17 - Oficina do Exército.
+
+---
+
 # Histórico de Alterações
 
 ## Versão 1.0
@@ -248,3 +256,7 @@ Na versão 1.0 a Interface deverá:
 - Definição dos princípios de usabilidade.
 - Definição da comunicação com o Motor do Jogo.
 - Definição das diretrizes de responsividade.
+
+## Versão 1.1
+
+- Inclusão da seção sobre a Oficina do Exército (documento 17).

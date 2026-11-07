@@ -1,10 +1,11 @@
 import { useGameState } from "@/hooks/useGameState";
 import { PIECES } from "@/config/pieces";
 import { ScifiFrame } from "@/components/ui/ScifiFrame";
+import { FogOfWarEngine } from "@/services/fogOfWarEngine";
 import { SpriteIcon } from "./SpriteIcon";
 
 export function CommandCenter() {
-    const { selectedPiece } = useGameState();
+    const { selectedPiece, localOwner } = useGameState();
 
     if (!selectedPiece) {
         return (
@@ -32,12 +33,38 @@ export function CommandCenter() {
         );
     }
 
-    const info = PIECES[selectedPiece.pieceType];
+    // Sprint QA-13 — o painel mostrava tipo/habilidade da peça
+    // selecionada sem checar Fog of War: selecionar uma peça inimiga
+    // ainda não revelada vazava a identidade dela aqui, mesmo com o
+    // tabuleiro corretamente escondendo-a como silhueta.
+    const hidden = FogOfWarEngine.isHiddenFrom(selectedPiece, localOwner);
 
     const equipe =
         selectedPiece.owner === "blue"
             ? "AZUL"
             : "VERMELHA";
+
+    if (hidden) {
+        return (
+            <ScifiFrame
+                variant={selectedPiece.owner === "blue" ? "blue" : "red"}
+                eyebrow="// COMANDO"
+                tabLabel="PEÇA SELECIONADA"
+                className="flex h-full flex-col"
+            >
+                <div className="flex flex-1 flex-col items-center justify-center gap-2 py-4 text-center">
+                    <div className="mb-1 text-5xl opacity-40">❓</div>
+                    <h3 className="font-bold uppercase tracking-[0.18em] text-white">Unidade Desconhecida</h3>
+                    <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">Equipe {equipe}</div>
+                    <p className="mt-2 text-xs leading-5 text-slate-500">
+                        Ainda não revelada em combate — tipo e habilidade permanecem ocultos.
+                    </p>
+                </div>
+            </ScifiFrame>
+        );
+    }
+
+    const info = PIECES[selectedPiece.pieceType];
 
     return (
         <ScifiFrame

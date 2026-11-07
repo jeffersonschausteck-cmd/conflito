@@ -224,6 +224,14 @@ Toda a identidade visual deverá transmitir uma experiência premium e profissio
 
 ---
 
+# Personalização Visual
+
+O jogador pode escolher modelo, cor, chapéu, arma e escudo de cada tipo de peça. A escolha é puramente estética e não altera a identificação do time, que continua feita pela cor da base. Peças inimigas não reveladas continuam sendo o mesmo vulto para todos os tipos.
+
+A especificação completa está no documento 17 - Oficina do Exército.
+
+---
+
 # Histórico de Alterações
 
 ## Versão 1.0
@@ -233,3 +241,7 @@ Toda a identidade visual deverá transmitir uma experiência premium e profissio
 - Definição da direção artística.
 - Definição dos padrões para peças, tabuleiro e interface.
 - Definição das diretrizes para animações e efeitos.
+
+## Versão 1.1
+
+- Inclusão da seção sobre a personalização visual (documento 17).

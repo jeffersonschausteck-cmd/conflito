@@ -1,7 +1,7 @@
 import { hexToPixel } from "@/services/hexGeometry";
 import { Piece } from "@/components/Piece";
-import { FogOfWarEngine, LOCAL_VIEWER } from "@/services/fogOfWarEngine";
-import type { Piece as PieceModel } from "@/types/piece";
+import { FogOfWarEngine } from "@/services/fogOfWarEngine";
+import type { Piece as PieceModel, PlayerOwner } from "@/types/piece";
 import type { CombatResult } from "@/types/combat";
 
 export interface HexPieceLayerProps {
@@ -11,6 +11,8 @@ export interface HexPieceLayerProps {
   onPieceClick?: (piece: PieceModel) => void;
   /** Deployment screen shows only the player's own pieces — no fog needed. */
   respectFogOfWar?: boolean;
+  /** Sprint QA-13 — de quem é a perspectiva (`useGameState().localOwner`); obrigatório quando `respectFogOfWar` é `true`. */
+  localOwner?: PlayerOwner;
   lastCombat?: CombatResult | null;
   combatActive?: boolean;
   justRevealed?: Set<string>;
@@ -27,6 +29,7 @@ export function HexPieceLayer({
   selectedPieceId = null,
   onPieceClick,
   respectFogOfWar = true,
+  localOwner,
   lastCombat = null,
   combatActive = false,
   justRevealed,
@@ -37,7 +40,7 @@ export function HexPieceLayer({
         .filter((p) => p.isAlive)
         .map((piece) => {
           const { x, y } = hexToPixel(piece.currentRow, piece.currentColumn, size);
-          const hidden = respectFogOfWar && FogOfWarEngine.isHiddenFrom(piece, LOCAL_VIEWER);
+          const hidden = respectFogOfWar && !!localOwner && FogOfWarEngine.isHiddenFrom(piece, localOwner);
 
           const isCombatTile =
             combatActive &&

@@ -13,11 +13,14 @@ import type { BoardBounds, Coord, Move, MoveResult } from "@/types/movement";
  *   - Cancel a pending move (returns null selection)
  *
  * Rules (Documento 04 §8, §9, §11):
- *   - Most pieces step exactly one tile orthogonally (N/S/E/W).
- *   - The Explorador (scout) moves any number of tiles in a straight
- *     line, stopping the instant it reaches the board edge, a
- *     friendly piece (blocked), or an enemy piece (attack target).
- *   - No diagonal movement for any piece.
+ *   - Most pieces step exactly one tile to any of the 6 hexagonal
+ *     neighbors — never 4 (grid ortogonal) nem 8 (grid com diagonais).
+ *   - The Explorador (scout) moves any number of tiles in a single
+ *     straight hexagonal direction, stopping the instant it reaches
+ *     the board edge, a blocked/terrain tile, a friendly piece
+ *     (blocked), or an enemy piece (attack target) — never curving,
+ *     never re-pathing, never dodging obstacles.
+ *   - No diagonal (square-grid) movement for any piece.
  *   - A piece may never land on a tile occupied by its own team, and
  *     may never move through another piece — both are enforced here
  *     so the Motor remains the sole authority on legality (doc 07).
@@ -28,16 +31,58 @@ import type { BoardBounds, Coord, Move, MoveResult } from "@/types/movement";
  *
  * The engine is pure so it can run identically in:
  *   - the local React app
- *   - a server-authoritative validator (multiplayer)
- *   - an AI search routine (move generation)
+ *   - a server-authoritative validator (multiplayer — same source file,
+ *     imported by `multiplayer-worker/src/GameRoom.ts` via the same
+ *     `@/services/gameEngine` alias; there is no separate copy)
+ *   - an AI search routine (move generation, via `AIEngine`)
+ *
+ * Sprint HEX-01 — o tabuleiro (`hexGeometry.ts`) sempre foi hexagonal
+ * (layout "odd-r": linhas ímpares desenhadas meio-hex à direita), mas
+ * este arquivo ainda calculava vizinhos como grid quadrado (4 direções
+ * fixas N/S/E/W, sem paridade de linha) — a causa raiz de peças
+ * "fazendo curva" e do Explorador não conseguir andar em algumas
+ * direções hexagonais. Corrigido para a tabela de vizinhança
+ * hexagonal padrão (odd-r offset), usada tanto pra 1 passo quanto pra
+ * linha reta do Explorador.
  */
 
-const ORTHOGONAL_OFFSETS: ReadonlyArray<readonly [number, number]> = [
-  [-1, 0], // up
-  [1, 0], // down
-  [0, -1], // left
-  [0, 1], // right
-];
+/**
+ * As 6 direções hexagonais, como deltas (dr, dc) em coordenadas offset
+ * "odd-r" — o delta de uma MESMA direção muda conforme a paridade da
+ * linha atual (padrão de referência: redblobgames.com/grids/hexagons,
+ * "odd-r offset"). Índice fixo por direção: 0=W, 1=E, 2=NW, 3=NE,
+ * 4=SW, 5=SE — a ordem não importa pra legalidade, só precisa ser
+ * consistente entre um passo e o próximo ao andar em linha reta.
+ */
+const HEX_NEIGHBOR_DELTAS: Readonly<
+  Record<0 | 1, ReadonlyArray<readonly [number, number]>>
+> = {
+  // Linha par (row % 2 === 0) — não deslocada no desenho.
+  0: [
+    [0, -1], // W
+    [0, 1], // E
+    [-1, -1], // NW
+    [-1, 0], // NE
+    [1, -1], // SW
+    [1, 0], // SE
+  ],
+  // Linha ímpar (row % 2 === 1) — deslocada meio-hex à direita no desenho.
+  1: [
+    [0, -1], // W
+    [0, 1], // E
+    [-1, 0], // NW
+    [-1, 1], // NE
+    [1, 0], // SW
+    [1, 1], // SE
+  ],
+};
+
+/** O vizinho hexagonal de (row, column) na direção `dir` (0–5). Única fonte de adjacência do Motor. */
+function hexNeighbor(row: number, column: number, dir: number): Coord {
+  const parity = (row & 1) as 0 | 1;
+  const [dr, dc] = HEX_NEIGHBOR_DELTAS[parity][dir];
+  return { row: row + dr, column: column + dc };
+}
 
 function inBounds(row: number, col: number, bounds: BoardBounds): boolean {
   return row >= 0 && row < bounds.rows && col >= 0 && col < bounds.cols;
@@ -65,24 +110,31 @@ export const MovementEngine = {
     const lineMover = movesInLine(piece);
     const out: Coord[] = [];
 
-    for (const [dr, dc] of ORTHOGONAL_OFFSETS) {
-      let row = piece.currentRow + dr;
-      let column = piece.currentColumn + dc;
+    // Sprint HEX-01 — 6 direções hexagonais, nunca 4. Pra manter uma
+    // linha reta em coordenadas offset, o delta de CADA passo é
+    // recalculado a partir da paridade da linha ATUAL (não acumulado
+    // como em grid quadrado) — é assim que se anda reto em hexágono
+    // sem desviar quando a linha muda de par pra ímpar ou vice-versa.
+    for (let dir = 0; dir < 6; dir++) {
+      let row = piece.currentRow;
+      let column = piece.currentColumn;
 
-      while (inBounds(row, column, bounds)) {
-        if (blockedTiles.has(coordKey({ row, column }))) break;
+      while (true) {
+        const next = hexNeighbor(row, column, dir);
+        if (!inBounds(next.row, next.column, bounds)) break;
+        if (blockedTiles.has(coordKey(next))) break;
 
-        const occupant = PieceManager.findAt(pieces, row, column);
+        const occupant = PieceManager.findAt(pieces, next.row, next.column);
         if (occupant) {
           // Cannot cross any piece. An enemy on this tile is a legal
           // attack destination; a friendly piece blocks entirely.
-          if (occupant.owner !== piece.owner) out.push({ row, column });
+          if (occupant.owner !== piece.owner) out.push(next);
           break;
         }
-        out.push({ row, column });
+        out.push(next);
         if (!lineMover) break;
-        row += dr;
-        column += dc;
+        row = next.row;
+        column = next.column;
       }
     }
 

@@ -37,31 +37,38 @@ export function HexBoard({
 }: HexBoardProps) {
   const { width, height } = boardPixelSize(map.rows, map.cols, HEX_SIZE);
 
+  // Sprint ART-01 — a moldura tem exatamente a proporção do grid
+  // (aspect-ratio) e cresce até o maior tamanho que couber no espaço
+  // central (max-h/max-w), então os hexágonos preenchem o retângulo
+  // inteiro — sem faixas escuras sobrando em nenhuma resolução.
   return (
-    <div
-      className="relative mx-auto h-full w-full max-w-[1400px] min-h-0 min-w-0 bg-slate-950/70 p-3"
-      style={{
-        clipPath: SCIFI_CLIP_PATH,
-        border: "1px solid rgba(34,211,238,0.35)",
-        boxShadow: "0 0 60px rgba(0,255,255,0.08), 0 0 18px rgba(34,211,238,0.35) inset",
-        backgroundImage: "linear-gradient(160deg, #152238, #0b1120)",
-      }}
-    >
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        preserveAspectRatio="xMidYMid meet"
-        className="h-full w-full select-none"
+    <div className="flex h-full w-full min-h-0 min-w-0 items-center justify-center">
+      <div
+        className="relative max-h-full w-full max-w-full bg-slate-950/70 p-2"
+        style={{
+          aspectRatio: `${width} / ${height}`,
+          clipPath: SCIFI_CLIP_PATH,
+          border: "1px solid rgba(34,211,238,0.35)",
+          boxShadow: "0 0 60px rgba(0,255,255,0.08), 0 0 18px rgba(34,211,238,0.35) inset",
+          backgroundImage: "linear-gradient(160deg, #152238, #0b1120)",
+        }}
       >
-        <TerrainLayer
-          map={map}
-          size={HEX_SIZE}
-          selectedTile={selectedTile}
-          legalTiles={legalTiles}
-          isDimmed={isDimmed}
-          onTileClick={onTileClick}
-        />
-        {children}
-      </svg>
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          preserveAspectRatio="xMidYMid meet"
+          className="h-full w-full select-none"
+        >
+          <TerrainLayer
+            map={map}
+            size={HEX_SIZE}
+            selectedTile={selectedTile}
+            legalTiles={legalTiles}
+            isDimmed={isDimmed}
+            onTileClick={onTileClick}
+          />
+          {children}
+        </svg>
+      </div>
     </div>
   );
 }

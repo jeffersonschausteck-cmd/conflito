@@ -5,6 +5,7 @@
 // rotas dentro da mesma aba.
 
 import { NetworkClient } from "./NetworkClient";
+import { installSkinSync } from "./skinSync";
 
 // Sprint MP-06 — a variável de build `VITE_MULTIPLAYER_WS_URL` não
 // chega ao build publicado (nenhum `.env` existe no pipeline de
@@ -28,6 +29,7 @@ let client: NetworkClient | null = null;
 export function getNetworkClient(): NetworkClient {
   if (!client) {
     client = new NetworkClient({ url: WS_URL });
+    installSkinSync(client); // Oficina do Exército: visual das peças (só aparência)
   }
   return client;
 }

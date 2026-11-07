@@ -5,6 +5,7 @@ import { HexEffectsLayer } from "@/components/board/hex/HexEffectsLayer";
 import { useGameState } from "@/hooks/useGameState";
 import { useRevealLog } from "@/hooks/useRevealLog";
 import { GameEngine } from "@/services/gameEngine";
+import { SoundHooks } from "@/services/soundHooks";
 import { ACTIVE_MAP } from "@/maps";
 import type { MapDefinition } from "@/maps/types";
 import type { Piece as PieceModel } from "@/types/piece";
@@ -31,6 +32,7 @@ export function BoardWithPieces({ map = ACTIVE_MAP, onTileClick }: BoardWithPiec
     selectPiece,
     moveSelectedTo,
     clearLastCombat,
+    localOwner,
   } = useGameState();
   const pieces = state.pieces;
   const selectedPieceId = selectedPiece?.id ?? null;
@@ -61,6 +63,16 @@ export function BoardWithPieces({ map = ACTIVE_MAP, onTileClick }: BoardWithPiec
       legalMoves.has(`${piece.currentRow}-${piece.currentColumn}`)
     ) {
       moveSelectedTo(piece.currentRow, piece.currentColumn);
+    } else if (
+      // Sprint AUDIO-01 — clicar numa peça inimiga que NÃO é um alvo
+      // legal (fora de alcance da seleção atual) é uma ação inválida,
+      // não uma tentativa de seleção — o Motor já ignora esse clique
+      // (`GameEngine.selectPiece` só aceita peças do jogador da vez).
+      selectedPieceId &&
+      piece.id !== selectedPieceId &&
+      piece.owner !== localOwner
+    ) {
+      SoundHooks.playInvalidAction();
     } else {
       selectPiece(piece.id === selectedPieceId ? null : piece.id);
     }
@@ -70,6 +82,10 @@ export function BoardWithPieces({ map = ACTIVE_MAP, onTileClick }: BoardWithPiec
   const handleTileClick = (row: number, col: number) => {
     if (legalMoves.has(`${row}-${col}`)) {
       moveSelectedTo(row, col);
+    } else if (selectedPieceId) {
+      // Sprint AUDIO-01 — clique num hexágono fora do alcance da peça
+      // selecionada.
+      SoundHooks.playInvalidAction();
     }
     onTileClick?.(row, col);
   };
@@ -82,6 +98,7 @@ export function BoardWithPieces({ map = ACTIVE_MAP, onTileClick }: BoardWithPiec
         size={HEX_SIZE}
         selectedPieceId={selectedPieceId}
         onPieceClick={handlePieceClick}
+        localOwner={localOwner}
         lastCombat={lastCombat}
         combatActive={combatActive}
         justRevealed={justRevealed}

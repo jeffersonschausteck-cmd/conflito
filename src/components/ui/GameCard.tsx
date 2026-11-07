@@ -25,18 +25,18 @@ export interface GameCardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const STATE_CLASSES: Record<GameCardState, string> = {
   default:
-    "border-game-border bg-game-panel/50",
+    "border-cyan-400/35 bg-slate-950/75 backdrop-blur-sm",
   selected:
-    "border-game-blue bg-game-blue/5 shadow-[0_0_20px_rgba(0,212,255,0.15)]",
+    "border-amber-300 bg-slate-900/80 shadow-[0_0_22px_rgba(251,191,36,0.3)]",
   disabled:
-    "border-game-border bg-game-panel/25 opacity-50 pointer-events-none",
+    "border-slate-600 bg-slate-900/50 opacity-50 pointer-events-none",
   hidden:
     "invisible opacity-0 pointer-events-none",
 };
 
 const HOVER_CLASSES: Record<GameCardState, string> = {
   default:
-    "hover:-translate-y-0.5 hover:border-game-blue/40 hover:bg-game-blue/5 hover:shadow-[0_0_15px_rgba(0,212,255,0.1)]",
+    "hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-slate-900/85 hover:shadow-[0_0_20px_rgba(34,211,238,0.28)]",
   selected: "",
   disabled: "",
   hidden: "",

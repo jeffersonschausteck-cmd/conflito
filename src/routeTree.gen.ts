@@ -12,7 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WaitingRoomRouteImport } from './routes/waiting-room'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ResultRouteImport } from './routes/result'
+import { Route as RankingRouteImport } from './routes/ranking'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OnlineLobbyRouteImport } from './routes/online-lobby'
+import { Route as OficinaRouteImport } from './routes/oficina'
 import { Route as ModeRouteImport } from './routes/mode'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LoadingRouteImport } from './routes/loading'
@@ -36,9 +39,24 @@ const ResultRoute = ResultRouteImport.update({
   path: '/result',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RankingRoute = RankingRouteImport.update({
+  id: '/ranking',
+  path: '/ranking',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnlineLobbyRoute = OnlineLobbyRouteImport.update({
   id: '/online-lobby',
   path: '/online-lobby',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OficinaRoute = OficinaRouteImport.update({
+  id: '/oficina',
+  path: '/oficina',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ModeRoute = ModeRouteImport.update({
@@ -85,7 +103,10 @@ export interface FileRoutesByFullPath {
   '/loading': typeof LoadingRoute
   '/login': typeof LoginRoute
   '/mode': typeof ModeRoute
+  '/oficina': typeof OficinaRoute
   '/online-lobby': typeof OnlineLobbyRoute
+  '/profile': typeof ProfileRoute
+  '/ranking': typeof RankingRoute
   '/result': typeof ResultRoute
   '/settings': typeof SettingsRoute
   '/waiting-room': typeof WaitingRoomRoute
@@ -98,7 +119,10 @@ export interface FileRoutesByTo {
   '/loading': typeof LoadingRoute
   '/login': typeof LoginRoute
   '/mode': typeof ModeRoute
+  '/oficina': typeof OficinaRoute
   '/online-lobby': typeof OnlineLobbyRoute
+  '/profile': typeof ProfileRoute
+  '/ranking': typeof RankingRoute
   '/result': typeof ResultRoute
   '/settings': typeof SettingsRoute
   '/waiting-room': typeof WaitingRoomRoute
@@ -112,7 +136,10 @@ export interface FileRoutesById {
   '/loading': typeof LoadingRoute
   '/login': typeof LoginRoute
   '/mode': typeof ModeRoute
+  '/oficina': typeof OficinaRoute
   '/online-lobby': typeof OnlineLobbyRoute
+  '/profile': typeof ProfileRoute
+  '/ranking': typeof RankingRoute
   '/result': typeof ResultRoute
   '/settings': typeof SettingsRoute
   '/waiting-room': typeof WaitingRoomRoute
@@ -127,7 +154,10 @@ export interface FileRouteTypes {
     | '/loading'
     | '/login'
     | '/mode'
+    | '/oficina'
     | '/online-lobby'
+    | '/profile'
+    | '/ranking'
     | '/result'
     | '/settings'
     | '/waiting-room'
@@ -140,7 +170,10 @@ export interface FileRouteTypes {
     | '/loading'
     | '/login'
     | '/mode'
+    | '/oficina'
     | '/online-lobby'
+    | '/profile'
+    | '/ranking'
     | '/result'
     | '/settings'
     | '/waiting-room'
@@ -153,7 +186,10 @@ export interface FileRouteTypes {
     | '/loading'
     | '/login'
     | '/mode'
+    | '/oficina'
     | '/online-lobby'
+    | '/profile'
+    | '/ranking'
     | '/result'
     | '/settings'
     | '/waiting-room'
@@ -167,7 +203,10 @@ export interface RootRouteChildren {
   LoadingRoute: typeof LoadingRoute
   LoginRoute: typeof LoginRoute
   ModeRoute: typeof ModeRoute
+  OficinaRoute: typeof OficinaRoute
   OnlineLobbyRoute: typeof OnlineLobbyRoute
+  ProfileRoute: typeof ProfileRoute
+  RankingRoute: typeof RankingRoute
   ResultRoute: typeof ResultRoute
   SettingsRoute: typeof SettingsRoute
   WaitingRoomRoute: typeof WaitingRoomRoute
@@ -196,11 +235,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResultRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ranking': {
+      id: '/ranking'
+      path: '/ranking'
+      fullPath: '/ranking'
+      preLoaderRoute: typeof RankingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/online-lobby': {
       id: '/online-lobby'
       path: '/online-lobby'
       fullPath: '/online-lobby'
       preLoaderRoute: typeof OnlineLobbyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/oficina': {
+      id: '/oficina'
+      path: '/oficina'
+      fullPath: '/oficina'
+      preLoaderRoute: typeof OficinaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mode': {
@@ -263,7 +323,10 @@ const rootRouteChildren: RootRouteChildren = {
   LoadingRoute: LoadingRoute,
   LoginRoute: LoginRoute,
   ModeRoute: ModeRoute,
+  OficinaRoute: OficinaRoute,
   OnlineLobbyRoute: OnlineLobbyRoute,
+  ProfileRoute: ProfileRoute,
+  RankingRoute: RankingRoute,
   ResultRoute: ResultRoute,
   SettingsRoute: SettingsRoute,
   WaitingRoomRoute: WaitingRoomRoute,
