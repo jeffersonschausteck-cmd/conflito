@@ -82,8 +82,8 @@ const KAY_PIECE: Record<PieceType, { file: string; scale: number; kind: "char" |
   flag: { file: "flag", scale: 9, kind: "prop" },
 };
 
-/** A Bandeira é sempre visível: haste longa (3x a altura do modelo antigo, ~2,2) com o pano ondulando ao vento. */
-const FLAG_POLE = 6.6;
+/** A Bandeira é sempre visível: haste longa (cerca de 2x a altura do modelo antigo, ~2,2) com o pano ondulando ao vento. */
+const FLAG_POLE = 4.6; // era 6.6; reduzida em ~30%
 const FLAG_CLOTH = { w: 2.5, h: 1.5 };
 const FLAG_TEAM = { blue: "#2f6fe0", red: "#d8353a" } as const;
 

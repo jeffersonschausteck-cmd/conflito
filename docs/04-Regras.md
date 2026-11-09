@@ -94,7 +94,7 @@ Durante toda a partida:
 - As peças adversárias permanecem ocultas.
 - Uma peça somente é revelada quando ocorre um combate.
 - Exceção: o Explorador que se move mais de uma casa em uma única ação é revelado para ambos os jogadores. Mover uma única casa não revela o Explorador.
-- Exceção: a Bandeira é sempre visível para os dois jogadores, desde o início da partida. Saber onde ela está não dá a ela proteção: quem a defende precisa cercá-la com Bombas e peças. Na tela, ela é desenhada bem alta (cerca de três vezes a altura anterior), com haste longa e o pano ao vento, para ser vista de longe.
+- Exceção: a Bandeira é sempre visível para os dois jogadores, desde o início da partida. Saber onde ela está não dá a ela proteção: quem a defende precisa cercá-la com Bombas e peças. Na tela, ela é desenhada bem alta (cerca de duas vezes a altura anterior), com haste longa e o pano ao vento, para ser vista de longe.
 
 Após revelada, sua identidade passa a ser conhecida por ambos os jogadores.
 
