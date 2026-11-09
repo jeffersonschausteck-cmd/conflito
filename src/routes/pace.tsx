@@ -3,7 +3,7 @@ import { ScreenShell } from "@/components/ScreenShell";
 import { GameButton } from "@/components/ui/GameButton";
 import { GameCard } from "@/components/ui/GameCard";
 import { flowState } from "@/services/flowState";
-import { RULES_BY_PACE } from "@/services/matchRules";
+import { PACES_ENABLED, RULES_BY_PACE } from "@/services/matchRules";
 import type { Pace } from "@/types/gameState";
 
 export const Route = createFileRoute("/pace")({
@@ -50,9 +50,14 @@ function PacePage() {
     <ScreenShell eyebrow="// ETAPA 02 / 03" title="ESCOLHA O RITMO" subtitle="Quanto tempo você quer jogar?" backTo="/mode" backLabel="← Modo">
       <div className="mx-auto grid max-w-5xl gap-3 sm:grid-cols-3 [@media(min-height:480px)]:gap-6">
         {CARDS.map((c) => (
-          <GameCard key={c.id} state={c.hot ? "selected" : "default"} onClick={() => choose(c.id)} style={{ cursor: "pointer", textAlign: "left" }}>
+          <GameCard
+            key={c.id}
+            state={c.hot && PACES_ENABLED[c.id] ? "selected" : "default"}
+            onClick={PACES_ENABLED[c.id] ? () => choose(c.id) : undefined}
+            style={{ cursor: PACES_ENABLED[c.id] ? "pointer" : "not-allowed", textAlign: "left", opacity: PACES_ENABLED[c.id] ? 1 : 0.55 }}
+          >
             <div className="p-1 [@media(min-height:480px)]:p-2">
-              <div className={`font-display text-[9px] uppercase tracking-[0.3em] [@media(min-height:480px)]:text-[10px] ${c.hot ? "text-amber-300" : "text-cyan-300"}`}>{c.tag}</div>
+              <div className={`font-display text-[9px] uppercase tracking-[0.3em] [@media(min-height:480px)]:text-[10px] ${c.hot ? "text-amber-300" : "text-cyan-300"}`}>{PACES_ENABLED[c.id] ? c.tag : "Em ajuste"}</div>
               <h3 className="mt-1 font-display text-lg font-black uppercase tracking-[0.08em] text-white [@media(min-height:480px)]:text-2xl">{c.name}</h3>
               <div className="mt-1 flex items-baseline gap-1">
                 <span className={`font-display text-2xl font-black [@media(min-height:480px)]:text-3xl ${c.hot ? "text-amber-300" : "text-white"}`}>{c.minutes}</span>
@@ -64,8 +69,8 @@ function PacePage() {
                   <li key={d}>◆ {d}</li>
                 ))}
               </ul>
-              <GameButton variant={c.hot ? "primary" : "secondary"} size="sm" className="mt-3 w-full">
-                {c.hot ? "▶ Jogar" : "Selecionar"}
+              <GameButton variant={PACES_ENABLED[c.id] ? "primary" : "secondary"} disabled={!PACES_ENABLED[c.id]} size="sm" className="mt-3 w-full">
+                {PACES_ENABLED[c.id] ? "▶ Jogar" : "Em breve"}
               </GameButton>
             </div>
           </GameCard>

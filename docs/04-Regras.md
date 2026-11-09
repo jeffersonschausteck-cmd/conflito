@@ -257,6 +257,12 @@ O Conflito possui três ritmos. O ritmo é escolhido antes da partida e vale par
 | Rápida | 30 | 5 minutos | 20 segundos | começa na rodada 18, sobe a cada 3 rodadas (até 3 faixas) |
 | Relâmpago | 20 | 3 minutos | 15 segundos | começa na rodada 10, sobe a cada 2 rodadas (até 4 faixas) |
 
+**Estado atual: Rápida e Relâmpago estão bloqueadas (aparecem como "Em breve") e a Maré não ocorre.** Só a Clássica está liberada, até os ajustes abaixo. A flag é `PACES_ENABLED` em `matchRules.ts`.
+
+Problemas conhecidos, a resolver antes de liberar:
+- **Maré rápida demais:** as zonas de posicionamento ficam nas faixas externas, então a retaguarda é inundada antes de dar tempo de mover essas peças (mover uma peça por turno não evacua o exército).
+- **Exército e tabuleiro iguais em todos os ritmos:** os ritmos não reduzem hoje o número de peças nem o tamanho do mapa; só mudam relógio e limite de rodadas.
+
 Uma rodada é uma jogada de cada jogador. O contador de turnos do Motor conta cada jogada separadamente; a rodada é derivada dele.
 
 ## Relógio

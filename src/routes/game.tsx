@@ -16,7 +16,7 @@ import { Match3DScreen } from "@/components/kay/Match3DScreen";
 import { MatchActionsBar } from "@/components/game/MatchActionsBar";
 import { TerrainPanel } from "@/components/game/TerrainPanel";
 import { ACTIVE_MAP, getBlockedTiles } from "@/maps";
-import { RULES_BY_PACE, winnerByPoints } from "@/services/matchRules";
+import { rulesFor, winnerByPoints } from "@/services/matchRules";
 import type { TerrainId } from "@/maps/types";
 import { flowState } from "@/services/flowState";
 import { OnlineGameStateProvider } from "@/multiplayer/OnlineGameStateProvider";
@@ -75,7 +75,7 @@ function GameProvider({
         cols: ACTIVE_MAP.cols,
         blockedTiles: getBlockedTiles(ACTIVE_MAP),
         // Ritmo escolhido na tela de ritmo (Clássica = sem regras extras).
-        rules: RULES_BY_PACE[flowState.read().pace ?? "classic"] ?? undefined,
+        rules: rulesFor(flowState.read().pace) ?? undefined,
       }}
       localOwner={localOwner}
     >

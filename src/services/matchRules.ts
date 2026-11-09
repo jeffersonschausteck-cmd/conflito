@@ -14,6 +14,18 @@ export const RULES_BY_PACE: Record<Pace, MatchRules | null> = {
   blitz: { roundLimit: 20, tideStartRound: 10, tideEveryRounds: 2, maxTideRings: 4, clockMs: 3 * 60_000, turnMs: 15_000 },
 };
 
+/**
+ * Ritmos liberados para jogar. Rápida e Relâmpago estão bloqueados (e, com eles, a Maré) até os ajustes
+ * de balanceamento (ver docs/04-Regras.md, seção 17).
+ */
+export const PACES_ENABLED: Record<Pace, boolean> = { classic: true, rapid: false, blitz: false };
+
+/** Regras do ritmo, ou null se ele estiver bloqueado ou for a Clássica. */
+export function rulesFor(pace: Pace | undefined): MatchRules | null {
+  const p = pace ?? "classic";
+  return PACES_ENABLED[p] ? RULES_BY_PACE[p] : null;
+}
+
 export const PACE_LABEL: Record<Pace, string> = { classic: "Clássica", rapid: "Rápida", blitz: "Relâmpago" };
 
 /** O contador de turnos do Motor sobe a cada jogada; uma rodada = uma jogada de cada jogador. */
