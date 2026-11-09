@@ -82,6 +82,54 @@ const KAY_PIECE: Record<PieceType, { file: string; scale: number; kind: "char" |
   flag: { file: "flag", scale: 9, kind: "prop" },
 };
 
+/** A Bandeira é sempre visível: haste longa (3x a altura do modelo antigo, ~2,2) com o pano ondulando ao vento. */
+const FLAG_POLE = 6.6;
+const FLAG_CLOTH = { w: 2.5, h: 1.5 };
+const FLAG_TEAM = { blue: "#2f6fe0", red: "#d8353a" } as const;
+
+function WavingFlag({ owner }: { owner: "blue" | "red" }) {
+  const { w, h } = FLAG_CLOTH;
+  const geo = useMemo(() => {
+    const g = new THREE.PlaneGeometry(w, h, 18, 8);
+    g.translate(w / 2, 0, 0); // a borda esquerda fica na haste
+    return g;
+  }, [w, h]);
+  const rest = useMemo(() => Float32Array.from(geo.attributes.position.array as ArrayLike<number>), [geo]);
+  const time = useRef(Math.random() * 6);
+  useEffect(() => () => geo.dispose(), [geo]);
+  useFrame((_, delta) => {
+    time.current += delta;
+    const pos = geo.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < pos.count; i++) {
+      const x = rest[i * 3];
+      const y = rest[i * 3 + 1];
+      const k = x / w; // 0 na haste (parado), 1 na ponta (solta)
+      pos.setZ(i, Math.sin(x * 3.1 - time.current * 4.2 + y * 0.9) * 0.34 * k + Math.sin(time.current * 1.7 + x) * 0.05 * k);
+      pos.setY(i, y + Math.sin(x * 2.2 - time.current * 3.1) * 0.06 * k);
+    }
+    pos.needsUpdate = true;
+    geo.computeVertexNormals();
+  });
+  const color = FLAG_TEAM[owner];
+  const top = 0.07 + FLAG_POLE;
+  return (
+    <group>
+      <mesh position={[0, 0.07 + FLAG_POLE / 2, 0]} castShadow>
+        <cylinderGeometry args={[0.05, 0.07, FLAG_POLE, 10]} />
+        <meshStandardMaterial color="#c9ccd4" roughness={0.35} metalness={0.5} />
+      </mesh>
+      <mesh position={[0, top + 0.1, 0]} castShadow>
+        <sphereGeometry args={[0.13, 14, 10]} />
+        <meshStandardMaterial color="#f2c14e" roughness={0.3} metalness={0.7} />
+      </mesh>
+      {/* O pano sempre aponta para o mesmo lado (a favor do vento), nas duas cores. */}
+      <mesh geometry={geo} position={[0.04, top - h / 2 - 0.2, 0]} castShadow>
+        <meshStandardMaterial color={color} roughness={0.7} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
 /** Boneco/objeto KayKit sobre uma base na cor do time, com animação de repouso. */
 export function KayPiece({
   x,
@@ -214,7 +262,9 @@ export function KayPiece({
           </div>
         </Html>
       )}
-      {def.kind === "char" ? (
+      {pieceType === "flag" && !hidden ? (
+        <WavingFlag owner={owner} />
+      ) : def.kind === "char" ? (
         <KayCharacter ctl={ctl} file={file} rotY={facing} scale={def.scale} pieceType={hidden ? "infantry" : pieceType} shade={hidden} owner={owner} accent={accent} hat={gear.hat} weapon={gear.weapon} shield={gear.shield} />
       ) : (
         // A bomba tem a origem no centro da esfera: sobe metade da altura pra não afundar na base.

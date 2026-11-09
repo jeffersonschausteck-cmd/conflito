@@ -42,7 +42,8 @@ function details(id: Pace): string[] {
 function PacePage() {
   const navigate = useNavigate();
   const choose = (pace: Pace) => {
-    flowState.write({ pace });
+    // Lado sorteado: o jogador tanto pode cair com o Azul quanto com o Vermelho.
+    flowState.write({ pace, offlineOwner: Math.random() < 0.5 ? "blue" : "red" });
     navigate({ to: "/loading" });
   };
 

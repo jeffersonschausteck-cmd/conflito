@@ -6,6 +6,7 @@ import { PIECES } from "@/config/pieces";
 import { useAITurn } from "@/hooks/useAITurn";
 import { ACTIVE_MAP } from "@/maps";
 import { hexToPixel } from "@/services/hexGeometry";
+import { FogOfWarEngine } from "@/services/fogOfWarEngine";
 import { KayPiece } from "@/components/kay/KayCharacters";
 import { BoardWorld, Board3DCanvas, CombatBurst, HEX_SIZE, LegalMarker, useDeviceMode } from "@/components/kay/BoardWorld";
 import { MatchPaceHud, TideMarks } from "@/components/kay/MatchPaceHud";
@@ -96,7 +97,7 @@ function BoardScene({ onSelectCell, far = false }: { onSelectCell: (row: number,
             owner={p.owner}
             pieceType={p.pieceType}
             color={p.owner === "blue" ? "#22d3ee" : "#fb7185"}
-            hidden={p.owner !== localOwner && !p.isRevealed}
+            hidden={FogOfWarEngine.isHiddenFrom(p, localOwner)}
             selected={p.id === selectedId && selectedPiece?.owner === localOwner}
             mine={p.owner === localOwner}
             label={p.owner !== localOwner && p.isRevealed}
@@ -116,7 +117,7 @@ function BoardScene({ onSelectCell, far = false }: { onSelectCell: (row: number,
 function SelectedPieceChip() {
   const { selectedPiece, localOwner } = useGameState();
   if (!selectedPiece) return null;
-  const hidden = selectedPiece.owner !== localOwner && !selectedPiece.isRevealed;
+  const hidden = FogOfWarEngine.isHiddenFrom(selectedPiece, localOwner);
   const info = PIECES[selectedPiece.pieceType];
   const team = selectedPiece.owner === "blue" ? "bg-cyan-400" : "bg-rose-400";
   return (
@@ -141,8 +142,9 @@ export function Match3DScreen({ isOnline = false }: { isOnline?: boolean }) {
   // WebGL/Three.js não existe no servidor — evita montar o `Canvas`
   // durante o SSR, só depois que o componente já está rodando no cliente.
   const { mounted } = useDeviceMode();
-  // A IA do Vermelho joga só offline (antes rodava dentro da barra de ações, que saiu da tela).
-  useAITurn({ enabled: !isOnline });
+  // A IA joga só offline, com o lado oposto ao do jogador (que é sorteado; docs/04-Regras.md, seção 18).
+  const { localOwner } = useGameState();
+  useAITurn({ enabled: !isOnline, aiPlayer: localOwner === "blue" ? "RED" : "BLUE" });
   // O Canvas é outra árvore React: a ponte leva o estado do jogo pra dentro dele.
   const Bridge = useContextBridge(GameStateContext);
 
@@ -151,7 +153,7 @@ export function Match3DScreen({ isOnline = false }: { isOnline?: boolean }) {
       {/* 3D em tela cheia, atrás do HUD */}
       {mounted && (
         <div className="absolute inset-0 z-0 touch-none">
-          <Board3DCanvas>
+          <Board3DCanvas flip={localOwner === "red"}>
             <Bridge>
               <Suspense fallback={null}>
                 <BoardScene onSelectCell={() => {}} />

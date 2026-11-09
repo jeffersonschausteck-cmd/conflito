@@ -16,6 +16,8 @@ import type { Piece as PieceModel, PieceType, PlayerOwner } from "@/types/piece"
 import type { MatchType } from "@/types/ranking";
 
 export const Route = createFileRoute("/deployment")({
+  // Só no navegador: o lado do jogador (sorteado) vem do sessionStorage e não existe no servidor.
+  ssr: false,
   head: () => ({
     meta: [{ title: "Fase de Posicionamento — Conflito" }],
   }),
@@ -59,9 +61,8 @@ function DeploymentPage() {
 
   const flow = flowState.read();
   const isOnline = flow.online === true;
-  // Sprint MP-02: online, o jogador pode ter sido designado Vermelho
-  // (segundo a entrar na sala) — offline, é sempre Azul, como sempre foi.
-  const myOwner: PlayerOwner = isOnline ? flow.onlineOwner ?? "blue" : "blue";
+  // Online, o lado vem da sala (o segundo a entrar é Vermelho); offline, é o lado sorteado ao escolher o ritmo.
+  const myOwner: PlayerOwner = (isOnline ? flow.onlineOwner : flow.offlineOwner) ?? "blue";
   const [waitingOpponent, setWaitingOpponent] = useState(false);
 
   // Sprint TIMER-01 — prazo (epoch ms) do cronômetro de Posicionamento.
@@ -316,7 +317,7 @@ function DeploymentPage() {
       return;
     }
 
-    const aiPieces = DeploymentManager.generateAIDeployment(rows, cols, blockedTiles);
+    const aiPieces = DeploymentManager.generateAIDeployment(rows, cols, blockedTiles, myOwner === "blue" ? "red" : "blue");
     const finalWithAI = [...finalPieces, ...aiPieces];
     if (typeof window !== "undefined") {
       window.sessionStorage.setItem("psc:initial-pieces", JSON.stringify(finalWithAI));
@@ -419,7 +420,7 @@ function DeploymentPage() {
       {/* Tabuleiro 3D em tela cheia, atrás do HUD (mesmo visual da partida) */}
       {mounted && (
         <div className="absolute inset-0 z-0 touch-none">
-          <Board3DCanvas focusX={myOwner === "blue" ? -5 : 5}>
+          <Board3DCanvas focusX={myOwner === "blue" ? -5 : 5} flip={myOwner === "red"}>
             <Suspense fallback={null}>
               <DeploymentScene
                 pieces={pieces}

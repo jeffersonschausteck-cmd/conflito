@@ -46,15 +46,17 @@ export const DeploymentManager = {
     rows: number = 10,
     cols: number = 10,
     blockedTiles: ReadonlySet<string> = NO_BLOCKED_TILES,
+    owner: PlayerOwner = "red",
   ): Piece[] {
     const all = InitialSetup.generate({ rows, cols });
-    const redPieces = all.filter((p) => p.owner === "red");
+    const redPieces = all.filter((p) => p.owner === owner);
 
-    // Red's deployment zone is the rightmost DEPLOYMENT_DEPTH columns.
-    const zoneStart = Math.max(0, cols - DEPLOYMENT_DEPTH);
+    // A zona do Vermelho são as DEPLOYMENT_DEPTH colunas da direita; a do Azul, as da esquerda.
+    const zoneStart = owner === "red" ? Math.max(0, cols - DEPLOYMENT_DEPTH) : 0;
+    const zoneEnd = owner === "red" ? cols : Math.min(DEPLOYMENT_DEPTH, cols);
     const coordinates: { row: number; col: number }[] = [];
     for (let r = 0; r < rows; r++) {
-      for (let c = zoneStart; c < cols; c++) {
+      for (let c = zoneStart; c < zoneEnd; c++) {
         if (blockedTiles.has(`${r}-${c}`)) continue;
         coordinates.push({ row: r, col: c });
       }

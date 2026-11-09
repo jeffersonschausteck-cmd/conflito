@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Environment, Sky, Sparkles } from "@react-three/drei";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
@@ -91,7 +91,10 @@ function hexNeighbors(row: number, col: number) {
  * Muralha de pedra contínua em volta do tabuleiro: um pedaço de muro em cada aresta externa,
  * com um portão no meio de cada lado do exército. Só visual (não bloqueia nada).
  */
-function KayWall({ rows, cols, boardW, boardH, skipBottom = false }: { rows: number; cols: number; boardW: number; boardH: number; skipBottom?: boolean }) {
+/** Verdadeiro quando a câmera está do outro lado do campo (jogador Vermelho). Vem do `Board3DCanvas`. */
+const BoardFlipContext = createContext(false);
+
+function KayWall({ rows, cols, boardW, boardH, skipBottom = false, skipTop = false }: { rows: number; cols: number; boardW: number; boardH: number; skipBottom?: boolean; skipTop?: boolean }) {
   const gateRow = Math.floor(rows / 2) - 1;
   const segs = useMemo(() => {
     const out: { key: string; x: number; z: number; rot: number; gate: boolean }[] = [];
@@ -101,6 +104,7 @@ function KayWall({ rows, cols, boardW, boardH, skipBottom = false }: { rows: num
         for (const d of hexNeighbors(row, col)) {
           if (d.r >= 0 && d.r < rows && d.c >= 0 && d.c < cols) continue; // aresta interna
           if (skipBottom && d.r >= rows) continue; // sem muro na borda de baixo (lado do jogador)
+          if (skipTop && d.r < 0) continue; // câmera virada: o lado do jogador é o de cima
           const mx = x - boardW / 2 + d.dx * 0.866;
           const mz = y - boardH / 2 + d.dz * 0.866;
           const tx = -d.dz;
@@ -111,7 +115,7 @@ function KayWall({ rows, cols, boardW, boardH, skipBottom = false }: { rows: num
       }
     }
     return out;
-  }, [rows, cols, boardW, boardH, skipBottom]);
+  }, [rows, cols, boardW, boardH, skipBottom, skipTop]);
   return (
     <>
       {segs.map((w) => (
@@ -303,6 +307,7 @@ export function CombatBurst({ x, z }: { x: number; z: number }) {
 
 export function BoardWorld({ far = false, clouds = true, onSelectTile }: { far?: boolean; clouds?: boolean; onSelectTile?: (row: number, col: number) => void }) {
   const map = ACTIVE_MAP;
+  const flip = useContext(BoardFlipContext);
   const boardW = map.cols * (Math.sqrt(3) * HEX_SIZE) + (Math.sqrt(3) * HEX_SIZE) / 2;
   const boardH = (map.rows - 1) * (HEX_SIZE * 2 * 0.75) + HEX_SIZE * 2;
   const tiles = useMemo(() => {
@@ -341,7 +346,7 @@ export function BoardWorld({ far = false, clouds = true, onSelectTile }: { far?:
 
       <Sea />
       <KayRing rows={map.rows} cols={map.cols} boardW={boardW} boardH={boardH} />
-      <KayWall rows={map.rows} cols={map.cols} boardW={boardW} boardH={boardH} skipBottom />
+      <KayWall rows={map.rows} cols={map.cols} boardW={boardW} boardH={boardH} skipBottom={!flip} skipTop={flip} />
       <KayBases rows={map.rows} cols={map.cols} boardW={boardW} boardH={boardH} />
       {tiles.map((t) => (
         <KayTile key={`${t.row}-${t.col}`} row={t.row} col={t.col} terrain={t.terrain} boardW={boardW} boardH={boardH} onSelect={clickTile} />
@@ -389,11 +394,11 @@ export function useDeviceMode() {
  * Canvas 3D do tabuleiro, com a câmera estilo MOBA (ângulo fixo, desliza e dá zoom; no toque, um dedo
  * arrasta e dois dedos dão zoom). Os filhos entram dentro do Canvas.
  */
-export function Board3DCanvas({ focusX = 0, children }: { focusX?: number; children: ReactNode }) {
+export function Board3DCanvas({ focusX = 0, flip = false, children }: { focusX?: number; /** Câmera do outro lado do campo, para quem joga de Vermelho ver o próprio exército à esquerda. */ flip?: boolean; children: ReactNode }) {
   const controls = useRef<OrbitControlsImpl | null>(null);
   return (
-    <Canvas shadows camera={{ position: [focusX, 14.9, 18.8], fov: 45, near: 1, far: 1500 }} gl={{ toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.9 }}>
-      {children}
+    <Canvas shadows camera={{ position: [focusX, 14.9, flip ? -18.8 : 18.8], fov: 45, near: 1, far: 1500 }} gl={{ toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.9 }}>
+      <BoardFlipContext.Provider value={flip}>{children}</BoardFlipContext.Provider>
       <OrbitControls
         ref={controls}
         makeDefault
@@ -409,8 +414,8 @@ export function Board3DCanvas({ focusX = 0, children }: { focusX?: number; child
         panSpeed={1.1}
         minPolarAngle={0.9}
         maxPolarAngle={0.9}
-        minAzimuthAngle={0}
-        maxAzimuthAngle={0}
+        minAzimuthAngle={flip ? Math.PI : 0}
+        maxAzimuthAngle={flip ? Math.PI : 0}
         minDistance={9}
         maxDistance={24}
         onChange={() => clampCameraToBoard(controls.current)}
@@ -449,8 +454,9 @@ export function clampCameraToBoard(ctrl: OrbitControlsImpl | null) {
     if (hi > maxB) return maxB - hi;
     return 0;
   };
-  const dx = axis(left, right, -hx, hx);
-  const dz = axis(far, near, -hz, hz);
+  // Com a câmera virada (Vermelho) esquerda/direita e longe/perto trocam de sinal: usa sempre menor e maior.
+  const dx = axis(Math.min(left, right), Math.max(left, right), -hx, hx);
+  const dz = axis(Math.min(far, near), Math.max(far, near), -hz, hz);
   if (Math.abs(dx) > 1e-4 || Math.abs(dz) > 1e-4) {
     cam.position.x += dx;
     cam.position.z += dz;

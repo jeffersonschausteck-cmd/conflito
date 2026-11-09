@@ -146,6 +146,8 @@ function OpponentDisconnectBanner() {
 }
 
 export const Route = createFileRoute("/game")({
+  // Só no navegador: o lado do jogador (sorteado) vem do sessionStorage e não existe no servidor.
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Conflito — Campo de Batalha" },
@@ -173,7 +175,8 @@ function GamePage() {
   // parava em `deployment.tsx` e nunca chegava até aqui, fazendo cada
   // componente (Fog of War, HUD, tela de vitória) assumir "blue" por
   // conta própria.
-  const localOwner: PlayerOwner = isOnline ? flowState.read().onlineOwner ?? "blue" : "blue";
+  // Offline é o lado sorteado ao escolher o ritmo (docs/04-Regras.md, seção 18).
+  const localOwner: PlayerOwner = (isOnline ? flowState.read().onlineOwner : flowState.read().offlineOwner) ?? "blue";
 
   // Sprint QA-11 — distingue "não é online" (`state: null`, sem erro)
   // de "é online, mas a leitura falhou" (`error: true`) — antes os dois
@@ -240,8 +243,9 @@ function GamePage() {
         <AudioBridge />
         <OpponentDisconnectBanner />
         <RevealLogProvider>
-          {localOwner === "blue" ? (
-            // Partida em 3D (visual novo). Só quem joga de Azul: a câmera do 3D ainda não gira para o Vermelho online.
+          {!isOnline || localOwner === "blue" ? (
+            // Partida em 3D (visual novo). Offline, nos dois lados (a câmera gira para quem joga de Vermelho).
+            // Online, só o Azul por enquanto: o Vermelho online segue na tela 2D até testarmos a câmera virada com dois jogadores.
             <Match3DScreen isOnline={isOnline} />
           ) : (
           <>

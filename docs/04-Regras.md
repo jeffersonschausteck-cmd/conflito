@@ -94,6 +94,7 @@ Durante toda a partida:
 - As peças adversárias permanecem ocultas.
 - Uma peça somente é revelada quando ocorre um combate.
 - Exceção: o Explorador que se move mais de uma casa em uma única ação é revelado para ambos os jogadores. Mover uma única casa não revela o Explorador.
+- Exceção: a Bandeira é sempre visível para os dois jogadores, desde o início da partida. Saber onde ela está não dá a ela proteção: quem a defende precisa cercá-la com Bombas e peças. Na tela, ela é desenhada bem alta (cerca de três vezes a altura anterior), com haste longa e o pano ao vento, para ser vista de longe.
 
 Após revelada, sua identidade passa a ser conhecida por ambos os jogadores.
 
@@ -292,6 +293,15 @@ Toda partida em ritmo Rápida ou Relâmpago termina por Bandeira, por tempo esgo
 
 ---
 
+# 18. Lado do Jogador
+
+- Contra o computador, o lado do jogador (Azul ou Vermelho) é sorteado no início de cada partida, com a mesma chance para os dois. O computador joga com o outro lado.
+- No online, o lado é definido pela sala: quem entra primeiro joga de Azul e o segundo jogador joga de Vermelho.
+- O Azul sempre começa jogando, qualquer que seja o lado do humano.
+- Em qualquer lado, o jogador vê o seu exército à esquerda da tela e o inimigo à direita (a câmera gira para quem joga de Vermelho).
+
+---
+
 # Visão para a Versão 1.0
 
 Na versão 1.0 todas as regras deste documento deverão estar completamente implementadas pelo Motor do Jogo.
@@ -315,3 +325,4 @@ Nenhuma regra oficial poderá existir apenas na implementação.
 
 - Inclusão dos ritmos Rápida e Relâmpago: relógio, tempo por jogada, Maré e vitória por pontos (seção 17).
 - Revisão da seção 13 (Empate).
+- Bandeira sempre visível (seção 7) e lado do jogador sorteado contra o computador (seção 18).

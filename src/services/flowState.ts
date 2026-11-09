@@ -12,6 +12,8 @@ export interface FlowState {
   online?: boolean;
   /** Ritmo escolhido (Clássica, Rápida ou Relâmpago); só partidas offline. */
   pace?: Pace;
+  /** Lado do jogador contra o computador, sorteado ao escolher o ritmo (docs/04-Regras.md, seção 18). */
+  offlineOwner?: "blue" | "red";
   onlineRoomId?: string;
   onlineOwner?: "blue" | "red";
   /**

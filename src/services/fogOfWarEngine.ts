@@ -34,6 +34,8 @@ export const FogOfWarEngine = {
    */
   isHiddenFrom(piece: Piece, viewer: PlayerOwner): boolean {
     if (piece.owner === viewer) return false;
+    // A Bandeira é sempre visível para os dois jogadores (docs/04-Regras.md, seção 7).
+    if (piece.pieceType === "flag") return false;
     return !piece.isRevealed;
   },
 
