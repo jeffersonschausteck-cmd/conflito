@@ -202,11 +202,9 @@ A partida é encerrada imediatamente.
 
 # 13. Empate
 
-Na versão 1.0 não existem regras oficiais de empate.
+Não existe empate: toda partida termina com um vencedor.
 
-Toda partida deverá terminar com um vencedor.
-
-Regras adicionais poderão ser incluídas em versões futuras.
+Nos modos com Ritmo (seção 17), quando o limite de rodadas é atingido, o vencedor é decidido por pontos, com critérios de desempate que garantem sempre um vencedor.
 
 ---
 
@@ -249,6 +247,45 @@ Todas as partidas do Conflito deverão respeitar os seguintes princípios:
 
 ---
 
+# 17. Ritmo da Partida (modos Rápida e Relâmpago)
+
+O Conflito possui três ritmos. O ritmo é escolhido antes da partida e vale para os dois jogadores.
+
+| Ritmo | Rodadas | Relógio por jogador | Tempo por jogada | Maré |
+|-------|---------|---------------------|------------------|------|
+| Clássica | sem limite | sem relógio | sem limite | não há |
+| Rápida | 30 | 5 minutos | 20 segundos | começa na rodada 18, sobe a cada 3 rodadas (até 3 faixas) |
+| Relâmpago | 20 | 3 minutos | 15 segundos | começa na rodada 10, sobe a cada 2 rodadas (até 4 faixas) |
+
+Uma rodada é uma jogada de cada jogador. O contador de turnos do Motor conta cada jogada separadamente; a rodada é derivada dele.
+
+## Relógio
+
+- Cada jogador tem um tempo total. O tempo corre apenas durante o turno do próprio jogador.
+- Quando o tempo total de um jogador chega a zero, ele perde a partida (motivo: tempo esgotado).
+- Cada jogada tem também um tempo máximo. Se ele acabar, o jogo faz uma jogada automática segura: move uma peça que possa se mover, sem atacar quando existir alternativa, escolhendo o avanço em direção ao inimigo. Se nenhuma peça puder se mover, o turno é encerrado.
+
+## Maré
+
+- A partir da rodada inicial da Maré, a faixa externa do campo é inundada. A cada intervalo a próxima faixa é inundada.
+- Casas inundadas não podem ser ocupadas nem atravessadas.
+- Peças que se movem e estiverem em uma casa inundada são eliminadas no instante da inundação.
+- Bombas e Bandeira não se movem e não são eliminadas pela Maré. A casa onde ficam continua podendo ser atacada.
+- A interface avisa a Maré com até 2 rodadas de antecedência.
+
+## Fim por limite de rodadas
+
+Quando a última rodada termina sem que a Bandeira tenha sido capturada, vence quem tiver mais pontos.
+
+- Pontos por peça inimiga capturada: o valor da patente da peça (Comandante 7, Oficial 6, Atirador 5, Infantaria 4, Engenheiro 3, Explorador 2, Espião 1; Bomba 4).
+- Ponto por peça própria ainda viva: 1 ponto cada.
+- Bandeira ainda viva: 10 pontos.
+- Desempate, nesta ordem: maior valor capturado; mais peças vivas; vence o Vermelho (que joga por segundo).
+
+Toda partida em ritmo Rápida ou Relâmpago termina por Bandeira, por tempo esgotado ou por pontos.
+
+---
+
 # Visão para a Versão 1.0
 
 Na versão 1.0 todas as regras deste documento deverão estar completamente implementadas pelo Motor do Jogo.
@@ -267,3 +304,8 @@ Nenhuma regra oficial poderá existir apenas na implementação.
 - Definição das regras de combate.
 - Definição das regras especiais.
 - Definição das condições de vitória.
+
+## Versão 1.1
+
+- Inclusão dos ritmos Rápida e Relâmpago: relógio, tempo por jogada, Maré e vitória por pontos (seção 17).
+- Revisão da seção 13 (Empate).

@@ -22,7 +22,7 @@ function WaitingRoomPage() {
   const session = AuthClient.readSession();
   const flow = flowState.read();
 
-  const [status, setStatus] = useState<RoomStatus>("waiting");
+  const [, setStatus] = useState<RoomStatus>("waiting");
   const [players, setPlayers] = useState<RoomPlayerInfo[]>([]);
   const [readyIds, setReadyIds] = useState<string[]>([]);
   const [iAmReady, setIAmReady] = useState(false);

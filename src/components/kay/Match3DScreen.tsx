@@ -8,14 +8,14 @@ import { ACTIVE_MAP } from "@/maps";
 import { hexToPixel } from "@/services/hexGeometry";
 import { KayPiece } from "@/components/kay/KayCharacters";
 import { BoardWorld, Board3DCanvas, CombatBurst, HEX_SIZE, LegalMarker, useDeviceMode } from "@/components/kay/BoardWorld";
-import { PhoneHud } from "@/components/kay/PhoneHud";
+import { MatchPaceHud, TideMarks } from "@/components/kay/MatchPaceHud";
 
 /**
  * Tela da partida em 3D (cenário KayKit, peças animadas, HUD de comando). Usada pela rota `/game`
  * (partida de verdade) e por `/lab3d` (laboratório). Precisa estar dentro de um provedor de estado do jogo.
  */
 
-function BoardScene({ onSelectCell, far = false, flat = false }: { onSelectCell: (row: number, col: number) => void; far?: boolean; flat?: boolean }) {
+function BoardScene({ onSelectCell, far = false }: { onSelectCell: (row: number, col: number) => void; far?: boolean }) {
   // Estado real do jogo (o mesmo que alimenta o HUD). Chega aqui pela ponte de
   // contexto montada em Match3DScreen, porque o Canvas é uma árvore React separada.
   const { state, selectedPiece, legalMoves, selectPiece, moveSelectedTo, localOwner, lastCombat } = useGameState();
@@ -65,7 +65,8 @@ function BoardScene({ onSelectCell, far = false, flat = false }: { onSelectCell:
 
   return (
     <>
-      <BoardWorld flat={flat} far={far} onSelectTile={clickTile} />
+      <BoardWorld far={far} onSelectTile={clickTile} />
+      <TideMarks />
 
       {/* Casas para onde a peça selecionada pode ir: verde = mover, vermelho = atacar (há inimigo) */}
       {(selectedPiece?.owner === localOwner ? [...legalMoves] : []).map((key) => {
@@ -105,7 +106,7 @@ function BoardScene({ onSelectCell, far = false, flat = false }: { onSelectCell:
         );
       })}
 
-      {!flat && <ContactShadows position={[0, -0.5, 0]} opacity={0.5} scale={40} blur={2} far={4} />}
+      <ContactShadows position={[0, -0.5, 0]} opacity={0.5} scale={40} blur={2} far={4} />
     </>
   );
 }
@@ -139,11 +140,9 @@ function SelectedPieceChip() {
 export function Match3DScreen({ isOnline = false }: { isOnline?: boolean }) {
   // WebGL/Three.js não existe no servidor — evita montar o `Canvas`
   // durante o SSR, só depois que o componente já está rodando no cliente.
-  const { mounted, phone, portrait, aspect } = useDeviceMode();
+  const { mounted } = useDeviceMode();
   // A IA do Vermelho joga só offline (antes rodava dentro da barra de ações, que saiu da tela).
   useAITurn({ enabled: !isOnline });
-  const game = useGameState();
-  const { localOwner } = game;
   // O Canvas é outra árvore React: a ponte leva o estado do jogo pra dentro dele.
   const Bridge = useContextBridge(GameStateContext);
 
@@ -151,22 +150,17 @@ export function Match3DScreen({ isOnline = false }: { isOnline?: boolean }) {
     <div className="fixed inset-0 overflow-hidden bg-slate-950 text-foreground">
       {/* 3D em tela cheia, atrás do HUD */}
       {mounted && (
-        <div className={`absolute inset-0 z-0 ${phone ? "touch-none" : ""}`}>
-          <Board3DCanvas phone={phone} portrait={portrait} aspect={aspect}>
+        <div className="absolute inset-0 z-0 touch-none">
+          <Board3DCanvas>
             <Bridge>
               <Suspense fallback={null}>
-                <BoardScene onSelectCell={() => {}} flat={phone} />
+                <BoardScene onSelectCell={() => {}} />
               </Suspense>
             </Bridge>
           </Board3DCanvas>
         </div>
       )}
 
-      {phone && portrait ? (
-        // Celular em pé: HUD próprio (faixa de título, cartão da peça e botões), com a arena no meio.
-        <PhoneHud isOnline={isOnline} />
-      ) : (
-        <>
       {/* HUD — mesmos componentes e a mesma organização da tela /game.
           O container não captura o mouse: só os painéis, pra câmera receber o arrasto no meio. */}
       <div className="pointer-events-none relative z-10 grid h-full min-h-0 grid-rows-[auto_1fr]">
@@ -176,13 +170,10 @@ export function Match3DScreen({ isOnline = false }: { isOnline?: boolean }) {
           <SelectedPieceChip />
         </div>
       </div>
-        </>
-      )}
-            {!phone && (
-        <div className="pointer-events-none absolute bottom-1 left-1/2 z-10 -translate-x-1/2 font-mono text-[9px] uppercase tracking-[0.2em] text-slate-900/60">
-          arraste: mover a câmera · scroll: zoom
-        </div>
-      )}
+      <MatchPaceHud />
+      <div className="pointer-events-none absolute bottom-1 left-1/2 z-10 -translate-x-1/2 font-mono text-[9px] uppercase tracking-[0.2em] text-slate-900/60">
+        arraste: mover a câmera · scroll: zoom
+      </div>
     </div>
   );
 }

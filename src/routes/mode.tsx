@@ -72,7 +72,7 @@ function ModeSelectPage() {
     }
 
     flowState.write({ mode: mode.id, online: false });
-    navigate({ to: "/loading" });
+    navigate({ to: "/pace" });
   };
 
   return (

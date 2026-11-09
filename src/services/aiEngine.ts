@@ -1,5 +1,6 @@
 import { MovementEngine } from "@/services/movementEngine";
 import { PieceManager } from "@/services/pieceManager";
+import { effectiveBlocked } from "@/services/matchRules";
 import type { GameState, Player } from "@/types/gameState";
 import { playerToOwner } from "@/types/gameState";
 import type { Coord } from "@/types/movement";
@@ -61,7 +62,7 @@ export const AIEngine = {
         piece,
         state.pieces,
         bounds,
-        state.config.blockedTiles,
+        effectiveBlocked(state),
       );
       for (const target of moves) {
         // Skip friendly-occupied tiles — GameEngine would reject them.

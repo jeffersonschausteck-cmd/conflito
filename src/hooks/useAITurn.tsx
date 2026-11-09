@@ -51,20 +51,17 @@ export function useAITurn(options: UseAITurnOptions = {}) {
     const t1 = setTimeout(() => {
       // Highlight briefly.
       selectPiece(decision.piece.id);
-      const t2 = setTimeout(() => {
+      // Este segundo temporizador não é cancelado na limpeza de propósito: selecionar a peça muda o
+      // estado e refaz este efeito, e a jogada precisa acontecer mesmo assim. (Antes o código tentava
+      // guardar o temporizador em `t1._inner`, o que dá erro no navegador porque `t1` é um número.)
+      setTimeout(() => {
         moveSelectedTo(decision.target.row, decision.target.column);
         setThinking(false);
         busyRef.current = false;
       }, moveDelay);
-      // Store inner timer for cleanup.
-      (t1 as unknown as { _inner?: ReturnType<typeof setTimeout> })._inner = t2;
     }, thinkMs);
 
     return () => {
-      const inner = (t1 as unknown as {
-        _inner?: ReturnType<typeof setTimeout>;
-      })._inner;
-      if (inner) clearTimeout(inner);
       clearTimeout(t1);
       setThinking(false);
       busyRef.current = false;

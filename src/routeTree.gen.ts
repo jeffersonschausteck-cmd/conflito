@@ -14,6 +14,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ResultRouteImport } from './routes/result'
 import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PaceRouteImport } from './routes/pace'
 import { Route as OnlineLobbyRouteImport } from './routes/online-lobby'
 import { Route as OficinaRouteImport } from './routes/oficina'
 import { Route as ModeRouteImport } from './routes/mode'
@@ -47,6 +48,11 @@ const RankingRoute = RankingRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaceRoute = PaceRouteImport.update({
+  id: '/pace',
+  path: '/pace',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnlineLobbyRoute = OnlineLobbyRouteImport.update({
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/mode': typeof ModeRoute
   '/oficina': typeof OficinaRoute
   '/online-lobby': typeof OnlineLobbyRoute
+  '/pace': typeof PaceRoute
   '/profile': typeof ProfileRoute
   '/ranking': typeof RankingRoute
   '/result': typeof ResultRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByTo {
   '/mode': typeof ModeRoute
   '/oficina': typeof OficinaRoute
   '/online-lobby': typeof OnlineLobbyRoute
+  '/pace': typeof PaceRoute
   '/profile': typeof ProfileRoute
   '/ranking': typeof RankingRoute
   '/result': typeof ResultRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/mode': typeof ModeRoute
   '/oficina': typeof OficinaRoute
   '/online-lobby': typeof OnlineLobbyRoute
+  '/pace': typeof PaceRoute
   '/profile': typeof ProfileRoute
   '/ranking': typeof RankingRoute
   '/result': typeof ResultRoute
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/mode'
     | '/oficina'
     | '/online-lobby'
+    | '/pace'
     | '/profile'
     | '/ranking'
     | '/result'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/mode'
     | '/oficina'
     | '/online-lobby'
+    | '/pace'
     | '/profile'
     | '/ranking'
     | '/result'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/mode'
     | '/oficina'
     | '/online-lobby'
+    | '/pace'
     | '/profile'
     | '/ranking'
     | '/result'
@@ -205,6 +217,7 @@ export interface RootRouteChildren {
   ModeRoute: typeof ModeRoute
   OficinaRoute: typeof OficinaRoute
   OnlineLobbyRoute: typeof OnlineLobbyRoute
+  PaceRoute: typeof PaceRoute
   ProfileRoute: typeof ProfileRoute
   RankingRoute: typeof RankingRoute
   ResultRoute: typeof ResultRoute
@@ -247,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pace': {
+      id: '/pace'
+      path: '/pace'
+      fullPath: '/pace'
+      preLoaderRoute: typeof PaceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/online-lobby': {
@@ -325,6 +345,7 @@ const rootRouteChildren: RootRouteChildren = {
   ModeRoute: ModeRoute,
   OficinaRoute: OficinaRoute,
   OnlineLobbyRoute: OnlineLobbyRoute,
+  PaceRoute: PaceRoute,
   ProfileRoute: ProfileRoute,
   RankingRoute: RankingRoute,
   ResultRoute: ResultRoute,

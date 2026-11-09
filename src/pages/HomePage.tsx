@@ -62,7 +62,7 @@ function MenuScene({ portrait }: { portrait: boolean }) {
   return (
     <>
       <MenuCamera portrait={portrait} />
-      <BoardWorld flat={false} far clouds={false} />
+      <BoardWorld far clouds={false} />
       {(portrait ? BLUE_ARMY_PORTRAIT : BLUE_ARMY).map((p, i) => {
         const { x, z } = cellWorld(p.row, p.col);
         return <KayPiece key={`b${i}`} x={x} z={z} owner="blue" pieceType={p.type} color="#22d3ee" mine />;
@@ -94,7 +94,7 @@ function MenuButton({ to, children, hint, primary = false, className = "" }: { t
  */
 export function HomePage() {
   const { canInstall, promptInstall } = useInstallPrompt();
-  const { mounted, portrait, phone } = useDeviceMode();
+  const { mounted, portrait } = useDeviceMode();
   const narrow = portrait;
 
   return (
@@ -156,7 +156,7 @@ export function HomePage() {
           </div>
         </div>
 
-        {!phone && (
+        {!narrow && (
           <div className="[&>div]:!text-sky-100 [&>div]:[text-shadow:0_1px_2px_#000]">
             <StatusFooter />
           </div>

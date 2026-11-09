@@ -11,7 +11,7 @@ import type { PieceType } from "@/types/piece";
  * Fica montado enquanto o jogador navega entre elas: a câmera só desliza para um novo ângulo,
  * então a cena não recarrega a cada tela. Só visual.
  */
-export const BACKDROP_ROUTES = ["/mode", "/loading", "/ranking", "/profile", "/settings", "/about", "/login", "/online-lobby", "/waiting-room", "/result"];
+export const BACKDROP_ROUTES = ["/mode", "/pace", "/loading", "/ranking", "/profile", "/settings", "/about", "/login", "/online-lobby", "/waiting-room", "/result"];
 
 type V3 = [number, number, number];
 const A = cellWorld(2, 7); // exército azul em formação
@@ -20,6 +20,7 @@ const M = cellWorld(5, 11); // meio do campo (duelo)
 /** Um ângulo de câmera por tela: posição e ponto de mira, em relação a um ponto do campo. */
 const VIEWS: Record<string, { at: { x: number; z: number }; pos: V3; look: V3 }> = {
   "/mode": { at: A, pos: [0.5, 3.2, 12], look: [-4, 1.4, -0.3] },
+  "/pace": { at: A, pos: [0.5, 3.2, 12], look: [-4, 1.4, -0.3] },
   "/loading": { at: A, pos: [-9, 2.8, 9], look: [3, 1.4, -0.5] },
   "/ranking": { at: M, pos: [0, 10, 11], look: [0, 0, 0] },
   "/profile": { at: A, pos: [2.5, 2.4, 7.5], look: [-0.5, 1.6, 0] },
@@ -83,7 +84,7 @@ function Scene({ path, portrait }: { path: string; portrait: boolean }) {
   return (
     <>
       <CameraRig path={path} portrait={portrait} />
-      <BoardWorld flat={false} far clouds={false} />
+      <BoardWorld far clouds={false} />
       {BLUE.map((p, i) => {
         const { x, z } = cellWorld(p.row, p.col);
         return <KayPiece key={`b${i}`} x={x} z={z} owner="blue" pieceType={p.type} color="#22d3ee" mine />;

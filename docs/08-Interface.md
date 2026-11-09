@@ -260,3 +260,14 @@ A especificação completa está no documento 17 - Oficina do Exército.
 ## Versão 1.1
 
 - Inclusão da seção sobre a Oficina do Exército (documento 17).
+
+---
+
+# Ritmo da Partida (relógio, Maré e pontos)
+
+Nos ritmos Rápida e Relâmpago (documento 04, seção 17) a barra superior da partida mostra o relógio de cada jogador no lugar do cronômetro corrido, e a rodada atual com o limite (por exemplo, 14 / 30).
+
+- Um indicador de "sua vez" mostra o tempo restante da jogada (anel que se esgota).
+- Um aviso aparece até 2 rodadas antes da Maré, e as casas que serão inundadas ficam em laranja. As casas já inundadas aparecem como água.
+- Ao fim por limite de rodadas ou por tempo, a tela final mostra o motivo e, quando é por pontos, o placar detalhado.
+- A escolha do ritmo é uma tela própria, entre o Centro de Operações e o Posicionamento, com três cartões: Relâmpago, Rápida e Clássica.

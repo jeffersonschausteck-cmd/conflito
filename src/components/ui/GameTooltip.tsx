@@ -1,4 +1,4 @@
-import React, { ReactNode, useState } from "react";
+import { ReactNode, useState } from "react";
 import { cn } from "@/lib/utils";
 import { theme } from "@/design/theme";
 

@@ -18,6 +18,7 @@ import type {
 import type { Piece, PieceId, PlayerOwner } from "@/types/piece";
 import type { CombatResult } from "@/types/combat";
 import type { MatchType, RankingResultView } from "@/types/ranking";
+import { MatchClockContext, useMatchClockEngine } from "@/hooks/useMatchClock";
 
 export interface GameStateApi {
   state: GameState;
@@ -70,7 +71,7 @@ export interface GameStateApi {
    * tempo), pra tela final mostrar o motivo certo. Offline nunca tem
    * W.O., sempre `"victory"` quando `state.gameOver`.
    */
-  matchEndReason: "victory" | "forfeit" | null;
+  matchEndReason: "victory" | "forfeit" | "points" | "time" | null;
   /**
    * Sprint RANKING-01 — resultado de Rating desta Partida (Fase 14),
    * relativo a ESTE jogador — nunca calculado no cliente, só exibido.
@@ -117,6 +118,8 @@ export function GameStateProvider({ config, children, localOwner = "blue" }: Gam
   // Sprint TIMER-01 — offline não tem servidor pra ser autoridade de
   // tempo: o início da Partida é o próprio mount deste Provider (o
   // instante em que `/game` monta com um estado válido).
+  // Relógio dos ritmos Rápida/Relâmpago (nulo na Clássica): tempo total, tempo da jogada e jogada automática.
+  const clocks = useMatchClockEngine(state, dispatch, localOwner === "blue" ? "BLUE" : "RED", true);
   const [matchStartTime] = useState(() => Date.now());
   const [matchEndTime, setMatchEndTime] = useState<number | null>(null);
   const gameOverHandledRef = useRef(false);
@@ -170,7 +173,7 @@ export function GameStateProvider({ config, children, localOwner = "blue" }: Gam
       // Sprint REC-01 — offline não tem adversário nem servidor pra
       // detectar desconexão; sempre `null`.
       opponentDisconnectDeadline: null,
-      matchEndReason: state.gameOver ? "victory" : null,
+      matchEndReason: state.gameOver ? (state.endReason === "points" || state.endReason === "time" ? state.endReason : "victory") : null,
       // Sprint RANKING-01 — offline nunca tem Rating.
       rankingResult: null,
       // Sprint RANKING-03 — offline é sempre casual.
@@ -192,7 +195,7 @@ export function GameStateProvider({ config, children, localOwner = "blue" }: Gam
 
   return (
     <GameStateContext.Provider value={value}>
-      {children}
+      <MatchClockContext.Provider value={clocks}>{children}</MatchClockContext.Provider>
     </GameStateContext.Provider>
   );
 }

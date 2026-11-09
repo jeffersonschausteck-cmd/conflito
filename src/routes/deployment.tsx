@@ -55,7 +55,7 @@ function getRankForType(type: PieceType): number {
 function DeploymentPage() {
   const navigate = useNavigate();
   useMenuMusic();
-  const { mounted, phone, portrait, aspect } = useDeviceMode();
+  const { mounted } = useDeviceMode();
 
   const flow = flowState.read();
   const isOnline = flow.online === true;
@@ -418,11 +418,10 @@ function DeploymentPage() {
     <main className="fixed inset-0 overflow-hidden bg-slate-950 text-foreground">
       {/* Tabuleiro 3D em tela cheia, atrás do HUD (mesmo visual da partida) */}
       {mounted && (
-        <div className={`absolute inset-0 z-0 ${phone ? "touch-none" : ""}`}>
-          <Board3DCanvas phone={phone} portrait={portrait} aspect={aspect} focusX={myOwner === "blue" ? -5 : 5}>
+        <div className="absolute inset-0 z-0 touch-none">
+          <Board3DCanvas focusX={myOwner === "blue" ? -5 : 5}>
             <Suspense fallback={null}>
               <DeploymentScene
-                flat={phone}
                 pieces={pieces}
                 myOwner={myOwner}
                 selectedBoardPieceId={selectedBoardPieceId}
@@ -441,7 +440,7 @@ function DeploymentPage() {
 
       <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between" style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
         {/* ───── Topo ───── */}
-        <div data-phone-hud="top" className="flex items-center justify-between gap-2 px-2.5 pt-2">
+        <div className="flex items-center justify-between gap-2 px-2.5 pt-2">
           <button
             onClick={() => navigate({ to: "/" })}
             className="pointer-events-auto flex h-10 shrink-0 items-center gap-1 rounded border border-rose-400/50 bg-slate-950/80 px-2 font-display text-[10px] font-bold uppercase tracking-wider text-rose-100"
@@ -458,7 +457,7 @@ function DeploymentPage() {
         </div>
 
         {/* ───── Base: reserva em faixa, status e botões (celular e computador) ───── */}
-        <div data-phone-hud="bottom" className="mx-auto mb-2.5 flex w-[calc(100%-1.25rem)] max-w-[920px] flex-col gap-1.5 rounded-lg border border-cyan-400/30 bg-slate-950/85 p-2 backdrop-blur-sm [@media(max-height:500px)]:mb-1.5 [@media(max-height:500px)]:flex-row [@media(max-height:500px)]:items-center [@media(max-height:500px)]:p-1.5">
+        <div className="mx-auto mb-2.5 flex w-[calc(100%-1.25rem)] max-w-[920px] flex-col gap-1.5 rounded-lg border border-cyan-400/30 bg-slate-950/85 p-2 backdrop-blur-sm [@media(max-height:500px)]:mb-1.5 [@media(max-height:500px)]:flex-row [@media(max-height:500px)]:items-center [@media(max-height:500px)]:p-1.5">
           {selectedCard}
           <div className="flex items-center justify-between [@media(max-height:500px)]:hidden">{status}</div>
           <div className="pointer-events-auto flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -484,7 +483,6 @@ function ZoneMark({ x, z, color, opacity }: { x: number; z: number; color: strin
 }
 
 function DeploymentScene({
-  flat,
   pieces,
   myOwner,
   selectedBoardPieceId,
@@ -496,7 +494,6 @@ function DeploymentScene({
   onCell,
   onPiece,
 }: {
-  flat: boolean;
   pieces: PieceModel[];
   myOwner: PlayerOwner;
   selectedBoardPieceId: string | null;
@@ -524,7 +521,7 @@ function DeploymentScene({
   }
   return (
     <>
-      <BoardWorld flat={flat} onSelectTile={onCell} />
+      <BoardWorld onSelectTile={onCell} />
       {marks.map((m) => (
         <ZoneMark key={m.key} x={m.x} z={m.z} color={m.color} opacity={m.opacity} />
       ))}

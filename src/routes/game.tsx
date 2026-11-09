@@ -16,6 +16,7 @@ import { Match3DScreen } from "@/components/kay/Match3DScreen";
 import { MatchActionsBar } from "@/components/game/MatchActionsBar";
 import { TerrainPanel } from "@/components/game/TerrainPanel";
 import { ACTIVE_MAP, getBlockedTiles } from "@/maps";
+import { RULES_BY_PACE, winnerByPoints } from "@/services/matchRules";
 import type { TerrainId } from "@/maps/types";
 import { flowState } from "@/services/flowState";
 import { OnlineGameStateProvider } from "@/multiplayer/OnlineGameStateProvider";
@@ -73,6 +74,8 @@ function GameProvider({
         rows: ACTIVE_MAP.rows,
         cols: ACTIVE_MAP.cols,
         blockedTiles: getBlockedTiles(ACTIVE_MAP),
+        // Ritmo escolhido na tela de ritmo (Clássica = sem regras extras).
+        rules: RULES_BY_PACE[flowState.read().pace ?? "classic"] ?? undefined,
       }}
       localOwner={localOwner}
     >
@@ -325,6 +328,9 @@ function GameOverOverlay() {
   // sendo o lado que de fato perdeu (independe da perspectiva).
   const isVictory = state.winner === ownerToPlayer(localOwner);
   const loserLabel = state.winner === "BLUE" ? "Vermelha" : "Azul";
+  const byPoints = state.endReason === "points";
+  const byTime = state.endReason === "time";
+  const points = byPoints ? winnerByPoints(state) : null;
 
   const piecesAlive = (owner: "blue" | "red") =>
     state.pieces.filter((p) => p.owner === owner && p.isAlive).length;
@@ -356,12 +362,18 @@ function GameOverOverlay() {
             isVictory ? "text-cyan-300" : "text-rose-400"
           }`}
         >
-          {isVictory ? "MISSÃO CONCLUÍDA" : "MISSÃO FRACASSADA"}
+          {byPoints ? (isVictory ? "VITÓRIA POR PONTOS" : "DERROTA POR PONTOS") : byTime ? (isVictory ? "VITÓRIA NO TEMPO" : "TEMPO ESGOTADO") : isVictory ? "MISSÃO CONCLUÍDA" : "MISSÃO FRACASSADA"}
         </h2>
         <p className="mt-1 text-[11px] text-slate-400 [@media(min-height:480px)]:mt-2 [@media(min-height:480px)]:text-sm">
-          {isVictory
-            ? "Sua ofensiva foi concluída com sucesso."
-            : "O exército inimigo capturou sua Bandeira."}
+          {byPoints
+            ? "O limite de rodadas chegou. Vence quem somou mais pontos."
+            : byTime
+              ? isVictory
+                ? "O relógio do adversário chegou a zero."
+                : "O seu relógio chegou a zero."
+              : isVictory
+                ? "Sua ofensiva foi concluída com sucesso."
+                : "O exército inimigo capturou sua Bandeira."}
         </p>
 
         <ScifiFrame
@@ -377,9 +389,15 @@ function GameOverOverlay() {
               value={
                 matchEndReason === "forfeit"
                   ? `Comandante ${loserLabel} não retornou a tempo (W.O.)`
-                  : `Bandeira ${loserLabel} capturada`
+                  : byPoints
+                    ? "Limite de rodadas (pontos)"
+                    : byTime
+                      ? `Tempo esgotado (${loserLabel})`
+                      : `Bandeira ${loserLabel} capturada`
               }
             />
+            {points && <SummaryRow label="Pontos (Azul)" value={`${points.blue.total} (capturas ${points.blue.captured} + vivas ${points.blue.alive} + bandeira ${points.blue.flag})`} />}
+            {points && <SummaryRow label="Pontos (Vermelho)" value={`${points.red.total} (capturas ${points.red.captured} + vivas ${points.red.alive} + bandeira ${points.red.flag})`} />}
             <SummaryRow label="Número de turnos" value={String(state.turnNumber)} />
             <SummaryRow label="Tempo da partida" value={formatClock(matchDurationMs)} />
             <SummaryRow label="Peças restantes (Azul)" value={String(piecesAlive("blue"))} />

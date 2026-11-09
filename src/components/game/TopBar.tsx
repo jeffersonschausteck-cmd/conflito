@@ -3,6 +3,8 @@ import { Link } from "@tanstack/react-router";
 import { BookOpen, Settings } from "lucide-react";
 import { useGameState } from "@/hooks/useGameState";
 import { useElapsed } from "@/hooks/useClock";
+import { useMatchClocks } from "@/hooks/useMatchClock";
+import { roundOf } from "@/services/matchRules";
 import { formatClock } from "@/lib/formatClock";
 import { GameButton } from "@/components/ui/GameButton";
 import { GameTooltip } from "@/components/ui/GameTooltip";
@@ -19,6 +21,8 @@ export function TopBar() {
   // Sprint TIMER-01 — para de contar sozinho quando `matchEndTime` é
   // definido (fim de partida); até lá, incrementa a cada 250ms.
   const matchElapsedMs = useElapsed(matchStartTime, matchEndTime);
+  const clocks = useMatchClocks();
+  const rules = state.config.rules;
 
   const blueAlive = state.pieces.filter((p) => p.owner === "blue" && p.isAlive).length;
   const redAlive = state.pieces.filter((p) => p.owner === "red" && p.isAlive).length;
@@ -56,22 +60,30 @@ export function TopBar() {
         {/* PLACAR */}
         <div className="flex min-w-0 items-center gap-1.5 [@media(min-height:480px)]:gap-6">
           <TeamScore label="Azul" color="cyan" count={blueAlive} active={isBlueTurn} />
-          <div className="text-center">
-            <div className="hidden font-display text-[9px] uppercase tracking-[0.35em] text-slate-500 [@media(min-height:480px)]:block">
-              Tempo
-            </div>
-            <div className="font-display text-xs font-bold tabular-nums text-cyan-300 [@media(min-height:480px)]:text-xl">
-              {formatClock(matchElapsedMs)}
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="hidden font-display text-[9px] uppercase tracking-[0.35em] text-slate-500 [@media(min-height:480px)]:block">
-              Turno
-            </div>
-            <div className="font-display text-xs font-bold text-white [@media(min-height:480px)]:text-xl">
-              {state.turnNumber}
-            </div>
-          </div>
+          {clocks && rules ? (
+            <>
+              <PlayerClock label="Azul" ms={clocks.BLUE} active={isBlueTurn} color="text-cyan-300" />
+              <div className="text-center">
+                <div className="hidden font-display text-[9px] uppercase tracking-[0.35em] text-slate-500 [@media(min-height:480px)]:block">Rodada</div>
+                <div className="font-display text-xs font-bold text-white [@media(min-height:480px)]:text-xl">
+                  {Math.min(roundOf(state.turnNumber), rules.roundLimit)}
+                  <span className="text-[10px] text-slate-400 [@media(min-height:480px)]:text-sm"> / {rules.roundLimit}</span>
+                </div>
+              </div>
+              <PlayerClock label="Verm." ms={clocks.RED} active={!isBlueTurn} color="text-rose-300" />
+            </>
+          ) : (
+            <>
+              <div className="text-center">
+                <div className="hidden font-display text-[9px] uppercase tracking-[0.35em] text-slate-500 [@media(min-height:480px)]:block">Tempo</div>
+                <div className="font-display text-xs font-bold tabular-nums text-cyan-300 [@media(min-height:480px)]:text-xl">{formatClock(matchElapsedMs)}</div>
+              </div>
+              <div className="text-center">
+                <div className="hidden font-display text-[9px] uppercase tracking-[0.35em] text-slate-500 [@media(min-height:480px)]:block">Turno</div>
+                <div className="font-display text-xs font-bold text-white [@media(min-height:480px)]:text-xl">{state.turnNumber}</div>
+              </div>
+            </>
+          )}
           <TeamScore label="Vermelho" color="rose" count={redAlive} active={!isBlueTurn} reverse />
         </div>
 
@@ -134,6 +146,16 @@ function TeamScore({
         {label}
       </span>
       <span className={`font-display text-lg font-black ${textColor}`}>{count}</span>
+    </div>
+  );
+}
+
+function PlayerClock({ label, ms, active, color }: { label: string; ms: number; active: boolean; color: string }) {
+  const low = ms <= 30_000;
+  return (
+    <div className={`text-center ${active ? "opacity-100" : "opacity-60"}`}>
+      <div className="hidden font-display text-[9px] uppercase tracking-[0.3em] text-slate-500 [@media(min-height:480px)]:block">{label}</div>
+      <div className={`font-display text-xs font-bold tabular-nums [@media(min-height:480px)]:text-xl ${low ? "animate-pulse text-rose-400" : color}`}>{formatClock(ms)}</div>
     </div>
   );
 }

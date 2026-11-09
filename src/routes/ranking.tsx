@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ScreenShell } from "@/components/ScreenShell";
 import { GamePanel } from "@/components/ui/GamePanel";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { ensureConnected, getNetworkClient } from "@/multiplayer/networkSingleton";
+import { getNetworkClient } from "@/multiplayer/networkSingleton";
 import { AuthClient } from "@/multiplayer/AuthClient";
 import { useMenuMusic } from "@/hooks/useMenuMusic";
 import type { LeaderboardEntry, MyStatsData } from "@/types/ranking";
