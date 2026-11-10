@@ -146,11 +146,11 @@ function KayBases({ rows, cols, boardW, boardH, towersOnly = false, flags = fals
     { file: "building_tower_A_red", row: -1, col: cols, scale: 1.3, rot: 0, y: -0.12 },
     { file: "building_tower_A_red", row: rows, col: cols, scale: 1.3, rot: 0, y: -0.12 },
     // Menu e telas de fundo: castelos ao fundo (borda de cima). Partida e posicionamento: um em cada ponta
-    // do tabuleiro (fora do campo, na altura do portão), para não cobrir peças nem casas.
+    // do tabuleiro, logo atrás da muralha lateral (na altura do portão), sobre um chão de grama.
     ...(castlesAtEnds
       ? [
-          { file: "building_castle_blue", row: Math.floor(rows / 2) - 1, col: -4, scale: 1.5, rot: Math.PI / 2, y: -0.28 },
-          { file: "building_castle_red", row: Math.floor(rows / 2) - 1, col: cols + 3, scale: 1.5, rot: -Math.PI / 2, y: -0.28 },
+          { file: "building_castle_blue", row: Math.floor(rows / 2) - 1, col: -2, scale: 1.5, rot: Math.PI / 2, y: -0.28 },
+          { file: "building_castle_red", row: Math.floor(rows / 2) - 1, col: cols + 1, scale: 1.5, rot: -Math.PI / 2, y: -0.28 },
         ]
       : [
           { file: "building_castle_blue", row: -2, col: 3, scale: 1.5, rot: 0, y: -0.28 },
@@ -169,6 +169,17 @@ function KayBases({ rows, cols, boardW, boardH, towersOnly = false, flags = fals
           </group>
         );
       })}
+      {/* Chão de grama sob cada castelo das pontas (sem ele o castelo flutua na água). */}
+      {castlesAtEnds &&
+        !towersOnly &&
+        spots
+          .filter((b) => b.file.startsWith("building_castle"))
+          .flatMap((b, bi) =>
+            [{ r: b.row, c: b.col }, ...hexNeighbors(b.row, b.col).map((d) => ({ r: d.r, c: d.c }))].map(({ r, c }, k) => {
+              const p = at(r, c);
+              return <KayModel key={`castle-ground-${bi}-${k}`} file="hex_grass" x={p.x} z={p.z} y={-0.28} tint="#6fd070" />;
+            }),
+          )}
     </>
   );
 }

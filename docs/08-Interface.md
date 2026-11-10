@@ -281,4 +281,4 @@ A escolha do modo é uma tela própria, entre o Centro de Operações e o Posici
 - A identidade de uma peça inimiga que ainda estava oculta só é mostrada quando as peças se encontram.
 - **Sem bases sob as peças:** as peças ficam direto no tabuleiro, sem a plataforma colorida embaixo. O time é identificado pela cor da roupa: o Azul veste azul e o Vermelho veste vermelho (a cor escolhida na Oficina do Exército continua valendo para as peças do jogador).
 - **Bandeira sempre à mostra:** a Bandeira nunca vira silhueta, nem durante a luta ou a captura (regra de visibilidade da seção 7 do documento 04).
-- **Castelos:** o castelo azul e o castelo vermelho ficam nas pontas esquerda e direita do tabuleiro, fora do campo, atrás das muralhas, para não cobrir peças nem casas. No menu e nas telas de fundo eles seguem ao fundo do cenário.
+- **Castelos:** o castelo azul e o castelo vermelho ficam nas pontas esquerda e direita do tabuleiro, logo atrás das muralhas laterais (na altura do portão), apoiados num chão de grama para não flutuar na água. Ficam fora do campo, sem cobrir peças nem casas. No menu e nas telas de fundo eles seguem ao fundo do cenário.
