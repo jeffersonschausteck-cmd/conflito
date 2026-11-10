@@ -1,7 +1,7 @@
 import { PIECES } from "@/config/pieces";
+import { formatFor } from "@/services/battleFormat";
 import { MovementEngine } from "@/services/movementEngine";
 import { PieceManager } from "@/services/pieceManager";
-import { effectiveBlocked } from "@/services/matchRules";
 import type { GameState, Player } from "@/types/gameState";
 import { playerToOwner } from "@/types/gameState";
 import type { Coord } from "@/types/movement";
@@ -62,8 +62,8 @@ const ADVANCE: Record<PieceType, number> = {
   flag: 0,
 };
 
-const LOSS_AVERSION = 1.5; // perder uma peça dói mais do que ganhar a mesma vale
-const INFO_BONUS = 0.7; // descobrir quem é uma peça oculta tem valor
+const LOSS_AVERSION = 1.1; // perder uma peça dói um pouco mais do que ganhar a mesma vale
+const INFO_BONUS = 1.8; // descobrir quem é uma peça oculta tem valor (e empurra a IA para o combate)
 const FLAG_BONUS = 10_000;
 
 // ───────────────────────── Memória da partida ─────────────────────────
@@ -155,7 +155,7 @@ function buildBelief(state: GameState, owner: PlayerOwner): { any: Belief; moved
   const moved: Belief = [];
   for (const t of Object.keys(PIECES) as PieceType[]) {
     if (t === "flag") continue; // a Bandeira é sempre visível, então uma peça oculta nunca é ela
-    const left = PIECES[t].quantidade - (shownAlive[t] ?? 0) - (memory.deadEnemy[t] ?? 0);
+    const left = formatFor(state.config.pace).roster[t] - (shownAlive[t] ?? 0) - (memory.deadEnemy[t] ?? 0);
     if (left <= 0) continue;
     any.push({ type: t, w: left });
     if (t !== "bomb") moved.push({ type: t, w: left });
@@ -219,7 +219,7 @@ export const AIEngine = {
     if (own.length === 0) return null;
 
     const bounds = { rows: state.config.rows, cols: state.config.cols };
-    const blocked = effectiveBlocked(state);
+    const blocked = state.config.blockedTiles ?? new Set<string>();
     const belief = buildBelief(state, owner);
     const enemyFlag = state.pieces.find((p) => p.isAlive && p.owner === enemy && p.pieceType === "flag");
     const myFlag = state.pieces.find((p) => p.isAlive && p.owner === owner && p.pieceType === "flag");

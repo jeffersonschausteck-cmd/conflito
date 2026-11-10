@@ -1,17 +1,26 @@
 import type { MapDefinition } from "./types";
 import { TERRAINS } from "./terrains";
 import { campoAberto } from "./campoAberto";
+import { campoRapido, campoRelampago } from "./smallFields";
+import type { Pace } from "@/types/gameState";
 
 /** Registry of every map available to the Interface. Add a new map by
  * exporting a `MapDefinition` from its own file and registering it here —
  * no other component needs to change. */
 export const MAPS: Record<string, MapDefinition> = {
   "campo-aberto": campoAberto,
+  "campo-rapido": campoRapido,
+  "campo-relampago": campoRelampago,
 };
 
 /** Map currently used for matches. Selecting between maps is a future
  * feature (mode/map selection screen) — v1 always uses this one. */
 export const ACTIVE_MAP: MapDefinition = campoAberto;
+
+/** Mapa de cada ritmo (docs/04-Regras.md, seção 19). A Clássica, e o online, usam o Campo Aberto. */
+export function mapForPace(pace: Pace | undefined | null): MapDefinition {
+  return pace === "rapid" ? campoRapido : pace === "blitz" ? campoRelampago : campoAberto;
+}
 
 export * from "./types";
 export * from "./terrains";

@@ -129,11 +129,7 @@ Durante uma partida o jogador deverá sentir:
 
 # Duração Média das Partidas
 
-Estimativa inicial:
-
-10 a 20 minutos.
-
-A duração poderá variar conforme o modo de jogo.
+A duração depende do modo de jogo: quanto maior o tabuleiro e o exército, mais longa a partida. Não há limite de tempo.
 
 ---
 

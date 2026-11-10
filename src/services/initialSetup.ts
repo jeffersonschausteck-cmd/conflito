@@ -1,5 +1,6 @@
 import { PIECES } from "@/config/pieces";
 import { PieceManager } from "@/services/pieceManager";
+import { BATTLE_FORMATS, type BattleFormat } from "@/services/battleFormat";
 import type { Piece, PieceType, PlayerOwner } from "@/types/piece";
 
 /**
@@ -69,6 +70,23 @@ function rowsForDepth(totalRows: number, skipRows: number[]): number[] {
 export interface InitialSetupOptions {
   rows?: number;
   cols?: number;
+  /** Formato do ritmo (docs/04-Regras.md, seção 19). Ausente ou Clássica: o posicionamento oficial de 40 peças. */
+  format?: BattleFormat;
+}
+
+/** Ordem em que um exército menor é posicionado: o que protege e vale mais fica atrás, a linha de frente por último. */
+const ORDER: PieceType[] = ["flag", "commander", "officer", "bomb", "spy", "engineer", "sniper", "infantry", "scout"];
+
+/**
+ * Posicionamento padrão de um exército menor: preenche as colunas da zona (de trás para a frente) com a
+ * composição do formato. Cada coluna tem uma peça por linha do tabuleiro.
+ */
+function layoutFromRoster(format: BattleFormat): PieceType[][] {
+  const queue: PieceType[] = [];
+  for (const t of ORDER) for (let i = 0; i < (format.roster[t] ?? 0); i++) queue.push(t);
+  const layout: PieceType[][] = [];
+  for (let d = 0; d < format.depth; d++) layout.push(queue.slice(d * format.rows, (d + 1) * format.rows));
+  return layout;
 }
 
 /**
@@ -77,7 +95,9 @@ export interface InitialSetupOptions {
  * Vermelho mirrors on the right edge (Sprint 2.5 orientation).
  */
 export const InitialSetup = {
-  generate({ rows = 10, cols = 10 }: InitialSetupOptions = {}): Piece[] {
+  generate({ rows = 10, cols = 10, format }: InitialSetupOptions = {}): Piece[] {
+    const custom = !!format && format !== BATTLE_FORMATS.classic;
+    const layout = custom ? layoutFromRoster(format) : DEPLOYMENT;
     const pieces: Piece[] = [];
     const counters = new Map<string, number>();
     const nextIndex = (owner: PlayerOwner, type: PieceType) => {
@@ -87,10 +107,10 @@ export const InitialSetup = {
       return i;
     };
 
-    for (let depth = 0; depth < DEPLOYMENT.length; depth++) {
-      const depthRows = rowsForDepth(rows, DEPTH_SKIP_ROWS[depth] ?? []);
-      for (let pos = 0; pos < Math.min(depthRows.length, DEPLOYMENT[depth].length); pos++) {
-        const type = DEPLOYMENT[depth][pos];
+    for (let depth = 0; depth < layout.length; depth++) {
+      const depthRows = custom ? Array.from({ length: rows }, (_, r) => r) : rowsForDepth(rows, DEPTH_SKIP_ROWS[depth] ?? []);
+      for (let pos = 0; pos < Math.min(depthRows.length, layout[depth].length); pos++) {
+        const type = layout[depth][pos];
         const info = PIECES[type];
         const rank = info?.patente ?? 0;
         const canMove = info?.podeMover ?? true;

@@ -85,9 +85,11 @@ const KAY_PIECE: Record<PieceType, { file: string; scale: number; kind: "char" |
 /** A Bandeira é sempre visível: haste longa (cerca de 2x a altura do modelo antigo, ~2,2) com o pano ondulando ao vento. */
 const FLAG_POLE = 4.6; // era 6.6; reduzida em ~30%
 const FLAG_CLOTH = { w: 2.5, h: 1.5 };
+/** Quanto a Bandeira leva para descer ao ser capturada (precisa bater com `FLAG_LOWER_MS`). */
+const FLAG_DROP_MS = 2000;
 const FLAG_TEAM = { blue: "#2f6fe0", red: "#d8353a" } as const;
 
-function WavingFlag({ owner }: { owner: "blue" | "red" }) {
+function WavingFlag({ owner, lowering = false }: { owner: "blue" | "red"; lowering?: boolean }) {
   const { w, h } = FLAG_CLOTH;
   const geo = useMemo(() => {
     const g = new THREE.PlaneGeometry(w, h, 18, 8);
@@ -96,15 +98,21 @@ function WavingFlag({ owner }: { owner: "blue" | "red" }) {
   }, [w, h]);
   const rest = useMemo(() => Float32Array.from(geo.attributes.position.array as ArrayLike<number>), [geo]);
   const time = useRef(Math.random() * 6);
+  const cloth = useRef<THREE.Group>(null);
+  const drop = useRef(0); // 0 = no alto, 1 = embaixo
   useEffect(() => () => geo.dispose(), [geo]);
   useFrame((_, delta) => {
     time.current += delta;
+    // Captura: o pano desce pela haste até quase a base e vai murchando o balanço.
+    if (lowering) drop.current = Math.min(1, drop.current + delta / (FLAG_DROP_MS / 1000));
+    if (cloth.current) cloth.current.position.y = -drop.current * (FLAG_POLE - FLAG_CLOTH.h - 0.5);
+    const calm = 1 - drop.current * 0.7;
     const pos = geo.attributes.position as THREE.BufferAttribute;
     for (let i = 0; i < pos.count; i++) {
       const x = rest[i * 3];
       const y = rest[i * 3 + 1];
       const k = x / w; // 0 na haste (parado), 1 na ponta (solta)
-      pos.setZ(i, Math.sin(x * 3.1 - time.current * 4.2 + y * 0.9) * 0.34 * k + Math.sin(time.current * 1.7 + x) * 0.05 * k);
+      pos.setZ(i, (Math.sin(x * 3.1 - time.current * 4.2 + y * 0.9) * 0.34 * k + Math.sin(time.current * 1.7 + x) * 0.05 * k) * calm);
       pos.setY(i, y + Math.sin(x * 2.2 - time.current * 3.1) * 0.06 * k);
     }
     pos.needsUpdate = true;
@@ -123,11 +131,18 @@ function WavingFlag({ owner }: { owner: "blue" | "red" }) {
         <meshStandardMaterial color="#f2c14e" roughness={0.3} metalness={0.7} />
       </mesh>
       {/* O pano sempre aponta para o mesmo lado (a favor do vento), nas duas cores. */}
-      <mesh geometry={geo} position={[0.04, top - h / 2 - 0.2, 0]} castShadow>
-        <meshStandardMaterial color={color} roughness={0.7} side={THREE.DoubleSide} />
-      </mesh>
+      <group ref={cloth}>
+        <mesh geometry={geo} position={[0.04, top - h / 2 - 0.2, 0]} castShadow>
+          <meshStandardMaterial color={color} roughness={0.7} side={THREE.DoubleSide} />
+        </mesh>
+      </group>
     </group>
   );
+}
+
+/** Segundos que uma peça leva para caminhar `dist` casas (a caminhada precisa ser visível, casa a casa). */
+export function walkSeconds(dist: number): number {
+  return 0.55 + Math.min(dist, 6) * 0.2;
 }
 
 /** Boneco/objeto KayKit sobre uma base na cor do time, com animação de repouso. */
@@ -143,10 +158,19 @@ export function KayPiece({
   label = false,
   pop = null,
   dying = false,
+  attacking = false,
+  capturing = false,
+  lowering = false,
   onClick,
 }: {
   /** Peça derrotada: toca a animação de morte e fica caída até o jogo tirá-la da tela. */
   dying?: boolean;
+  /** Está no meio de um combate: toca a animação de ataque (usado nas peças da luta na casa do alvo). */
+  attacking?: boolean;
+  /** Está pegando a Bandeira inimiga (toca a animação de pegar). */
+  capturing?: boolean;
+  /** Bandeira sendo capturada: desce pela haste. */
+  lowering?: boolean;
   /** Id do combate que esta peça venceu: dispara o pulo de vitória uma vez. */
   pop?: number | null;
   x: number;
@@ -209,11 +233,11 @@ export function KayPiece({
     const dist = Math.hypot(a.x - a.sx, a.z - a.sz);
     let y = 0;
     if (a.t < 1) {
-      a.t = Math.min(1, a.t + delta / (0.28 + Math.min(dist, 6) * 0.06));
-      const e = 1 - Math.pow(1 - a.t, 3); // sai rápido e freia na chegada
+      a.t = Math.min(1, a.t + delta / walkSeconds(dist));
+      const e = a.t; // ritmo constante, como quem caminha
       g.position.x = a.sx + (a.x - a.sx) * e;
       g.position.z = a.sz + (a.z - a.sz) * e;
-      y = Math.sin(a.t * Math.PI) * Math.min(0.55, 0.2 + dist * 0.12);
+      y = 0; // a própria animação de caminhada balança o corpo
     } else {
       g.position.x = a.x;
       g.position.z = a.z;
@@ -224,9 +248,9 @@ export function KayPiece({
       if (a.pop >= 1) a.pop = -1;
     }
     // Animação do corpo e giro para o lado do movimento (volta a encarar o inimigo depois).
-    const fighting = a.pop >= 0;
+    const fighting = a.pop >= 0 || attacking;
     const moving = a.t < 1;
-    ctl.current.state = dying ? "death" : moving ? "walk" : fighting ? "attack" : "idle";
+    ctl.current.state = dying ? "death" : moving ? "walk" : capturing ? "capture" : fighting ? "attack" : "idle";
     const turn = (moving || fighting) && dist > 0.01 ? Math.atan2(a.x - a.sx, a.z - a.sz) - facingRef.current : 0;
     let d = turn - g.rotation.y;
     d = Math.atan2(Math.sin(d), Math.cos(d));
@@ -250,11 +274,7 @@ export function KayPiece({
       }}
     >
       {selected && <PulseRing color="#facc15" />}
-      {/* Base na cor do time: identifica o dono sem depender do modelo */}
-      <mesh position={[0, 0.03, 0]} receiveShadow>
-        <cylinderGeometry args={[0.8, 0.86, 0.07, 6]} />
-        <meshStandardMaterial color={color} roughness={0.5} />
-      </mesh>
+      {/* Sem base sob a peça: o time é identificado pela cor da roupa (azul ou vermelha). */}
       {label && !hidden && PIECES[pieceType] && (
         <Html position={[0, 2.75, 0]} center distanceFactor={13} zIndexRange={[5, 0]} style={{ pointerEvents: "none" }}>
           <div className="whitespace-nowrap rounded-full border border-white/25 bg-slate-950/75 px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-[0.15em] text-slate-100">
@@ -263,7 +283,7 @@ export function KayPiece({
         </Html>
       )}
       {pieceType === "flag" && !hidden ? (
-        <WavingFlag owner={owner} />
+        <WavingFlag owner={owner} lowering={lowering} />
       ) : def.kind === "char" ? (
         <KayCharacter ctl={ctl} file={file} rotY={facing} scale={def.scale} pieceType={hidden ? "infantry" : pieceType} shade={hidden} owner={owner} accent={accent} hat={gear.hat} weapon={gear.weapon} shield={gear.shield} />
       ) : (
@@ -337,7 +357,7 @@ const ATTACK_CLIP: Partial<Record<PieceType, string>> = {
   spy: "Melee_1H_Attack_Stab",
 };
 
-export type KayAnimState = "idle" | "walk" | "attack" | "death";
+export type KayAnimState = "idle" | "walk" | "attack" | "death" | "capture";
 
 export function KayCharacter({ file, rotY, scale, pieceType, shade = false, owner, accent = null, hat = "padrao", weapon = "nenhuma", shield = "nenhum", ctl }: { ctl?: { current: { state: KayAnimState } }; file: string; rotY: number; scale: number; pieceType: PieceType; shade?: boolean; owner: "blue" | "red"; accent?: string | null; hat?: string; weapon?: string; shield?: string }) {
   const { scene } = useGLTF(`${KAY_BASE}${file}.glb`);
@@ -429,12 +449,12 @@ export function KayCharacter({ file, rotY, scale, pieceType, shade = false, owne
     const clip = animations.find((a) => a.name === "Idle_A") ?? animations.find((a) => /idle/i.test(a.name));
     const actions = new Map<string, THREE.AnimationAction | null>();
     // Clipe de cada estado. Só visual: nenhuma regra do jogo depende disso.
-    const clipName: Record<string, string> = { idle: "Idle_A", walk: "Walking_A", attack: ATTACK_CLIP[pieceType] ?? "Melee_1H_Attack_Slice_Diagonal", death: "Death_A" };
+    const clipName: Record<string, string> = { idle: "Idle_A", walk: "Walking_A", attack: ATTACK_CLIP[pieceType] ?? "Melee_1H_Attack_Slice_Diagonal", death: "Death_A", capture: "PickUp" };
     const get = (state: string) => {
       if (!actions.has(state)) {
         const cl = state === "idle" ? clip : allClips.find((a) => a.name === clipName[state]);
         const act = cl ? m.clipAction(cl) : null;
-        if (act && (state === "attack" || state === "death")) {
+        if (act && (state === "attack" || state === "death" || state === "capture")) {
           act.setLoop(THREE.LoopOnce, 1);
           act.clampWhenFinished = true;
         }

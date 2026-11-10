@@ -1,10 +1,10 @@
 import { createInitialBoard } from "@/services/boardEngine";
 import { CombatEngine } from "@/services/combatEngine";
+import { formatFor } from "@/services/battleFormat";
 import { InitialSetup } from "@/services/initialSetup";
 import { MovementEngine } from "@/services/movementEngine";
 import { PieceManager } from "@/services/pieceManager";
 import { TurnEngine } from "@/services/turnEngine";
-import { applyTide, effectiveBlocked, roundOf, winnerByPoints } from "@/services/matchRules";
 import {
   ownerToPlayer,
   type GameAction,
@@ -48,7 +48,7 @@ export const GameEngine = {
             console.error("Failed to load initial pieces from sessionStorage", e);
           }
         }
-        return InitialSetup.generate({ rows: merged.rows, cols: merged.cols });
+        return InitialSetup.generate({ rows: merged.rows, cols: merged.cols, format: formatFor(merged.pace) });
       })(),
       selectedPieceId: null,
       currentPlayer: turn.currentPlayer,
@@ -112,8 +112,7 @@ export const GameEngine = {
 
   /** Blocked-tile set derived from the current config — pure helper. */
   blockedTiles(state: GameState): ReadonlySet<string> {
-    // Obstáculos do mapa + casas inundadas pela Maré (ritmos Rápida/Relâmpago).
-    return effectiveBlocked(state);
+    return state.config.blockedTiles ?? new Set<string>();
   },
 
   /**
@@ -153,34 +152,23 @@ export const GameEngine = {
       turnNumber: turn.turnNumber,
       actionLocked: turn.actionLocked,
     };
-    // Maré (ritmos Rápida/Relâmpago): peças móveis em casas inundadas são eliminadas.
-    if (state.config.rules) {
-      const tide = applyTide(withTurn);
-      if (tide.lost > 0) {
-        withTurn = {
-          ...withTurn,
-          pieces: tide.pieces,
-          selectedPieceId: tide.pieces.some((p) => p.id === withTurn.selectedPieceId && p.isAlive) ? withTurn.selectedPieceId : null,
-        };
-      }
-    }
     const winner = TurnEngine.checkVictory(withTurn);
 
     if (winner) {
       return GameEngine.endMatch(withTurn, winner, "flag");
     }
 
-    // Fim por limite de rodadas (ritmos Rápida/Relâmpago): vence quem tem mais pontos.
-    const rules = state.config.rules;
-    if (rules && roundOf(withTurn.turnNumber) > rules.roundLimit) {
-      return GameEngine.endMatch(withTurn, winnerByPoints(withTurn).winner, "points");
+    // Quem está na vez e não tem nenhuma peça móvel não consegue jogar: perde (docs/04-Regras.md, seção 12).
+    const mover = withTurn.currentPlayer === "BLUE" ? "blue" : "red";
+    if (!withTurn.pieces.some((p) => p.isAlive && p.owner === mover && p.canMove)) {
+      return GameEngine.endMatch(withTurn, GameEngine.nextPlayer(withTurn.currentPlayer), "blocked");
     }
 
     return withTurn;
   },
 
   /** Encerra a partida com vencedor e motivo. */
-  endMatch(state: GameState, winner: Player, reason: "flag" | "points" | "time"): GameState {
+  endMatch(state: GameState, winner: Player, reason: "flag" | "blocked"): GameState {
     if (typeof window !== "undefined") {
       try {
         sessionStorage.setItem(
@@ -192,38 +180,6 @@ export const GameEngine = {
       }
     }
     return { ...state, gameOver: true, winner, endReason: reason, selectedPieceId: null };
-  },
-
-  /** O relógio total de `player` chegou a zero: ele perde. */
-  timeOut(state: GameState, player: Player): GameState {
-    if (state.gameOver) return state;
-    return GameEngine.endMatch(state, GameEngine.nextPlayer(player), "time");
-  },
-
-  /**
-   * Jogada automática segura (acabou o tempo da jogada): prefere mover sem atacar, avançando em
-   * direção ao inimigo; se nenhuma peça puder se mover, encerra o turno.
-   */
-  autoMove(state: GameState): GameState {
-    if (state.gameOver || state.actionLocked) return state;
-    const owner = state.currentPlayer === "BLUE" ? "blue" : "red";
-    const forward = owner === "blue" ? 1 : -1; // Azul avança para as colunas altas
-    const blocked = GameEngine.blockedTiles(state);
-    const bounds = GameEngine.bounds(state);
-    let best: { piece: Piece; target: Coord; score: number } | null = null;
-    for (const piece of state.pieces) {
-      if (!piece.isAlive || piece.owner !== owner) continue;
-      for (const target of MovementEngine.getLegalMoves(piece, state.pieces, bounds, blocked)) {
-        const attack = !!PieceManager.findAt(state.pieces, target.row, target.column);
-        // Sem ataque é bem melhor; entre os seguros, o que mais avança (e o mais curto, para não revelar o Explorador).
-        const advance = (target.column - piece.currentColumn) * forward;
-        const dist = Math.abs(target.column - piece.currentColumn) + Math.abs(target.row - piece.currentRow);
-        const score = (attack ? -1000 : 0) + advance * 10 - (piece.pieceType === "scout" && dist > 1 ? 50 : 0) - dist;
-        if (!best || score > best.score) best = { piece, target, score };
-      }
-    }
-    if (!best) return GameEngine.finalizeTurn({ ...state, selectedPieceId: null });
-    return GameEngine.moveSelectedTo({ ...state, selectedPieceId: best.piece.id }, best.target);
   },
 
   moveSelectedTo(state: GameState, target: Coord): GameState {
@@ -292,10 +248,6 @@ export const GameEngine = {
           row: action.row,
           column: action.column,
         });
-      case "AUTO_MOVE":
-        return GameEngine.autoMove(state);
-      case "TIME_OUT":
-        return GameEngine.timeOut(state, action.player);
       case "END_TURN":
         if (state.gameOver) return state;
         return GameEngine.finalizeTurn({ ...state, selectedPieceId: null });

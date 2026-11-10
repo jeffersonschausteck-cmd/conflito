@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type R
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Environment, Sky, Sparkles } from "@react-three/drei";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { ACTIVE_MAP } from "@/maps";
+import { ACTIVE_MAP, type MapDefinition } from "@/maps";
 import type { TerrainId } from "@/maps/types";
 import { hexToPixel } from "@/services/hexGeometry";
 import * as THREE from "three";
@@ -94,6 +94,15 @@ function hexNeighbors(row: number, col: number) {
 /** Verdadeiro quando a câmera está do outro lado do campo (jogador Vermelho). Vem do `Board3DCanvas`. */
 const BoardFlipContext = createContext(false);
 
+/** Verdadeiro dentro do `Board3DCanvas` (partida e posicionamento); falso no menu e nos fundos de tela. */
+const PlayViewContext = createContext(false);
+
+/** Mapa desenhado dentro do `Board3DCanvas` (cada ritmo tem o seu). Fora dele, o Campo Aberto. */
+const BoardMapContext = createContext<MapDefinition>(ACTIVE_MAP);
+export function useBoardMap(): MapDefinition {
+  return useContext(BoardMapContext);
+}
+
 function KayWall({ rows, cols, boardW, boardH, skipBottom = false, skipTop = false }: { rows: number; cols: number; boardW: number; boardH: number; skipBottom?: boolean; skipTop?: boolean }) {
   const gateRow = Math.floor(rows / 2) - 1;
   const segs = useMemo(() => {
@@ -126,7 +135,7 @@ function KayWall({ rows, cols, boardW, boardH, skipBottom = false, skipTop = fal
 }
 
 /** Quartéis: torres nos quatro cantos da muralha e um castelo de cada exército ao fundo. */
-function KayBases({ rows, cols, boardW, boardH, towersOnly = false, flags = false }: { rows: number; cols: number; boardW: number; boardH: number; towersOnly?: boolean; flags?: boolean }) {
+function KayBases({ rows, cols, boardW, boardH, towersOnly = false, flags = false, castlesAtEnds = false }: { rows: number; cols: number; boardW: number; boardH: number; towersOnly?: boolean; flags?: boolean; /** Na partida e no posicionamento: um castelo em cada ponta do tabuleiro, fora do campo. */ castlesAtEnds?: boolean }) {
   const at = (row: number, col: number) => {
     const { x, y } = hexToPixel(row, col, HEX_SIZE);
     return { x: x - boardW / 2, z: y - boardH / 2 };
@@ -136,8 +145,17 @@ function KayBases({ rows, cols, boardW, boardH, towersOnly = false, flags = fals
     { file: "building_tower_A_blue", row: rows, col: -1, scale: 1.3, rot: 0, y: -0.12 },
     { file: "building_tower_A_red", row: -1, col: cols, scale: 1.3, rot: 0, y: -0.12 },
     { file: "building_tower_A_red", row: rows, col: cols, scale: 1.3, rot: 0, y: -0.12 },
-    { file: "building_castle_blue", row: -2, col: 3, scale: 1.5, rot: 0, y: -0.28 },
-    { file: "building_castle_red", row: -2, col: cols - 4, scale: 1.5, rot: 0, y: -0.28 },
+    // Menu e telas de fundo: castelos ao fundo (borda de cima). Partida e posicionamento: um em cada ponta
+    // do tabuleiro (fora do campo, na altura do portão), para não cobrir peças nem casas.
+    ...(castlesAtEnds
+      ? [
+          { file: "building_castle_blue", row: Math.floor(rows / 2) - 1, col: -4, scale: 1.5, rot: Math.PI / 2, y: -0.28 },
+          { file: "building_castle_red", row: Math.floor(rows / 2) - 1, col: cols + 3, scale: 1.5, rot: -Math.PI / 2, y: -0.28 },
+        ]
+      : [
+          { file: "building_castle_blue", row: -2, col: 3, scale: 1.5, rot: 0, y: -0.28 },
+          { file: "building_castle_red", row: -2, col: cols - 4, scale: 1.5, rot: 0, y: -0.28 },
+        ]),
   ];
   return (
     <>
@@ -306,8 +324,9 @@ export function CombatBurst({ x, z }: { x: number; z: number }) {
 }
 
 export function BoardWorld({ far = false, clouds = true, onSelectTile }: { far?: boolean; clouds?: boolean; onSelectTile?: (row: number, col: number) => void }) {
-  const map = ACTIVE_MAP;
+  const map = useContext(BoardMapContext);
   const flip = useContext(BoardFlipContext);
+  const playView = useContext(PlayViewContext);
   const boardW = map.cols * (Math.sqrt(3) * HEX_SIZE) + (Math.sqrt(3) * HEX_SIZE) / 2;
   const boardH = (map.rows - 1) * (HEX_SIZE * 2 * 0.75) + HEX_SIZE * 2;
   const tiles = useMemo(() => {
@@ -347,7 +366,7 @@ export function BoardWorld({ far = false, clouds = true, onSelectTile }: { far?:
       <Sea />
       <KayRing rows={map.rows} cols={map.cols} boardW={boardW} boardH={boardH} />
       <KayWall rows={map.rows} cols={map.cols} boardW={boardW} boardH={boardH} skipBottom={!flip} skipTop={flip} />
-      <KayBases rows={map.rows} cols={map.cols} boardW={boardW} boardH={boardH} />
+      <KayBases rows={map.rows} cols={map.cols} boardW={boardW} boardH={boardH} castlesAtEnds={playView} />
       {tiles.map((t) => (
         <KayTile key={`${t.row}-${t.col}`} row={t.row} col={t.col} terrain={t.terrain} boardW={boardW} boardH={boardH} onSelect={clickTile} />
       ))}
@@ -356,9 +375,9 @@ export function BoardWorld({ far = false, clouds = true, onSelectTile }: { far?:
 }
 
 /** Posição no mundo 3D do centro de uma casa do tabuleiro. */
-export function cellWorld(row: number, col: number) {
-  const boardW = ACTIVE_MAP.cols * (Math.sqrt(3) * HEX_SIZE) + (Math.sqrt(3) * HEX_SIZE) / 2;
-  const boardH = (ACTIVE_MAP.rows - 1) * (HEX_SIZE * 2 * 0.75) + HEX_SIZE * 2;
+export function cellWorld(row: number, col: number, map: MapDefinition = ACTIVE_MAP) {
+  const boardW = map.cols * (Math.sqrt(3) * HEX_SIZE) + (Math.sqrt(3) * HEX_SIZE) / 2;
+  const boardH = (map.rows - 1) * (HEX_SIZE * 2 * 0.75) + HEX_SIZE * 2;
   const { x, y } = hexToPixel(row, col, HEX_SIZE);
   return { x: x - boardW / 2, z: y - boardH / 2 };
 }
@@ -394,11 +413,15 @@ export function useDeviceMode() {
  * Canvas 3D do tabuleiro, com a câmera estilo MOBA (ângulo fixo, desliza e dá zoom; no toque, um dedo
  * arrasta e dois dedos dão zoom). Os filhos entram dentro do Canvas.
  */
-export function Board3DCanvas({ focusX = 0, flip = false, children }: { focusX?: number; /** Câmera do outro lado do campo, para quem joga de Vermelho ver o próprio exército à esquerda. */ flip?: boolean; children: ReactNode }) {
+export function Board3DCanvas({ focusX = 0, flip = false, map = ACTIVE_MAP, children }: { focusX?: number; /** Mapa da partida (o do ritmo escolhido). */ map?: MapDefinition; /** Câmera do outro lado do campo, para quem joga de Vermelho ver o próprio exército à esquerda. */ flip?: boolean; children: ReactNode }) {
   const controls = useRef<OrbitControlsImpl | null>(null);
   return (
     <Canvas shadows camera={{ position: [focusX, 14.9, flip ? -18.8 : 18.8], fov: 45, near: 1, far: 1500 }} gl={{ toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.9 }}>
-      <BoardFlipContext.Provider value={flip}>{children}</BoardFlipContext.Provider>
+      <BoardMapContext.Provider value={map}>
+        <BoardFlipContext.Provider value={flip}>
+          <PlayViewContext.Provider value>{children}</PlayViewContext.Provider>
+        </BoardFlipContext.Provider>
+      </BoardMapContext.Provider>
       <OrbitControls
         ref={controls}
         makeDefault
@@ -418,7 +441,7 @@ export function Board3DCanvas({ focusX = 0, flip = false, children }: { focusX?:
         maxAzimuthAngle={flip ? Math.PI : 0}
         minDistance={9}
         maxDistance={24}
-        onChange={() => clampCameraToBoard(controls.current)}
+        onChange={() => clampCameraToBoard(controls.current, map)}
       />
     </Canvas>
   );
@@ -432,10 +455,9 @@ export function Board3DCanvas({ focusX = 0, flip = false, children }: { focusX?:
 const HUD_SIDE = 0.02; // sem painéis laterais: só uma folga pequena nas bordas
 const HUD_TOP = 0.16; // fração da altura coberta pela barra superior
 
-export function clampCameraToBoard(ctrl: OrbitControlsImpl | null) {
+export function clampCameraToBoard(ctrl: OrbitControlsImpl | null, map: MapDefinition = ACTIVE_MAP) {
   if (!ctrl) return;
   const cam = ctrl.object as THREE.PerspectiveCamera;
-  const map = ACTIVE_MAP;
   const w = Math.sqrt(3) * HEX_SIZE;
   const hx = (map.cols * w + w / 2) / 2;
   const hz = ((map.rows - 1) * (HEX_SIZE * 2 * 0.75) + HEX_SIZE * 2) / 2;

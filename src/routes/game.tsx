@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { CyberBackground } from "@/components/CyberBackground";
 import { BoardWithPieces } from "@/components/BoardWithPieces";
@@ -15,8 +15,9 @@ import { CommandCenter } from "@/components/game/CommandCenter";
 import { Match3DScreen } from "@/components/kay/Match3DScreen";
 import { MatchActionsBar } from "@/components/game/MatchActionsBar";
 import { TerrainPanel } from "@/components/game/TerrainPanel";
-import { ACTIVE_MAP, getBlockedTiles } from "@/maps";
-import { rulesFor, winnerByPoints } from "@/services/matchRules";
+import { ACTIVE_MAP, getBlockedTiles, mapForPace } from "@/maps";
+import { victoryDelayMs } from "@/components/kay/fightTiming";
+import { effectivePace } from "@/services/matchRules";
 import type { TerrainId } from "@/maps/types";
 import { flowState } from "@/services/flowState";
 import { OnlineGameStateProvider } from "@/multiplayer/OnlineGameStateProvider";
@@ -70,13 +71,12 @@ function GameProvider({
     </OnlineGameStateProvider>
   ) : (
     <GameStateProvider
-      config={{
-        rows: ACTIVE_MAP.rows,
-        cols: ACTIVE_MAP.cols,
-        blockedTiles: getBlockedTiles(ACTIVE_MAP),
-        // Ritmo escolhido na tela de ritmo (Clássica = sem regras extras).
-        rules: rulesFor(flowState.read().pace) ?? undefined,
-      }}
+      config={(() => {
+        // Ritmo escolhido na tela de ritmo (Clássica = sem regras extras), com o tabuleiro e o exército dele.
+        const pace = effectivePace(flowState.read().pace);
+        const map = mapForPace(pace);
+        return { rows: map.rows, cols: map.cols, blockedTiles: getBlockedTiles(map), pace };
+      })()}
       localOwner={localOwner}
     >
       {children}
@@ -305,7 +305,7 @@ function GamePage() {
           </>
           )}
 
-          <GameOverOverlay />
+          <GameOverOverlay holdForCapture={!isOnline || localOwner === "blue"} />
         </RevealLogProvider>
       </GameProvider>
     </main>
@@ -317,7 +317,7 @@ function GamePage() {
 /* FIM DA PARTIDA */
 /* ========================================================================== */
 
-function GameOverOverlay() {
+function GameOverOverlay({ holdForCapture }: { holdForCapture: boolean }) {
   const { state, reset, localOwner, matchStartTime, matchEndTime, matchEndReason, rankingResult } = useGameState();
   // Sprint TIMER-01 — `endTime` fixo assim que a partida acaba: o
   // relógio para de contar e nunca mais muda, igual pros dois jogadores
@@ -325,16 +325,26 @@ function GameOverOverlay() {
   // Provider offline).
   const matchDurationMs = useElapsed(matchStartTime, matchEndTime);
 
-  if (!state.gameOver) return null;
+  // Captura da Bandeira: a tela final espera a animação (o capturador pega a Bandeira e ela desce pela haste).
+  const [ready, setReady] = useState(false);
+  const delayMs = state.gameOver && holdForCapture ? victoryDelayMs(state.lastCombat) : 0;
+  useEffect(() => {
+    if (!state.gameOver) {
+      setReady(false);
+      return;
+    }
+    const t = window.setTimeout(() => setReady(true), delayMs);
+    return () => window.clearTimeout(t);
+  }, [state.gameOver, delayMs]);
+
+  if (!state.gameOver || !ready) return null;
 
   // Sprint QA-13 — vitória/derrota são relativas a quem está vendo a
   // tela (`localOwner`), não mais fixas em "BLUE". `loserLabel` continua
   // sendo o lado que de fato perdeu (independe da perspectiva).
   const isVictory = state.winner === ownerToPlayer(localOwner);
   const loserLabel = state.winner === "BLUE" ? "Vermelha" : "Azul";
-  const byPoints = state.endReason === "points";
-  const byTime = state.endReason === "time";
-  const points = byPoints ? winnerByPoints(state) : null;
+  const blocked = state.endReason === "blocked";
 
   const piecesAlive = (owner: "blue" | "red") =>
     state.pieces.filter((p) => p.owner === owner && p.isAlive).length;
@@ -366,18 +376,16 @@ function GameOverOverlay() {
             isVictory ? "text-cyan-300" : "text-rose-400"
           }`}
         >
-          {byPoints ? (isVictory ? "VITÓRIA POR PONTOS" : "DERROTA POR PONTOS") : byTime ? (isVictory ? "VITÓRIA NO TEMPO" : "TEMPO ESGOTADO") : isVictory ? "MISSÃO CONCLUÍDA" : "MISSÃO FRACASSADA"}
+          {isVictory ? "MISSÃO CONCLUÍDA" : "MISSÃO FRACASSADA"}
         </h2>
         <p className="mt-1 text-[11px] text-slate-400 [@media(min-height:480px)]:mt-2 [@media(min-height:480px)]:text-sm">
-          {byPoints
-            ? "O limite de rodadas chegou. Vence quem somou mais pontos."
-            : byTime
-              ? isVictory
-                ? "O relógio do adversário chegou a zero."
-                : "O seu relógio chegou a zero."
-              : isVictory
-                ? "Sua ofensiva foi concluída com sucesso."
-                : "O exército inimigo capturou sua Bandeira."}
+          {blocked
+            ? isVictory
+              ? "O exército inimigo ficou sem peças para se mover."
+              : "Seu exército ficou sem peças para se mover."
+            : isVictory
+              ? "Sua ofensiva foi concluída com sucesso."
+              : "O exército inimigo capturou sua Bandeira."}
         </p>
 
         <ScifiFrame
@@ -393,15 +401,11 @@ function GameOverOverlay() {
               value={
                 matchEndReason === "forfeit"
                   ? `Comandante ${loserLabel} não retornou a tempo (W.O.)`
-                  : byPoints
-                    ? "Limite de rodadas (pontos)"
-                    : byTime
-                      ? `Tempo esgotado (${loserLabel})`
-                      : `Bandeira ${loserLabel} capturada`
+                  : blocked
+                    ? `Sem peças móveis (${loserLabel})`
+                    : `Bandeira ${loserLabel} capturada`
               }
             />
-            {points && <SummaryRow label="Pontos (Azul)" value={`${points.blue.total} (capturas ${points.blue.captured} + vivas ${points.blue.alive} + bandeira ${points.blue.flag})`} />}
-            {points && <SummaryRow label="Pontos (Vermelho)" value={`${points.red.total} (capturas ${points.red.captured} + vivas ${points.red.alive} + bandeira ${points.red.flag})`} />}
             <SummaryRow label="Número de turnos" value={String(state.turnNumber)} />
             <SummaryRow label="Tempo da partida" value={formatClock(matchDurationMs)} />
             <SummaryRow label="Peças restantes (Azul)" value={String(piecesAlive("blue"))} />

@@ -10,7 +10,7 @@ export interface FlowState {
   mode?: GameMode;
   /** Sprint MP-02: presente quando o jogador está no fluxo Online. */
   online?: boolean;
-  /** Ritmo escolhido (Clássica, Rápida ou Relâmpago); só partidas offline. */
+  /** Modo escolhido (Partida Intensa, Normal ou Rápida); só partidas offline. */
   pace?: Pace;
   /** Lado do jogador contra o computador, sorteado ao escolher o ritmo (docs/04-Regras.md, seção 18). */
   offlineOwner?: "blue" | "red";

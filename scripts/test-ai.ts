@@ -4,7 +4,6 @@ import { GameEngine } from "../src/services/gameEngine";
 import { AIEngine, type AIDecision } from "../src/services/aiEngine";
 import { MovementEngine } from "../src/services/movementEngine";
 import { PieceManager } from "../src/services/pieceManager";
-import { effectiveBlocked } from "../src/services/matchRules";
 import { ACTIVE_MAP, getBlockedTiles } from "../src/maps";
 import type { GameState, Player } from "../src/types/gameState";
 import { playerToOwner } from "../src/types/gameState";
@@ -20,7 +19,7 @@ function legacyChoose(state: GameState, player: Player): AIDecision | null {
   const forward = player === "BLUE" ? -1 : 1;
   const cands: { piece: (typeof own)[number]; target: { row: number; column: number }; score: number }[] = [];
   for (const piece of own) {
-    for (const target of MovementEngine.getLegalMoves(piece, state.pieces, bounds, effectiveBlocked(state))) {
+    for (const target of MovementEngine.getLegalMoves(piece, state.pieces, bounds, state.config.blockedTiles ?? new Set<string>())) {
       const occ = PieceManager.findAt(state.pieces, target.row, target.column);
       if (occ && occ.owner === owner) continue;
       let score = 0;

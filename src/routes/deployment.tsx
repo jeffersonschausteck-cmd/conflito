@@ -1,9 +1,11 @@
 import { Suspense, useState, useMemo, useEffect, useRef } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PIECES } from "@/config/pieces";
-import { DeploymentManager, DEPLOYMENT_DEPTH, DEPLOYMENT_DURATION_MS } from "@/services/deploymentManager";
+import { DeploymentManager, DEPLOYMENT_DURATION_MS } from "@/services/deploymentManager";
+import { armySize, formatFor } from "@/services/battleFormat";
+import { effectivePace } from "@/services/matchRules";
 import { theme } from "@/design/theme";
-import { ACTIVE_MAP, getBlockedTiles } from "@/maps";
+import { getBlockedTiles, mapForPace } from "@/maps";
 import { flowState } from "@/services/flowState";
 import { ensureConnected } from "@/multiplayer/networkSingleton";
 import { serializeGameState } from "@/multiplayer/NetworkClient";
@@ -11,7 +13,7 @@ import { useMenuMusic } from "@/hooks/useMenuMusic";
 import { useCountdown } from "@/hooks/useClock";
 import { formatClock } from "@/lib/formatClock";
 import { KayPiece } from "@/components/kay/KayCharacters";
-import { BoardWorld, Board3DCanvas, cellWorld, useDeviceMode } from "@/components/kay/BoardWorld";
+import { BoardWorld, Board3DCanvas, cellWorld, useBoardMap, useDeviceMode } from "@/components/kay/BoardWorld";
 import type { Piece as PieceModel, PieceType, PlayerOwner } from "@/types/piece";
 import type { MatchType } from "@/types/ranking";
 
@@ -43,10 +45,6 @@ const PIECE_TYPES_ORDER: PieceType[] = [
 const PIECE_NAMES: Record<PieceType, string> = Object.fromEntries(
   PIECE_TYPES_ORDER.map((type) => [type, PIECES[type].nome]),
 ) as Record<PieceType, string>;
-
-const PIECE_LIMITS: Record<PieceType, number> = Object.fromEntries(
-  PIECE_TYPES_ORDER.map((type) => [type, PIECES[type].quantidade]),
-) as Record<PieceType, number>;
 
 function getRankForType(type: PieceType): number {
   return PIECES[type].patente ?? 0;
@@ -98,23 +96,29 @@ function DeploymentPage() {
     () => flowState.read().onlineMatchType ?? "casual",
   );
 
+  // Formato do ritmo (exército e tabuleiro); o online é sempre a Clássica.
+  const pace = isOnline ? "classic" : effectivePace(flow.pace);
+  const format = formatFor(pace);
+  const map = mapForPace(pace);
+
   const [pieces, setPieces] = useState<PieceModel[]>(() =>
-    DeploymentManager.createDefaultPlayerDeployment(ACTIVE_MAP.rows, ACTIVE_MAP.cols, myOwner)
+    DeploymentManager.createDefaultPlayerDeployment(map.rows, map.cols, myOwner, format)
   );
   const [selectedBoardPieceId, setSelectedBoardPieceId] = useState<string | null>(null);
   const [selectedTrayPieceType, setSelectedTrayPieceType] = useState<PieceType | null>(null);
 
-  const rows = ACTIVE_MAP.rows;
-  const cols = ACTIVE_MAP.cols;
-  const blockedTiles = useMemo(() => getBlockedTiles(ACTIVE_MAP), []);
+  const rows = map.rows;
+  const cols = map.cols;
+  const blockedTiles = useMemo(() => getBlockedTiles(map), [map]);
 
   // Sprint 2.5: Azul posiciona à esquerda, Vermelho à direita. A zona do
   // jogador acompanha `myOwner` (Sprint MP-02) para funcionar dos dois
   // lados no modo online; offline continua sempre a zona da esquerda.
-  const playerZoneStart = myOwner === "blue" ? 0 : Math.max(0, cols - DEPLOYMENT_DEPTH);
-  const playerZoneEnd = myOwner === "blue" ? DEPLOYMENT_DEPTH : cols;
-  const enemyZoneStart = myOwner === "blue" ? Math.max(DEPLOYMENT_DEPTH, cols - DEPLOYMENT_DEPTH) : 0;
-  const enemyZoneEndExclusive = myOwner === "blue" ? cols : Math.min(DEPLOYMENT_DEPTH, cols);
+  const depth = format.depth;
+  const playerZoneStart = myOwner === "blue" ? 0 : Math.max(0, cols - depth);
+  const playerZoneEnd = myOwner === "blue" ? depth : cols;
+  const enemyZoneStart = myOwner === "blue" ? Math.max(depth, cols - depth) : 0;
+  const enemyZoneEndExclusive = myOwner === "blue" ? cols : Math.min(depth, cols);
 
   useEffect(() => {
     if (!isOnline) return;
@@ -159,14 +163,14 @@ function DeploymentPage() {
   }, [isOnline, navigate]);
 
   const trayCounts = useMemo(() => {
-    const counts = { ...PIECE_LIMITS };
+    const counts = { ...format.roster };
     pieces.forEach((p) => {
       if (p.currentRow !== -1) {
         counts[p.pieceType] = Math.max(0, counts[p.pieceType] - 1);
       }
     });
     return counts;
-  }, [pieces]);
+  }, [pieces, format]);
 
   const piecesRemaining = useMemo(
     () => pieces.filter((p) => p.currentRow === -1).length,
@@ -174,8 +178,8 @@ function DeploymentPage() {
   );
 
   const isReady = useMemo(
-    () => DeploymentManager.validateDeployment(pieces, rows, cols, blockedTiles, myOwner),
-    [pieces, rows, cols, blockedTiles, myOwner]
+    () => DeploymentManager.validateDeployment(pieces, rows, cols, blockedTiles, myOwner, format),
+    [pieces, rows, cols, blockedTiles, myOwner, format]
   );
 
   const selectedBoardPiece = useMemo(
@@ -287,7 +291,7 @@ function DeploymentPage() {
   };
 
   const handleAutoFill = () => {
-    setPieces(DeploymentManager.createDefaultPlayerDeployment(rows, cols, myOwner));
+    setPieces(DeploymentManager.createDefaultPlayerDeployment(rows, cols, myOwner, format));
     setSelectedBoardPieceId(null);
     setSelectedTrayPieceType(null);
   };
@@ -317,7 +321,7 @@ function DeploymentPage() {
       return;
     }
 
-    const aiPieces = DeploymentManager.generateAIDeployment(rows, cols, blockedTiles, myOwner === "blue" ? "red" : "blue");
+    const aiPieces = DeploymentManager.generateAIDeployment(rows, cols, blockedTiles, myOwner === "blue" ? "red" : "blue", format);
     const finalWithAI = [...finalPieces, ...aiPieces];
     if (typeof window !== "undefined") {
       window.sessionStorage.setItem("psc:initial-pieces", JSON.stringify(finalWithAI));
@@ -342,9 +346,9 @@ function DeploymentPage() {
     if (autoSubmittedRef.current) return;
     autoSubmittedRef.current = true;
 
-    const finalPieces = DeploymentManager.validateDeployment(pieces, rows, cols, blockedTiles, myOwner)
+    const finalPieces = DeploymentManager.validateDeployment(pieces, rows, cols, blockedTiles, myOwner, format)
       ? pieces
-      : DeploymentManager.createDefaultPlayerDeployment(rows, cols, myOwner);
+      : DeploymentManager.createDefaultPlayerDeployment(rows, cols, myOwner, format);
     submitDeployment(finalPieces);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remainingMs, effectiveDeadline]);
@@ -409,7 +413,7 @@ function DeploymentPage() {
   const status = (
     <div className="flex items-center gap-1.5 font-display text-[10px] font-bold uppercase tracking-wider">
       <span className={`rounded px-2 py-0.5 ${isReady ? "bg-emerald-500/25 text-emerald-200" : "bg-rose-500/25 text-rose-200"}`}>{isReady ? "Formação pronta" : "Formação incompleta"}</span>
-      <span className="rounded bg-sky-500/25 px-2 py-0.5 text-sky-100">{piecesRemaining} / 40 restantes</span>
+      <span className="rounded bg-sky-500/25 px-2 py-0.5 text-sky-100">{piecesRemaining} / {armySize(format)} restantes</span>
     </div>
   );
 
@@ -420,7 +424,7 @@ function DeploymentPage() {
       {/* Tabuleiro 3D em tela cheia, atrás do HUD (mesmo visual da partida) */}
       {mounted && (
         <div className="absolute inset-0 z-0 touch-none">
-          <Board3DCanvas focusX={myOwner === "blue" ? -5 : 5} flip={myOwner === "red"}>
+          <Board3DCanvas focusX={myOwner === "blue" ? -5 : 5} flip={myOwner === "red"} map={map}>
             <Suspense fallback={null}>
               <DeploymentScene
                 pieces={pieces}
@@ -509,14 +513,15 @@ function DeploymentScene({
   const placed = pieces.filter((p) => p.currentRow !== -1);
   const taken = new Set(placed.map((p) => `${p.currentRow}-${p.currentColumn}`));
   const marks: { key: string; x: number; z: number; color: string; opacity: number }[] = [];
-  for (let r = 0; r < ACTIVE_MAP.rows; r++) {
-    for (let c = 0; c < ACTIVE_MAP.cols; c++) {
+  const map = useBoardMap();
+  for (let r = 0; r < map.rows; r++) {
+    for (let c = 0; c < map.cols; c++) {
       if (blockedTiles.has(`${r}-${c}`)) continue;
       const mine = c >= zone.start && c < zone.end;
       const theirs = c >= enemyZone.start && c < enemyZone.end;
       if (!mine && !theirs) continue;
       if (mine && taken.has(`${r}-${c}`)) continue;
-      const { x, z } = cellWorld(r, c);
+      const { x, z } = cellWorld(r, c, map);
       marks.push({ key: `${r}-${c}`, x, z, color: mine ? teamColor : enemyColor, opacity: mine ? 0.32 : 0.28 });
     }
   }
@@ -527,7 +532,7 @@ function DeploymentScene({
         <ZoneMark key={m.key} x={m.x} z={m.z} color={m.color} opacity={m.opacity} />
       ))}
       {placed.map((p) => {
-        const { x, z } = cellWorld(p.currentRow, p.currentColumn);
+        const { x, z } = cellWorld(p.currentRow, p.currentColumn, map);
         return (
           <KayPiece
             key={p.id}

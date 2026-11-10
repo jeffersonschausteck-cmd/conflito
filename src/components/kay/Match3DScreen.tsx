@@ -1,15 +1,16 @@
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { ContactShadows, useContextBridge } from "@react-three/drei";
 import { GameStateContext, useGameState } from "@/hooks/useGameState";
 import { TopBar } from "@/components/game/TopBar";
 import { PIECES } from "@/config/pieces";
 import { useAITurn } from "@/hooks/useAITurn";
-import { ACTIVE_MAP } from "@/maps";
+import { mapForPace } from "@/maps";
 import { hexToPixel } from "@/services/hexGeometry";
 import { FogOfWarEngine } from "@/services/fogOfWarEngine";
+import type { Piece, PlayerOwner } from "@/types/piece";
 import { KayPiece } from "@/components/kay/KayCharacters";
-import { BoardWorld, Board3DCanvas, CombatBurst, HEX_SIZE, LegalMarker, useDeviceMode } from "@/components/kay/BoardWorld";
-import { MatchPaceHud, TideMarks } from "@/components/kay/MatchPaceHud";
+import { STOP_GAP, isFlagCapture, stepInMs, victoryDelayMs, walkMsFor } from "@/components/kay/fightTiming";
+import { BoardWorld, Board3DCanvas, CombatBurst, HEX_SIZE, LegalMarker, useBoardMap, useDeviceMode } from "@/components/kay/BoardWorld";
 
 /**
  * Tela da partida em 3D (cenário KayKit, peças animadas, HUD de comando). Usada pela rota `/game`
@@ -20,29 +21,60 @@ function BoardScene({ onSelectCell, far = false }: { onSelectCell: (row: number,
   // Estado real do jogo (o mesmo que alimenta o HUD). Chega aqui pela ponte de
   // contexto montada em Match3DScreen, porque o Canvas é uma árvore React separada.
   const { state, selectedPiece, legalMoves, selectPiece, moveSelectedTo, localOwner, lastCombat } = useGameState();
-  const map = ACTIVE_MAP;
+  const map = useBoardMap();
   const boardW = map.cols * (Math.sqrt(3) * HEX_SIZE) + (Math.sqrt(3) * HEX_SIZE) / 2;
   const boardH = (map.rows - 1) * (HEX_SIZE * 2 * 0.75) + HEX_SIZE * 2;
 
 
   const pieces = state.pieces.filter((p) => p.isAlive);
   const selectedId = selectedPiece?.id ?? null;
-  // Explosão no combate: nasce quando um novo combate acontece e some sozinha.
+  // Combate na casa do alvo: o atacante caminha até lá, os dois lutam e quem perdeu cai ali mesmo.
+  // Enquanto dura, as peças de verdade envolvidas ficam escondidas e a cena usa "figurantes" delas.
   const [burst, setBurst] = useState<{ id: number; row: number; col: number } | null>(null);
-  const [dying, setDying] = useState<{ p: (typeof state.pieces)[number]; atTile: boolean }[]>([]);
+  const [fight, setFight] = useState<{ combat: NonNullable<typeof lastCombat>; phase: "walk" | "hit" | "die"; wasRevealed: Record<string, boolean> } | null>(null);
+  // Depois da luta, o vencedor que atacou dá o último passo (caminhando) do ponto onde parou até a casa do alvo.
+  const [stepIn, setStepIn] = useState<{ id: string; from: { x: number; z: number }; go: boolean } | null>(null);
+  const seenCombat = useRef<number | null>(null);
+  const timers = useRef<number[]>([]);
+  const prevRevealed = useRef<Map<string, boolean>>(new Map());
   useEffect(() => {
-    if (!lastCombat) return;
-    setBurst({ id: lastCombat.id, row: lastCombat.tile.row, col: lastCombat.tile.column });
-    // Quem perdeu sai do jogo na hora, mas fica na tela caindo (animação de morte) por um instante.
-    const fallen = [lastCombat.attackerSnapshot, lastCombat.defenderSnapshot].filter((p) => lastCombat.removedIds.includes(p.id));
-    setDying(fallen.map((p) => ({ p, atTile: p.id === lastCombat.defenderId })));
-    const t = window.setTimeout(() => setBurst(null), 1100);
-    const t2 = window.setTimeout(() => setDying([]), 1800);
-    return () => {
-      window.clearTimeout(t);
-      window.clearTimeout(t2);
-    };
+    if (!lastCombat || lastCombat.id === seenCombat.current) return;
+    seenCombat.current = lastCombat.id;
+    timers.current.forEach((t) => window.clearTimeout(t));
+    setStepIn(null);
+    const walkMs = walkMsFor(lastCombat);
+    const c = lastCombat;
+    const was = (id: string) => prevRevealed.current.get(id) === true;
+    setFight({ combat: c, phase: "walk", wasRevealed: { [c.attackerId]: was(c.attackerId), [c.defenderId]: was(c.defenderId) } });
+    const flagCapture = isFlagCapture(c);
+    timers.current = [
+      window.setTimeout(() => {
+        setFight((f) => (f && f.combat.id === c.id ? { ...f, phase: "hit" } : f));
+        if (!flagCapture) setBurst({ id: c.id, row: c.tile.row, col: c.tile.column });
+      }, walkMs + 60),
+      window.setTimeout(() => setFight((f) => (f && f.combat.id === c.id ? { ...f, phase: "die" } : f)), walkMs + 800),
+      window.setTimeout(() => setBurst(null), walkMs + 1300),
+      // Captura da Bandeira: a cena dura até a tela de vitória aparecer (a Bandeira desce pela haste antes).
+      window.setTimeout(() => {
+        setFight((f) => (f && f.combat.id === c.id ? null : f));
+        // O atacante venceu: ele reaparece onde parou e caminha até a casa do alvo.
+        if (!flagCapture && c.survivorId === c.attackerId) {
+          const o = hexToPixel(c.attackerSnapshot.currentRow, c.attackerSnapshot.currentColumn, HEX_SIZE);
+          const t = hexToPixel(c.tile.row, c.tile.column, HEX_SIZE);
+          const len = Math.hypot(t.x - o.x, t.y - o.y) || 1;
+          const from = { x: t.x - boardW / 2 - ((t.x - o.x) / len) * STOP_GAP, z: t.y - boardH / 2 - ((t.y - o.y) / len) * STOP_GAP };
+          setStepIn({ id: c.attackerId, from, go: false });
+          timers.current.push(window.setTimeout(() => setStepIn((s) => (s && s.id === c.attackerId ? { ...s, go: true } : s)), 40));
+          timers.current.push(window.setTimeout(() => setStepIn(null), 40 + stepInMs()));
+        }
+      }, flagCapture ? victoryDelayMs(c) : walkMs + 1900),
+    ];
   }, [lastCombat]);
+  useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
+  // Guarda quem já estava revelado antes do combate (a identidade só aparece no encontro das peças).
+  useEffect(() => {
+    pieces.forEach((p) => prevRevealed.current.set(p.id, p.isRevealed));
+  });
   const cellPos = (row: number, col: number) => {
     const { x, y } = hexToPixel(row, col, HEX_SIZE);
     return { x: x - boardW / 2, z: y - boardH / 2 };
@@ -67,7 +99,6 @@ function BoardScene({ onSelectCell, far = false }: { onSelectCell: (row: number,
   return (
     <>
       <BoardWorld far={far} onSelectTile={clickTile} />
-      <TideMarks />
 
       {/* Casas para onde a peça selecionada pode ir: verde = mover, vermelho = atacar (há inimigo) */}
       {(selectedPiece?.owner === localOwner ? [...legalMoves] : []).map((key) => {
@@ -82,13 +113,34 @@ function BoardScene({ onSelectCell, far = false }: { onSelectCell: (row: number,
         return <CombatBurst key={burst.id} x={x} z={z} />;
       })()}
 
-      {dying.map(({ p, atTile }) => {
-        const { x, z } = cellPos(p.currentRow, p.currentColumn);
-        return <KayPiece key={`dying-${p.id}`} x={x} z={z + (atTile ? 0.5 : 0)} owner={p.owner} pieceType={p.pieceType} color={p.owner === "blue" ? "#22d3ee" : "#fb7185"} mine={p.owner === localOwner} dying />;
-      })}
+      {fight && (() => {
+        const c = fight.combat;
+        const att = c.attackerSnapshot;
+        const def = c.defenderSnapshot;
+        const from = cellPos(att.currentRow, att.currentColumn);
+        const tile = cellPos(c.tile.row, c.tile.column);
+        const len = Math.hypot(tile.x - from.x, tile.z - from.z) || 1;
+        const ux = (tile.x - from.x) / len;
+        const uz = (tile.z - from.z) / len;
+        // O atacante para colado no alvo, de frente para ele.
+        const stop = { x: tile.x - ux * STOP_GAP, z: tile.z - uz * STOP_GAP };
+        const hitting = fight.phase !== "walk";
+        const flagCapture = isFlagCapture(c);
+        const dying = fight.phase === "die" && !flagCapture;
+        return (
+          <>
+            <FightGhost key={`g-att-${c.id}`} snap={att} from={from} to={stop} localOwner={localOwner} hidden={!hitting && att.owner !== localOwner && !fight.wasRevealed[att.id] && att.pieceType !== "flag"} attacking={hitting && !flagCapture} capturing={hitting && flagCapture} dying={dying && c.removedIds.includes(att.id)} />
+            <FightGhost key={`g-def-${c.id}`} snap={def} from={tile} to={tile} localOwner={localOwner} hidden={!hitting && def.owner !== localOwner && !fight.wasRevealed[def.id] && def.pieceType !== "flag"} attacking={hitting && !flagCapture} lowering={hitting && flagCapture} dying={dying && c.removedIds.includes(def.id)} />
+          </>
+        );
+      })()}
 
-      {pieces.map((p) => {
-        const { x, z } = cellPos(p.currentRow, p.currentColumn);
+      {pieces.filter((p) => !fight || (p.id !== fight.combat.attackerId && p.id !== fight.combat.defenderId)).map((p) => {
+        const cell = cellPos(p.currentRow, p.currentColumn);
+        // O vencedor que acabou de lutar começa onde parou e só então caminha até a casa.
+        const pos = stepIn && stepIn.id === p.id && !stepIn.go ? stepIn.from : cell;
+        const x = pos.x;
+        const z = pos.z;
         return (
           <KayPiece
             key={p.id}
@@ -112,6 +164,17 @@ function BoardScene({ onSelectCell, far = false }: { onSelectCell: (row: number,
   );
 }
 
+
+/** Figurante de uma peça numa luta: nasce em `from`, caminha até `to` e depois ataca ou cai. */
+function FightGhost({ snap, from, to, localOwner, hidden, attacking, capturing = false, lowering = false, dying }: { snap: Piece; from: { x: number; z: number }; to: { x: number; z: number }; localOwner: PlayerOwner; hidden: boolean; attacking: boolean; capturing?: boolean; lowering?: boolean; dying: boolean }) {
+  const [go, setGo] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setGo(true), 30); // um instante parada na casa de origem, depois caminha
+    return () => window.clearTimeout(t);
+  }, []);
+  const pos = go ? to : from;
+  return <KayPiece x={pos.x} z={pos.z} owner={snap.owner} pieceType={snap.pieceType} color={snap.owner === "blue" ? "#22d3ee" : "#fb7185"} mine={snap.owner === localOwner} hidden={hidden} attacking={attacking} capturing={capturing} lowering={lowering} dying={dying} />;
+}
 
 /** Peça selecionada em uma linha só: nome, força e patente. Respeita o Fog of War. */
 function SelectedPieceChip() {
@@ -143,7 +206,8 @@ export function Match3DScreen({ isOnline = false }: { isOnline?: boolean }) {
   // durante o SSR, só depois que o componente já está rodando no cliente.
   const { mounted } = useDeviceMode();
   // A IA joga só offline, com o lado oposto ao do jogador (que é sorteado; docs/04-Regras.md, seção 18).
-  const { localOwner } = useGameState();
+  const { localOwner, state: matchState } = useGameState();
+  const map = mapForPace(matchState.config.pace);
   useAITurn({ enabled: !isOnline, aiPlayer: localOwner === "blue" ? "RED" : "BLUE" });
   // O Canvas é outra árvore React: a ponte leva o estado do jogo pra dentro dele.
   const Bridge = useContextBridge(GameStateContext);
@@ -153,7 +217,7 @@ export function Match3DScreen({ isOnline = false }: { isOnline?: boolean }) {
       {/* 3D em tela cheia, atrás do HUD */}
       {mounted && (
         <div className="absolute inset-0 z-0 touch-none">
-          <Board3DCanvas flip={localOwner === "red"}>
+          <Board3DCanvas flip={localOwner === "red"} map={map}>
             <Bridge>
               <Suspense fallback={null}>
                 <BoardScene onSelectCell={() => {}} />
@@ -172,7 +236,6 @@ export function Match3DScreen({ isOnline = false }: { isOnline?: boolean }) {
           <SelectedPieceChip />
         </div>
       </div>
-      <MatchPaceHud />
       <div className="pointer-events-none absolute bottom-1 left-1/2 z-10 -translate-x-1/2 font-mono text-[9px] uppercase tracking-[0.2em] text-slate-900/60">
         arraste: mover a câmera · scroll: zoom
       </div>

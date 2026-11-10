@@ -1,4 +1,5 @@
 import { InitialSetup } from "@/services/initialSetup";
+import { armySize, formatFor, type BattleFormat } from "@/services/battleFormat";
 import type { Piece, PlayerOwner } from "@/types/piece";
 
 /**
@@ -31,8 +32,8 @@ export const DeploymentManager = {
    * player was assigned (blue or red), so both can start from the
    * same standard formation before rearranging.
    */
-  createDefaultPlayerDeployment(rows: number = 10, cols: number = 10, owner: PlayerOwner = "blue"): Piece[] {
-    const all = InitialSetup.generate({ rows, cols });
+  createDefaultPlayerDeployment(rows: number = 10, cols: number = 10, owner: PlayerOwner = "blue", format?: BattleFormat): Piece[] {
+    const all = InitialSetup.generate({ rows, cols, format });
     return all.filter((p) => p.owner === owner);
   },
 
@@ -47,13 +48,14 @@ export const DeploymentManager = {
     cols: number = 10,
     blockedTiles: ReadonlySet<string> = NO_BLOCKED_TILES,
     owner: PlayerOwner = "red",
+    format: BattleFormat = formatFor("classic"),
   ): Piece[] {
-    const all = InitialSetup.generate({ rows, cols });
+    const all = InitialSetup.generate({ rows, cols, format });
     const redPieces = all.filter((p) => p.owner === owner);
 
     // A zona do Vermelho são as DEPLOYMENT_DEPTH colunas da direita; a do Azul, as da esquerda.
-    const zoneStart = owner === "red" ? Math.max(0, cols - DEPLOYMENT_DEPTH) : 0;
-    const zoneEnd = owner === "red" ? cols : Math.min(DEPLOYMENT_DEPTH, cols);
+    const zoneStart = owner === "red" ? Math.max(0, cols - format.depth) : 0;
+    const zoneEnd = owner === "red" ? cols : Math.min(format.depth, cols);
     const coordinates: { row: number; col: number }[] = [];
     for (let r = 0; r < rows; r++) {
       for (let c = zoneStart; c < zoneEnd; c++) {
@@ -99,12 +101,14 @@ export const DeploymentManager = {
     cols: number = 10,
     blockedTiles: ReadonlySet<string> = NO_BLOCKED_TILES,
     owner: PlayerOwner = "blue",
+    format: BattleFormat = formatFor("classic"),
   ): boolean {
+    const total = armySize(format);
     const sidePieces = pieces.filter((p) => p.owner === owner);
-    if (sidePieces.length !== 40) return false;
+    if (sidePieces.length !== total) return false;
 
-    const zoneStart = owner === "blue" ? 0 : Math.max(0, cols - DEPLOYMENT_DEPTH);
-    const zoneEnd = owner === "blue" ? DEPLOYMENT_DEPTH : cols;
+    const zoneStart = owner === "blue" ? 0 : Math.max(0, cols - format.depth);
+    const zoneEnd = owner === "blue" ? format.depth : cols;
 
     // Check if every piece has a valid row and column within its own zone.
     const placed = sidePieces.filter(
@@ -115,7 +119,7 @@ export const DeploymentManager = {
         p.currentColumn < zoneEnd &&
         !blockedTiles.has(`${p.currentRow}-${p.currentColumn}`)
     );
-    if (placed.length !== 40) return false;
+    if (placed.length !== total) return false;
 
     // Check for duplicate coordinates
     const coordinatesSet = new Set<string>();

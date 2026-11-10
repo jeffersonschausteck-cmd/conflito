@@ -197,6 +197,8 @@ Sua captura encerra imediatamente a partida.
 
 A vitória ocorre quando um jogador captura a Bandeira adversária.
 
+A vitória também ocorre quando o adversário, na sua vez, não tem nenhuma peça que possa se mover (só restam Bombas e Bandeira): ele não consegue jogar e perde.
+
 A partida é encerrada imediatamente.
 
 ---
@@ -204,8 +206,6 @@ A partida é encerrada imediatamente.
 # 13. Empate
 
 Não existe empate: toda partida termina com um vencedor.
-
-Nos modos com Ritmo (seção 17), quando o limite de rodadas é atingido, o vencedor é decidido por pontos, com critérios de desempate que garantem sempre um vencedor.
 
 ---
 
@@ -248,48 +248,13 @@ Todas as partidas do Conflito deverão respeitar os seguintes princípios:
 
 ---
 
-# 17. Ritmo da Partida (modos Rápida e Relâmpago)
+# 17. Modos de Jogo (Partida Rápida, Normal e Intensa)
 
-O Conflito possui três ritmos. O ritmo é escolhido antes da partida e vale para os dois jogadores.
+O Conflito possui três modos: Partida Rápida (a menor), Partida Normal e Partida Intensa (a maior, com o exército completo). O modo é escolhido antes da partida contra o computador e vale para os dois jogadores.
 
-| Ritmo | Rodadas | Relógio por jogador | Tempo por jogada | Maré |
-|-------|---------|---------------------|------------------|------|
-| Clássica | sem limite | sem relógio | sem limite | não há |
-| Rápida | 30 | 5 minutos | 20 segundos | começa na rodada 18, sobe a cada 3 rodadas (até 3 faixas) |
-| Relâmpago | 20 | 3 minutos | 15 segundos | começa na rodada 10, sobe a cada 2 rodadas (até 4 faixas) |
+Os modos diferem **apenas no tamanho do tabuleiro e na quantidade de peças** (seção 19). Todas as demais regras (movimento, combate, informações ocultas, vitória) são idênticas nos três. Não há relógio, tempo por jogada, limite de rodadas nem pontuação: a partida só termina pelas regras da seção 12.
 
-**Estado atual: Rápida e Relâmpago estão bloqueadas (aparecem como "Em breve") e a Maré não ocorre.** Só a Clássica está liberada, até os ajustes abaixo. A flag é `PACES_ENABLED` em `matchRules.ts`.
-
-Problemas conhecidos, a resolver antes de liberar:
-- **Maré rápida demais:** as zonas de posicionamento ficam nas faixas externas, então a retaguarda é inundada antes de dar tempo de mover essas peças (mover uma peça por turno não evacua o exército).
-- **Exército e tabuleiro iguais em todos os ritmos:** os ritmos não reduzem hoje o número de peças nem o tamanho do mapa; só mudam relógio e limite de rodadas.
-
-Uma rodada é uma jogada de cada jogador. O contador de turnos do Motor conta cada jogada separadamente; a rodada é derivada dele.
-
-## Relógio
-
-- Cada jogador tem um tempo total. O tempo corre apenas durante o turno do próprio jogador.
-- Quando o tempo total de um jogador chega a zero, ele perde a partida (motivo: tempo esgotado).
-- Cada jogada tem também um tempo máximo. Se ele acabar, o jogo faz uma jogada automática segura: move uma peça que possa se mover, sem atacar quando existir alternativa, escolhendo o avanço em direção ao inimigo. Se nenhuma peça puder se mover, o turno é encerrado.
-
-## Maré
-
-- A partir da rodada inicial da Maré, a faixa externa do campo é inundada. A cada intervalo a próxima faixa é inundada.
-- Casas inundadas não podem ser ocupadas nem atravessadas.
-- Peças que se movem e estiverem em uma casa inundada são eliminadas no instante da inundação.
-- Bombas e Bandeira não se movem e não são eliminadas pela Maré. A casa onde ficam continua podendo ser atacada.
-- A interface avisa a Maré com até 2 rodadas de antecedência.
-
-## Fim por limite de rodadas
-
-Quando a última rodada termina sem que a Bandeira tenha sido capturada, vence quem tiver mais pontos.
-
-- Pontos por peça inimiga capturada: o valor da patente da peça (Comandante 7, Oficial 6, Atirador 5, Infantaria 4, Engenheiro 3, Explorador 2, Espião 1; Bomba 4).
-- Ponto por peça própria ainda viva: 1 ponto cada.
-- Bandeira ainda viva: 10 pontos.
-- Desempate, nesta ordem: maior valor capturado; mais peças vivas; vence o Vermelho (que joga por segundo).
-
-Toda partida em ritmo Rápida ou Relâmpago termina por Bandeira, por tempo esgotado ou por pontos.
+**Os três modos estão liberados.** A flag `PACES_ENABLED` em `matchRules.ts` permite bloquear um modo (ele aparece como "Em breve"). Internamente os modos se chamam `blitz` (Partida Rápida), `rapid` (Partida Normal) e `classic` (Partida Intensa).
 
 ---
 
@@ -299,6 +264,35 @@ Toda partida em ritmo Rápida ou Relâmpago termina por Bandeira, por tempo esgo
 - No online, o lado é definido pela sala: quem entra primeiro joga de Azul e o segundo jogador joga de Vermelho.
 - O Azul sempre começa jogando, qualquer que seja o lado do humano.
 - Em qualquer lado, o jogador vê o seu exército à esquerda da tela e o inimigo à direita (a câmera gira para quem joga de Vermelho).
+
+---
+
+# 19. Formato de Cada Modo (exército e tabuleiro)
+
+Cada modo tem seu próprio tamanho de exército e de tabuleiro. As regras de movimento, combate e névoa são as mesmas.
+
+| Modo | Tabuleiro (linhas × colunas) | Peças por lado | Zona de posicionamento |
+|-------|------------------------------|----------------|------------------------|
+| Partida Intensa | 12 × 18 | 40 | 4 colunas de cada ponta |
+| Partida Normal | 10 × 14 | 30 | 3 colunas de cada ponta |
+| Partida Rápida | 8 × 12 | 24 | 3 colunas de cada ponta |
+
+Composição de cada exército:
+
+| Peça | Intensa | Normal | Rápida |
+|------|----------|--------|-----------|
+| Comandante | 1 | 1 | 1 |
+| Oficial | 2 | 1 | 1 |
+| Atirador | 3 | 2 | 2 |
+| Engenheiro | 8 | 5 | 4 |
+| Infantaria | 12 | 10 | 7 |
+| Batedor | 6 | 5 | 3 |
+| Espião | 1 | 1 | 1 |
+| Bomba | 6 | 4 | 4 |
+| Bandeira | 1 | 1 | 1 |
+| **Total** | **40** | **30** | **24** |
+
+- O formato vale só contra o computador. O online segue com a Partida Intensa (40 peças, 12 × 18).
 
 ---
 
@@ -323,6 +317,7 @@ Nenhuma regra oficial poderá existir apenas na implementação.
 
 ## Versão 1.1
 
-- Inclusão dos ritmos Rápida e Relâmpago: relógio, tempo por jogada, Maré e vitória por pontos (seção 17).
+- Inclusão dos modos Partida Rápida, Normal e Intensa (antes Relâmpago, Rápida e Clássica), que diferem só no tamanho do tabuleiro e na quantidade de peças (seções 17 e 19). Não há relógio, limite de rodadas, pontuação nem Maré.
+- Nova condição de vitória: o jogador da vez sem nenhuma peça móvel perde (seção 12).
 - Revisão da seção 13 (Empate).
 - Bandeira sempre visível (seção 7) e lado do jogador sorteado contra o computador (seção 18).

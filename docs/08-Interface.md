@@ -263,11 +263,22 @@ A especificação completa está no documento 17 - Oficina do Exército.
 
 ---
 
-# Ritmo da Partida (relógio, Maré e pontos)
+# Escolha do Modo de Jogo
 
-Nos ritmos Rápida e Relâmpago (documento 04, seção 17) a barra superior da partida mostra o relógio de cada jogador no lugar do cronômetro corrido, e a rodada atual com o limite (por exemplo, 14 / 30).
+A escolha do modo é uma tela própria, entre o Centro de Operações e o Posicionamento, com três cartões: Partida Rápida, Partida Normal e Partida Intensa (do menor para o maior).
 
-- Um indicador de "sua vez" mostra o tempo restante da jogada (anel que se esgota).
-- Um aviso aparece até 2 rodadas antes da Maré, e as casas que serão inundadas ficam em laranja. As casas já inundadas aparecem como água.
-- Ao fim por limite de rodadas ou por tempo, a tela final mostra o motivo e, quando é por pontos, o placar detalhado.
-- A escolha do ritmo é uma tela própria, entre o Centro de Operações e o Posicionamento, com três cartões: Relâmpago, Rápida e Clássica.
+- Cada cartão mostra só o que muda entre os modos: a quantidade de peças e o tamanho do tabuleiro (documento 04, seção 19). Não há tempo estimado nem tempo de partida.
+- A barra superior da partida mostra o cronômetro corrido de sempre. Não existe relógio por jogador, tempo por jogada nem limite de rodadas em nenhum modo.
+
+---
+
+# Movimento e Combate na Partida 3D
+
+- **Caminhada:** ao se mover, a peça caminha até a casa de destino (animação de andar, virada para a direção do movimento) em vez de aparecer lá. Quanto mais longe a casa, mais longa a caminhada.
+- **Combate na casa do alvo:** quando uma peça se move para uma casa com peça inimiga, ela caminha até lá e a luta acontece naquela casa: as duas peças atacam, o impacto aparece no ponto do encontro e quem perde cai ali mesmo. A peça vencedora fica na casa. O resultado das regras (documento 04) é o mesmo de sempre; só a apresentação muda.
+- **Captura da Bandeira:** quem captura a Bandeira caminha até ela, se abaixa e a pega, e a Bandeira desce pela haste até embaixo. Só depois dessa animação (cerca de 2 segundos depois de a peça chegar) aparece a tela de vitória ou derrota. As regras não mudam: a partida já está encerrada no instante da captura; só a tela final espera a animação terminar.
+- **Ordem da luta, sem pressa:** (1) o atacante caminha até colar no alvo; (2) as duas peças atacam; (3) quem perdeu cai e fica caído um instante; (4) se o atacante venceu, ele dá o último passo, caminhando, até a casa do alvo. Nada pula de uma posição para a outra.
+- A identidade de uma peça inimiga que ainda estava oculta só é mostrada quando as peças se encontram.
+- **Sem bases sob as peças:** as peças ficam direto no tabuleiro, sem a plataforma colorida embaixo. O time é identificado pela cor da roupa: o Azul veste azul e o Vermelho veste vermelho (a cor escolhida na Oficina do Exército continua valendo para as peças do jogador).
+- **Bandeira sempre à mostra:** a Bandeira nunca vira silhueta, nem durante a luta ou a captura (regra de visibilidade da seção 7 do documento 04).
+- **Castelos:** o castelo azul e o castelo vermelho ficam nas pontas esquerda e direita do tabuleiro, fora do campo, atrás das muralhas, para não cobrir peças nem casas. No menu e nas telas de fundo eles seguem ao fundo do cenário.
