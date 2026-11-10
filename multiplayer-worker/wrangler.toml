@@ -14,6 +14,11 @@ class_name = "AccountsRoom"
 name = "ROOM"
 class_name = "GameRoom"
 
+# Remetente dos e-mails de confirmação (não é segredo). A chave do Resend fica no segredo
+# RESEND_API_KEY (`wrangler secret put`). O domínio precisa estar verificado no Resend.
+[vars]
+EMAIL_FROM = "Conflito <no-reply@conflito.online>"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["AccountsRoom", "GameRoom"]
