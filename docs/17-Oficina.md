@@ -157,7 +157,7 @@ Sem partida online, ou antes de o visual do adversário chegar, as peças do adv
 
 # Interface
 
-A Oficina é uma tela própria, acessada por um cartão no Centro de Operações (junto de Campanha, Escaramuça e Multijogador).
+A Oficina é uma tela própria, acessada por um cartão no Centro de Operações (junto de Campanha e Multijogador).
 
 A tela contém:
 

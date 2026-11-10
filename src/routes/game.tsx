@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { withAuth } from "@/components/RequireAuth";
 import { createFileRoute } from "@tanstack/react-router";
 import { CyberBackground } from "@/components/CyberBackground";
-import { BoardWithPieces } from "@/components/BoardWithPieces";
 import { GameStateProvider, useGameState } from "@/hooks/useGameState";
 import { RevealLogProvider } from "@/hooks/useRevealLog";
 import { useAudioBridge } from "@/hooks/useAudioBridge";
@@ -9,16 +9,10 @@ import { useCountdown, useElapsed } from "@/hooks/useClock";
 import { formatClock } from "@/lib/formatClock";
 import { GameButton } from "@/components/ui/GameButton";
 import { ScifiFrame } from "@/components/ui/ScifiFrame";
-import { TopBar } from "@/components/game/TopBar";
-import { PlayerPanel } from "@/components/game/PlayerPanel";
-import { CommandCenter } from "@/components/game/CommandCenter";
 import { Match3DScreen } from "@/components/kay/Match3DScreen";
-import { MatchActionsBar } from "@/components/game/MatchActionsBar";
-import { TerrainPanel } from "@/components/game/TerrainPanel";
-import { ACTIVE_MAP, getBlockedTiles, mapForPace } from "@/maps";
+import { getBlockedTiles, mapForPace } from "@/maps";
 import { victoryDelayMs } from "@/components/kay/fightTiming";
 import { effectivePace } from "@/services/matchRules";
-import type { TerrainId } from "@/maps/types";
 import { flowState } from "@/services/flowState";
 import { OnlineGameStateProvider } from "@/multiplayer/OnlineGameStateProvider";
 import { rehydrateGameState } from "@/multiplayer/NetworkClient";
@@ -157,7 +151,7 @@ export const Route = createFileRoute("/game")({
       },
     ],
   }),
-  component: GamePage,
+  component: withAuth(GamePage),
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -165,7 +159,6 @@ export const Route = createFileRoute("/game")({
 // ─────────────────────────────────────────────────────────────
 
 function GamePage() {
-  const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
   const isOnline = flowState.read().online === true;
 
   // Sprint QA-13 — fonte única da perspectiva do jogador. Offline é
@@ -243,69 +236,10 @@ function GamePage() {
         <AudioBridge />
         <OpponentDisconnectBanner />
         <RevealLogProvider>
-          {!isOnline || localOwner === "blue" ? (
-            // Partida em 3D (visual novo). Offline, nos dois lados (a câmera gira para quem joga de Vermelho).
-            // Online, só o Azul por enquanto: o Vermelho online segue na tela 2D até testarmos a câmera virada com dois jogadores.
-            <Match3DScreen isOnline={isOnline} />
-          ) : (
-          <>
-          {/* Grid de 2 linhas (TopBar/conteúdo) — sem faixa inferior, o
-              tabuleiro ganha toda a altura restante. A linha de conteúdo
-              (1fr) nunca cresce além do espaço real, então continua sem
-              scroll em nenhuma resolução ou zoom. */}
-          <div className="relative z-10 grid min-h-0 flex-1 grid-rows-[auto_1fr] overflow-hidden">
-            <TopBar />
+          {/* Partida em 3D, em qualquer modo e nos dois lados (a câmera gira para quem joga de Vermelho). */}
+          <Match3DScreen isOnline={isOnline} />
 
-            {/* LINHA PRINCIPAL — coluna inimigo+Terreno / tabuleiro / coluna jogador local+Peça.
-                Sprint QA-13 — antes fixo Vermelho-esquerda/Azul-direita pros dois
-                navegadores; agora a direita (perto do Comando) é sempre o lado
-                de quem está jogando ali (`localOwner`), a esquerda o inimigo. */}
-            <div className="flex min-h-0 items-stretch gap-[clamp(0.3rem,1.2vw,1rem)] overflow-hidden px-[clamp(0.3rem,1.2vw,1rem)] py-[clamp(0.2rem,0.8vh,1rem)]">
-              {/* COLUNA ESQUERDA — Inimigo + Reconhecimento de Terreno.
-                  Sprint MOBILE-01 — largura fixa (260px) sobrava demais em
-                  telas de celular na horizontal (~700-820px de largura),
-                  espremendo o tabuleiro; agora escala com a viewport
-                  (clamp) até o mesmo teto de sempre em telas grandes. */}
-              <div className="flex w-[clamp(84px,13vw,260px)] min-h-0 shrink-0 flex-col gap-[clamp(0.2rem,1vh,1rem)]">
-                <div className="min-h-0 flex-1">
-                  <PlayerPanel owner="blue" />
-                </div>
-                <div className="min-h-0 flex-1">
-                  <TerrainPanel
-                    terrain={
-                      selectedCell
-                        ? (ACTIVE_MAP.tiles[selectedCell.row]?.[selectedCell.col] as TerrainId) ?? null
-                        : null
-                    }
-                    row={selectedCell?.row}
-                    col={selectedCell?.col}
-                  />
-                </div>
-              </div>
-
-              {/* TABULEIRO */}
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center gap-[clamp(0.15rem,0.6vh,0.75rem)]">
-                <div className="min-h-0 w-full flex-1">
-                  <BoardWithPieces onTileClick={(row, col) => setSelectedCell({ row, col })} />
-                </div>
-                <MatchActionsBar isOnline={isOnline} />
-              </div>
-
-              {/* COLUNA DIREITA — Jogador local + Peça Selecionada */}
-              <div className="flex w-[clamp(84px,13vw,260px)] min-h-0 shrink-0 flex-col gap-[clamp(0.2rem,1vh,1rem)]">
-                <div className="min-h-0 flex-1">
-                  <PlayerPanel owner={localOwner} />
-                </div>
-                <div className="min-h-0 flex-1">
-                  <CommandCenter />
-                </div>
-              </div>
-            </div>
-          </div>
-          </>
-          )}
-
-          <GameOverOverlay holdForCapture={!isOnline || localOwner === "blue"} />
+          <GameOverOverlay holdForCapture />
         </RevealLogProvider>
       </GameProvider>
     </main>

@@ -265,7 +265,7 @@ A especificação completa está no documento 17 - Oficina do Exército.
 
 # Escolha do Modo de Jogo
 
-A escolha do modo é uma tela própria, entre o Centro de Operações e o Posicionamento, com três cartões: Partida Rápida, Partida Normal e Partida Intensa (do menor para o maior).
+A escolha do modo (tamanho da partida) é uma tela própria, entre o Centro de Operações e o Posicionamento (só para a Campanha, contra o computador), com três cartões: Partida Rápida, Partida Normal e Partida Intensa (do menor para o maior).
 
 - Cada cartão mostra só o que muda entre os modos: a quantidade de peças e o tamanho do tabuleiro (documento 04, seção 19). Não há tempo estimado nem tempo de partida.
 - A barra superior da partida mostra o cronômetro corrido de sempre. Não existe relógio por jogador, tempo por jogada nem limite de rodadas em nenhum modo.
@@ -282,3 +282,35 @@ A escolha do modo é uma tela própria, entre o Centro de Operações e o Posici
 - **Sem bases sob as peças:** as peças ficam direto no tabuleiro, sem a plataforma colorida embaixo. O time é identificado pela cor da roupa: o Azul veste azul e o Vermelho veste vermelho (a cor escolhida na Oficina do Exército continua valendo para as peças do jogador).
 - **Bandeira sempre à mostra:** a Bandeira nunca vira silhueta, nem durante a luta ou a captura (regra de visibilidade da seção 7 do documento 04).
 - **Castelos:** o castelo azul e o castelo vermelho ficam nas pontas esquerda e direita do tabuleiro, logo atrás das muralhas laterais (na altura do portão), apoiados num chão de grama para não flutuar na água. Ficam fora do campo, sem cobrir peças nem casas. No menu e nas telas de fundo eles seguem ao fundo do cenário.
+
+---
+
+# Modos no Online, Ranking e Perfil
+
+- **Sala Online:** toda sala é ranqueada. Ao criá-la, o jogador escolhe o modo (Partida Rápida, Normal ou Intensa). Quem entra com o código joga no modo da sala; o modo aparece na sala de espera e durante a partida.
+- **Ranking:** uma aba por modo. Cada modo mostra o seu próprio placar, com a posição de quem está logado nesse modo.
+- **Perfil do Comandante:** uma aba por modo, com a pontuação, a patente e as estatísticas daquele modo. O histórico de partidas mostra o modo de cada partida.
+- **Tela final:** a variação de pontos mostrada é a do modo em que a partida foi jogada.
+
+---
+
+# Login Obrigatório e Centro de Operações
+
+- **Sem login não se joga.** Para jogar qualquer modo é preciso ter feito login (documento 16). Quem tenta abrir o Centro de Operações, a escolha de modo, o posicionamento, a partida, a Oficina, o Ranking ou o Perfil sem estar logado é levado à tela de login. A tela inicial, as Configurações e os Créditos continuam abertas.
+- **A conta fica salva neste aparelho.** Depois de entrar, o jogador não precisa fazer login de novo a cada visita; só depois de usar "Sair da conta".
+- **Centro de Operações com 3 opções:**
+  1. **Campanha:** partida contra o computador. Escolhe-se o modo (Partida Rápida, Normal ou Intensa). Não conta pontos.
+  2. **Multijogador:** partida online ranqueada contra outro comandante. É a única que conta pontos, no ranking do modo escolhido.
+  3. **Oficina do Exército:** personalização do visual das peças.
+
+---
+
+# Estilo dos Menus
+
+Todos os menus e submenus (Centro de Operações, escolha de modo, Sala Online, Sala de Espera, Login, Ranking, Perfil, Configurações e Créditos) usam o mesmo visual e a mesma fonte:
+
+- **Cabeçalho de cartão e de painel:** uma linha pequena em cima (o tipo ou a seção), em dourado claro e espaçada, e o nome grande embaixo, em dourado claro com brilho e uma barrinha dourada. Mesma fonte, mesmo tamanho e mesma cor em todas as telas. É o componente `MenuTitle`, usado por todo `GamePanel` e pelos cartões do Centro de Operações e da escolha de modo. Um painel que só tem uma linha de cabeçalho mostra essa linha como nome grande.
+- **Texto de apoio:** azul claro.
+- **Botões de ação:** laranja, com o mesmo formato.
+- **Língua:** todo texto de menu em português.
+

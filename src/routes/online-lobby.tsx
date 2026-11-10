@@ -10,6 +10,8 @@ import { AuthClient } from "@/multiplayer/AuthClient";
 import { flowState } from "@/services/flowState";
 import { useMenuMusic } from "@/hooks/useMenuMusic";
 import type { MatchType } from "@/types/ranking";
+import type { Pace } from "@/types/gameState";
+import { BATTLE_FORMATS, PACE_NAMES, armySize } from "@/services/battleFormat";
 
 export const Route = createFileRoute("/online-lobby")({
   head: () => ({ meta: [{ title: "Sala Online — Conflito" }] }),
@@ -22,11 +24,10 @@ function OnlineLobbyPage() {
   const [roomCode, setRoomCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const session = AuthClient.readSession();
-  // Sprint RANKING-03 — Fase 2/3: único campo que existe, "casual" por
-  // padrão (Direcionamento Oficial já valia isso antes; agora o
-  // jogador pode escolher "ranked" de propósito). Nunca criar
-  // isRanked/rankMode/competitive — só este `MatchType`.
-  const [matchType, setMatchType] = useState<MatchType>("casual");
+  // Toda partida online é ranqueada (docs/16 - Sistema de Contas, "Sem casual").
+  const matchType: MatchType = "ranked";
+  // Modo da sala: tamanho do tabuleiro e do exército. A ranqueada é separada por modo.
+  const [pace, setPace] = useState<Pace>("classic");
 
   useEffect(() => {
     if (!session) {
@@ -44,11 +45,20 @@ function OnlineLobbyPage() {
         client.send({ type: "ResumeSession", token: session.token });
       }
       if (event.type === "RoomCreated" || event.type === "RoomJoined") {
-        flowState.write({ onlineRoomId: event.roomId, onlineOwner: event.you.owner });
+        // O modo da sala vale também para o posicionamento e a partida (e substitui o de uma partida offline antiga).
+        flowState.write({ onlineRoomId: event.roomId, onlineOwner: event.you.owner, pace: event.pace });
         navigate({ to: "/waiting-room" });
       }
       if (event.type === "ActionRejected") setError(event.reason);
-      if (event.type === "AuthError") setError(event.reason);
+      if (event.type === "AuthError") {
+        // Sessão que o servidor não reconhece mais: descarta e pede um novo login.
+        if (/Sessão expirada|Conta não encontrada/i.test(event.reason)) {
+          AuthClient.clearSession();
+          navigate({ to: "/login" });
+          return;
+        }
+        setError(event.reason);
+      }
     });
   }, [navigate, session]);
 
@@ -81,45 +91,44 @@ function OnlineLobbyPage() {
             Cria uma sala nova e aguarda um adversário entrar.
           </p>
 
-          {/* Sprint RANKING-03 — Fase 2. Casual continua selecionado por
-              padrão; a escolha vira o único `matchType` enviado no
-              `CreateRoom` abaixo. */}
-          <div className="mb-4 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setMatchType("casual")}
-              className={`rounded border p-3 text-left transition-colors ${
-                matchType === "casual"
-                  ? "border-cyan-400/70 bg-cyan-500/10"
-                  : "border-border/40 bg-transparent hover:border-border"
-              }`}
-            >
-              <div className="text-sm font-bold uppercase tracking-[0.1em] text-foreground">Casual</div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Treine suas estratégias. O Rating não será alterado. Resultados entram apenas no Histórico.
-              </p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMatchType("ranked")}
-              className={`rounded border p-3 text-left transition-colors ${
-                matchType === "ranked"
-                  ? "border-amber-400/70 bg-amber-500/10"
-                  : "border-border/40 bg-transparent hover:border-border"
-              }`}
-            >
-              <div className="text-sm font-bold uppercase tracking-[0.1em] text-foreground">Ranqueada</div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Seu Rating será atualizado. Resultados entram no Histórico e no Ranking.
-              </p>
-            </button>
+          <div className="mb-4 flex items-center gap-2 rounded border border-amber-400/40 bg-amber-500/10 px-3 py-2">
+            <StatusBadge color="yellow" label="Ranqueada" />
+            <span className="text-xs text-muted-foreground">Toda partida online vale pontos no ranking do modo escolhido.</span>
+          </div>
+
+          {/* Modo da sala: define o tabuleiro e o exército. Cada modo tem a sua própria ranqueada. */}
+          <div className="mb-4">
+            <div className="mb-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">Modo</div>
+            <div className="grid grid-cols-3 gap-2">
+              {(["blitz", "rapid", "classic"] as const).map((id) => {
+                const f = BATTLE_FORMATS[id];
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setPace(id)}
+                    className={`rounded border p-2 text-left transition-colors ${
+                      pace === id ? "border-cyan-400/70 bg-cyan-500/10" : "border-border/40 bg-transparent hover:border-border"
+                    }`}
+                  >
+                    <div className="text-[11px] font-bold uppercase leading-tight tracking-[0.06em] text-foreground">{PACE_NAMES[id].replace("Partida ", "")}</div>
+                    <p className="mt-1 text-[10px] leading-snug text-muted-foreground">
+                      {armySize(f)} peças
+                      <br />
+                      {f.rows}×{f.cols}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1 text-[11px] text-amber-200/80">Vale pontos só no ranking da {PACE_NAMES[pace]}.</p>
           </div>
 
           <GameButton
             variant="primary"
             size="lg"
             className="w-full"
-            onClick={() => ensureConnected().send({ type: "CreateRoom", matchType })}
+            onClick={() => ensureConnected().send({ type: "CreateRoom", matchType, pace })}
           >
             Criar Sala
           </GameButton>

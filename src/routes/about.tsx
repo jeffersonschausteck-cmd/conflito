@@ -8,11 +8,11 @@ export const Route = createFileRoute("/about")({
 });
 
 const CREDITS = [
-  { eyebrow: "// DESENVOLVIMENTO", title: "Desenvolvimento", body: "SCHAUSCODE" },
-  { eyebrow: "// GAME DESIGN", title: "Game Design", body: "Jefferson Schausteck" },
-  { eyebrow: "// PROGRAMAÇÃO", title: "Programação", body: "SCHAUSCODE" },
-  { eyebrow: "// ARTE E INTERFACE", title: "Arte e Interface", body: "SCHAUSCODE" },
-  { eyebrow: "// MÚSICA E ÁUDIO", title: "Música e Áudio", body: "IA + Curadoria SCHAUSCODE" },
+  { eyebrow: "// CRÉDITO", title: "Desenvolvimento", body: "SCHAUSCODE" },
+  { eyebrow: "// CRÉDITO", title: "Game Design", body: "Jefferson Schausteck" },
+  { eyebrow: "// CRÉDITO", title: "Programação", body: "SCHAUSCODE" },
+  { eyebrow: "// CRÉDITO", title: "Arte e Interface", body: "SCHAUSCODE" },
+  { eyebrow: "// CRÉDITO", title: "Música e Áudio", body: "IA + Curadoria SCHAUSCODE" },
 ] as const;
 
 function AboutPage() {
@@ -31,7 +31,7 @@ function AboutPage() {
           </GamePanel>
         ))}
 
-        <GamePanel variant="default" eyebrow="// AGRADECIMENTOS ESPECIAIS" title="Agradecimentos Especiais">
+        <GamePanel variant="default" eyebrow="// GRATIDÃO" title="Agradecimentos Especiais">
           <p className="text-sm leading-relaxed text-muted-foreground">
             À minha família, amigos e todos que contribuíram com ideias, testes
             e feedback durante o desenvolvimento de Conflito.

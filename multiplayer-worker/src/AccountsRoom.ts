@@ -44,7 +44,22 @@ import {
   type PlayerStats,
 } from "@/types/ranking";
 import type { ClientEvent, PlayerId, RoomPlayerInfo, ServerEvent } from "@/multiplayer/protocol";
+import type { Pace } from "@/types/gameState";
+import { normalizePace } from "@/services/battleFormat";
 import type { Env } from "./env";
+import {
+  CODE_MAX_ATTEMPTS,
+  CODE_TTL_MS,
+  MAX_SENDS_PER_HOUR,
+  PENDING_TTL_MS,
+  RESEND_COOLDOWN_MS,
+  generateCode,
+  hashCode,
+  isValidEmail,
+  maskEmail,
+  normalizeEmail,
+  sendVerificationEmail,
+} from "./emailVerification";
 
 interface Account {
   id: string;
@@ -52,6 +67,11 @@ interface Account {
   email: string;
   passwordHash: string;
   createdAt: number;
+  /**
+   * Confirmação de e-mail (docs/16 - Sistema de Contas). `false` = cadastro ainda sem o código
+   * confirmado. Ausente em contas criadas antes desta regra: elas contam como confirmadas.
+   */
+  emailVerified?: boolean;
   /**
    * Sprint RANKING-01 — opcional na FORMA persistida porque contas
    * criadas antes desta sprint não têm este campo gravado. Nunca lido
@@ -61,6 +81,33 @@ interface Account {
    * ponto que hoje já lê uma `Account` (`login`, `resumeSession`).
    */
   stats?: PlayerStats;
+  /**
+   * Ranqueada por modo (docs/16 - Sistema de Contas): `stats` guarda a pontuação da Partida Intensa
+   * (`classic`, o único modo online até então); os outros modos ficam aqui. Ausente = ainda não jogou.
+   */
+  statsByPace?: Partial<Record<Exclude<Pace, "classic">, PlayerStats>>;
+}
+
+/** Estatísticas de uma conta em um modo (os padrões, se ela ainda não jogou ranqueada nele). */
+function statsOf(account: Account, pace: Pace): PlayerStats {
+  if (pace === "classic") return account.stats ?? defaultPlayerStats();
+  return account.statsByPace?.[pace] ?? defaultPlayerStats();
+}
+
+/** Devolve a conta com as estatísticas de um modo trocadas (as dos outros modos não mudam). */
+function withStats(account: Account, pace: Pace, stats: PlayerStats): Account {
+  if (pace === "classic") return { ...account, stats };
+  return { ...account, statsByPace: { ...account.statsByPace, [pace]: stats } };
+}
+
+/** Código de confirmação em andamento de uma conta (chave `verify:<accountId>`). */
+interface EmailVerification {
+  codeHash: string;
+  expiresAt: number;
+  attempts: number;
+  lastSentAt: number;
+  windowStart: number;
+  sends: number;
 }
 
 interface Session {
@@ -85,6 +132,8 @@ interface ProcessRankedResultInput {
   startedAt: number;
   endedAt: number;
   turnCount: number;
+  /** Modo da partida (ausente = Partida Intensa). */
+  pace?: Pace;
 }
 
 /**
@@ -108,6 +157,7 @@ interface RecordMatchHistoryInput {
   startedAt: number;
   endedAt: number;
   turnCount: number;
+  pace?: Pace;
   rating: {
     winnerRatingBefore: number;
     winnerRatingAfter: number;
@@ -134,6 +184,7 @@ interface MatchHistoryRow {
   winnerRatingAfter: number | null;
   loserRatingBefore: number | null;
   loserRatingAfter: number | null;
+  pace: string;
 }
 
 export class AccountsRoom extends DurableObject<Env> {
@@ -218,6 +269,29 @@ export class AccountsRoom extends DurableObject<Env> {
         loserRatingAfter INTEGER
       )
     `);
+    // Ranqueada por modo: uma linha por (conta, modo). A tabela antiga `leaderboard` (só um modo) é copiada
+    // uma vez como Partida Intensa e deixa de ser usada.
+    this.ctx.storage.sql.exec(`
+      CREATE TABLE IF NOT EXISTS leaderboard_modes (
+        accountId TEXT NOT NULL,
+        pace TEXT NOT NULL,
+        username TEXT NOT NULL,
+        rating INTEGER NOT NULL,
+        wins INTEGER NOT NULL,
+        losses INTEGER NOT NULL,
+        rankedMatches INTEGER NOT NULL,
+        PRIMARY KEY (accountId, pace)
+      )
+    `);
+    this.ctx.storage.sql.exec(`
+      INSERT OR IGNORE INTO leaderboard_modes (accountId, pace, username, rating, wins, losses, rankedMatches)
+      SELECT accountId, 'classic', username, rating, wins, losses, rankedMatches FROM leaderboard
+    `);
+    // O histórico guarda o modo de cada partida (as antigas contam como Partida Intensa).
+    const historyCols = this.ctx.storage.sql.exec<{ name: string }>(`PRAGMA table_info(match_history)`).toArray();
+    if (!historyCols.some((c) => c.name === "pace")) {
+      this.ctx.storage.sql.exec(`ALTER TABLE match_history ADD COLUMN pace TEXT NOT NULL DEFAULT 'classic'`);
+    }
     this.ctx.storage.sql.exec(
       `CREATE INDEX IF NOT EXISTS idx_match_history_blue ON match_history (blueAccountId, endedAt DESC)`,
     );
@@ -242,8 +316,8 @@ export class AccountsRoom extends DurableObject<Env> {
       `INSERT OR IGNORE INTO match_history (
          matchId, matchType, blueAccountId, blueNickname, redAccountId, redNickname,
          winnerOwner, finishReason, startedAt, endedAt, turnCount,
-         winnerRatingBefore, winnerRatingAfter, loserRatingBefore, loserRatingAfter
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         winnerRatingBefore, winnerRatingAfter, loserRatingBefore, loserRatingAfter, pace
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       input.matchId,
       input.matchType,
       input.blueAccountId,
@@ -259,6 +333,7 @@ export class AccountsRoom extends DurableObject<Env> {
       input.rating?.winnerRatingAfter ?? null,
       input.rating?.loserRatingBefore ?? null,
       input.rating?.loserRatingAfter ?? null,
+      normalizePace(input.pace),
     );
   }
 
@@ -282,6 +357,7 @@ export class AccountsRoom extends DurableObject<Env> {
       turnNumber: row.turnCount,
       finishedAt: row.endedAt,
       finishReason: row.finishReason as "victory" | "forfeit",
+      pace: normalizePace(row.pace),
     };
 
     if (ranked && row.winnerRatingBefore !== null && row.winnerRatingAfter !== null && row.loserRatingBefore !== null && row.loserRatingAfter !== null) {
@@ -317,23 +393,24 @@ export class AccountsRoom extends DurableObject<Env> {
    * conta com `rankedMatches === 0` nunca tem linha na tabela (e se
    * tinha — não deveria, mas por segurança — é removida).
    */
-  private upsertLeaderboardRow(account: Account): void {
+  private upsertLeaderboardRow(account: Account, pace: Pace): void {
     this.ensureSchema();
-    const stats = account.stats;
-    if (!stats || stats.rankedMatches <= 0) {
-      this.ctx.storage.sql.exec(`DELETE FROM leaderboard WHERE accountId = ?`, account.id);
+    const stats = statsOf(account, pace);
+    if (stats.rankedMatches <= 0) {
+      this.ctx.storage.sql.exec(`DELETE FROM leaderboard_modes WHERE accountId = ? AND pace = ?`, account.id, pace);
       return;
     }
     this.ctx.storage.sql.exec(
-      `INSERT INTO leaderboard (accountId, username, rating, wins, losses, rankedMatches)
-       VALUES (?, ?, ?, ?, ?, ?)
-       ON CONFLICT(accountId) DO UPDATE SET
+      `INSERT INTO leaderboard_modes (accountId, pace, username, rating, wins, losses, rankedMatches)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(accountId, pace) DO UPDATE SET
          username = excluded.username,
          rating = excluded.rating,
          wins = excluded.wins,
          losses = excluded.losses,
          rankedMatches = excluded.rankedMatches`,
       account.id,
+      pace,
       account.nickname,
       stats.rating,
       stats.wins,
@@ -342,8 +419,8 @@ export class AccountsRoom extends DurableObject<Env> {
     );
   }
 
-  /** Fase 10 — ordenação oficial: rating DESC, wins DESC, rankedMatches ASC, username ASC. */
-  private getLeaderboardRows(limit: number): LeaderboardEntry[] {
+  /** Fase 10 — ordenação oficial: rating DESC, wins DESC, rankedMatches ASC, username ASC (um placar por modo). */
+  private getLeaderboardRows(limit: number, pace: Pace): LeaderboardEntry[] {
     this.ensureSchema();
     const cursor = this.ctx.storage.sql.exec<{
       accountId: string;
@@ -353,9 +430,11 @@ export class AccountsRoom extends DurableObject<Env> {
       losses: number;
       rankedMatches: number;
     }>(
-      `SELECT accountId, username, rating, wins, losses, rankedMatches FROM leaderboard
+      `SELECT accountId, username, rating, wins, losses, rankedMatches FROM leaderboard_modes
+       WHERE pace = ?
        ORDER BY rating DESC, wins DESC, rankedMatches ASC, username ASC
        LIMIT ?`,
+      pace,
       limit,
     );
     return cursor.toArray().map((r, i) => ({
@@ -372,28 +451,29 @@ export class AccountsRoom extends DurableObject<Env> {
   }
 
   /**
-   * Fase 12 — posição do jogador no Ranking global, mesmo que ele não
+   * Fase 12 — posição do jogador no Ranking do modo, mesmo que ele não
    * apareça no TOP N retornado por `getLeaderboardRows`. `null` quando
    * a conta ainda não tem linha na tabela (Fase 13 — nenhuma partida
-   * ranqueada completada ainda).
+   * ranqueada completada ainda nesse modo).
    */
-  private getPlayerPosition(accountId: string): number | null {
+  private getPlayerPosition(accountId: string, pace: Pace): number | null {
     this.ensureSchema();
     const rowCursor = this.ctx.storage.sql.exec<{
       rating: number;
       wins: number;
       rankedMatches: number;
       username: string;
-    }>(`SELECT rating, wins, rankedMatches, username FROM leaderboard WHERE accountId = ?`, accountId);
+    }>(`SELECT rating, wins, rankedMatches, username FROM leaderboard_modes WHERE accountId = ? AND pace = ?`, accountId, pace);
     const row = rowCursor.toArray()[0];
     if (!row) return null;
 
     const countCursor = this.ctx.storage.sql.exec<{ cnt: number }>(
-      `SELECT COUNT(*) as cnt FROM leaderboard WHERE
+      `SELECT COUNT(*) as cnt FROM leaderboard_modes WHERE pace = ? AND (
          rating > ?
          OR (rating = ? AND wins > ?)
          OR (rating = ? AND wins = ? AND rankedMatches < ?)
-         OR (rating = ? AND wins = ? AND rankedMatches = ? AND username < ?)`,
+         OR (rating = ? AND wins = ? AND rankedMatches = ? AND username < ?))`,
+      pace,
       row.rating,
       row.rating,
       row.wins,
@@ -418,8 +498,8 @@ export class AccountsRoom extends DurableObject<Env> {
    * de criar um `GetMyProfile` paralelo (Fase 4 — "não duplicar
    * eventos que já existem").
    */
-  private toMyStatsData(account: Account): MyStatsData {
-    const stats = account.stats ?? defaultPlayerStats();
+  private toMyStatsData(account: Account, pace: Pace): MyStatsData {
+    const stats = statsOf(account, pace);
     return {
       accountId: account.id,
       username: account.nickname,
@@ -429,7 +509,7 @@ export class AccountsRoom extends DurableObject<Env> {
       wins: stats.wins,
       losses: stats.losses,
       winRate: calculateWinRate(stats.wins, stats.losses),
-      position: this.getPlayerPosition(account.id),
+      position: this.getPlayerPosition(account.id, pace),
       peakRating: stats.peakRating,
       winStreak: stats.winStreak,
       bestWinStreak: stats.bestWinStreak,
@@ -463,8 +543,9 @@ export class AccountsRoom extends DurableObject<Env> {
     const winnerIsBlue = input.winnerOwner === "blue";
     const winnerAccount = winnerIsBlue ? blue : red;
     const loserAccount = winnerIsBlue ? red : blue;
-    const winnerStatsBefore = winnerAccount.stats ?? defaultPlayerStats();
-    const loserStatsBefore = loserAccount.stats ?? defaultPlayerStats();
+    const pace = normalizePace(input.pace);
+    const winnerStatsBefore = statsOf(winnerAccount, pace);
+    const loserStatsBefore = statsOf(loserAccount, pace);
     const durationMs = Math.max(0, input.endedAt - input.startedAt);
 
     // Fase 3 — Elo padrão, calculado exclusivamente aqui no servidor.
@@ -503,12 +584,12 @@ export class AccountsRoom extends DurableObject<Env> {
       totalPlayTimeMs: loserStatsBefore.totalPlayTimeMs + durationMs,
     };
 
-    const winnerUpdated: Account = { ...winnerAccount, stats: winnerStats };
-    const loserUpdated: Account = { ...loserAccount, stats: loserStats };
+    const winnerUpdated: Account = withStats(winnerAccount, pace, winnerStats);
+    const loserUpdated: Account = withStats(loserAccount, pace, loserStats);
     await this.ctx.storage.put(`account:${winnerUpdated.id}`, winnerUpdated);
     await this.ctx.storage.put(`account:${loserUpdated.id}`, loserUpdated);
-    this.upsertLeaderboardRow(winnerUpdated);
-    this.upsertLeaderboardRow(loserUpdated);
+    this.upsertLeaderboardRow(winnerUpdated, pace);
+    this.upsertLeaderboardRow(loserUpdated, pace);
 
     const record: MatchRecord = {
       matchId: input.matchId,
@@ -528,6 +609,7 @@ export class AccountsRoom extends DurableObject<Env> {
       loserRatingAfter,
       loserRatingDelta: loserRatingAfter - loserStatsBefore.rating,
       ranked: true,
+      pace,
     };
     await this.ctx.storage.put(`match:${input.matchId}`, record);
 
@@ -542,9 +624,25 @@ export class AccountsRoom extends DurableObject<Env> {
     if (!key || password.length < 4) {
       return { ok: false as const, reason: "Nickname ou senha inválidos." };
     }
+    if (!isValidEmail(email)) {
+      return { ok: false as const, reason: "Informe um e-mail válido." };
+    }
+    const emailKey = `email:${normalizeEmail(email)}`;
+    await this.purgeStalePending(`nickname:${key}`);
+    await this.purgeStalePending(emailKey);
     const existingId = await this.ctx.storage.get<string>(`nickname:${key}`);
     if (existingId) {
-      return { ok: false as const, reason: "Este nickname já está em uso." };
+      const existing = await this.ctx.storage.get<Account>(`account:${existingId}`);
+      return {
+        ok: false as const,
+        reason:
+          existing?.emailVerified === false
+            ? "Este nickname está aguardando confirmação. Se foi você, entre com a senha para receber um novo código."
+            : "Este nickname já está em uso.",
+      };
+    }
+    if (await this.ctx.storage.get<string>(emailKey)) {
+      return { ok: false as const, reason: "Este e-mail já está em uso." };
     }
     const account: Account = {
       id: crypto.randomUUID(),
@@ -552,13 +650,21 @@ export class AccountsRoom extends DurableObject<Env> {
       email: email.trim(),
       passwordHash: await CryptoService.hash(password),
       createdAt: Date.now(),
+      emailVerified: false,
       // Sprint RANKING-01 — Direcionamento Oficial #1: todo jogador
       // novo começa com exatamente 500 pontos.
       stats: defaultPlayerStats(),
     };
     await this.ctx.storage.put(`account:${account.id}`, account);
     await this.ctx.storage.put(`nickname:${key}`, account.id);
-    return { ok: true as const, profile: this.toPublicProfile(account) };
+    await this.ctx.storage.put(emailKey, account.id);
+    const sent = await this.issueCode(account);
+    if (!sent.ok) {
+      // Sem como entregar o código a conta não serve: desfaz o cadastro por inteiro.
+      await this.ctx.storage.delete([`account:${account.id}`, `nickname:${key}`, emailKey, `verify:${account.id}`]);
+      return { ok: false as const, reason: sent.reason };
+    }
+    return { ok: true as const, account, devCode: sent.devCode };
   }
 
   private async login(nickname: string, password: string) {
@@ -567,6 +673,81 @@ export class AccountsRoom extends DurableObject<Env> {
     if (!account) return { ok: false as const, reason: "Nickname ou senha incorretos." };
     const valid = await CryptoService.verify(password, account.passwordHash);
     if (!valid) return { ok: false as const, reason: "Nickname ou senha incorretos." };
+    if (account.emailVerified === false) return { ok: true as const, needsVerification: true as const, account };
+    return { ok: true as const, needsVerification: false as const, profile: this.toPublicProfile(account) };
+  }
+
+  // ── Confirmação de e-mail ───────────────────────────────────────
+
+  /** Uma conta que ficou mais de 24 h sem confirmar libera o nickname e o e-mail. */
+  private async purgeStalePending(indexKey: string): Promise<void> {
+    const id = await this.ctx.storage.get<string>(indexKey);
+    if (!id) return;
+    const acc = await this.ctx.storage.get<Account>(`account:${id}`);
+    if (!acc || acc.emailVerified !== false || Date.now() - acc.createdAt < PENDING_TTL_MS) return;
+    await this.ctx.storage.delete([
+      `account:${id}`,
+      `nickname:${acc.nickname.toLowerCase()}`,
+      `email:${normalizeEmail(acc.email)}`,
+      `verify:${id}`,
+    ]);
+  }
+
+  /**
+   * Gera um código novo, guarda só o hash e envia por e-mail. Respeita a espera entre pedidos e o
+   * limite por hora. `kind` diz por que falhou: "limit" = pediu cedo demais (o código anterior ainda
+   * vale), "failed" = o e-mail não saiu.
+   */
+  private async issueCode(account: Account): Promise<{ ok: true; devCode?: string } | { ok: false; reason: string; kind: "limit" | "failed" }> {
+    const key = `verify:${account.id}`;
+    const prev = await this.ctx.storage.get<EmailVerification>(key);
+    const now = Date.now();
+    if (prev && now - prev.lastSentAt < RESEND_COOLDOWN_MS) {
+      const wait = Math.ceil((RESEND_COOLDOWN_MS - (now - prev.lastSentAt)) / 1000);
+      return { ok: false, kind: "limit", reason: `Aguarde ${wait} s para pedir um novo código.` };
+    }
+    const inWindow = !!prev && now - prev.windowStart < 3_600_000;
+    if (prev && inWindow && prev.sends >= MAX_SENDS_PER_HOUR) {
+      return { ok: false, kind: "limit", reason: "Você pediu códigos demais. Tente de novo em alguns minutos." };
+    }
+    const code = generateCode();
+    const sent = await sendVerificationEmail(this.env, account.email, account.nickname, code);
+    if (!sent.ok) return { ok: false, kind: "failed", reason: sent.reason };
+    const record: EmailVerification = {
+      codeHash: await hashCode(code, account.id),
+      expiresAt: now + CODE_TTL_MS,
+      attempts: 0,
+      lastSentAt: now,
+      windowStart: inWindow && prev ? prev.windowStart : now,
+      sends: inWindow && prev ? prev.sends + 1 : 1,
+    };
+    await this.ctx.storage.put(key, record);
+    return { ok: true, devCode: sent.devCode };
+  }
+
+  private async findPendingAccount(nickname: string): Promise<Account | undefined> {
+    const id = await this.ctx.storage.get<string>(`nickname:${nickname.trim().toLowerCase()}`);
+    const account = id ? await this.ctx.storage.get<Account>(`account:${id}`) : undefined;
+    return account && account.emailVerified === false ? account : undefined;
+  }
+
+  private async verifyEmail(nickname: string, code: string) {
+    const account = await this.findPendingAccount(nickname);
+    if (!account) return { ok: false as const, reason: "Conta não encontrada ou já confirmada. Tente entrar." };
+    const key = `verify:${account.id}`;
+    const rec = await this.ctx.storage.get<EmailVerification>(key);
+    if (!rec) return { ok: false as const, reason: "Nenhum código ativo. Peça um novo código." };
+    if (Date.now() > rec.expiresAt) return { ok: false as const, reason: "O código expirou. Peça um novo código." };
+    if (rec.attempts >= CODE_MAX_ATTEMPTS) return { ok: false as const, reason: "Tentativas demais. Peça um novo código." };
+    const given = code.replace(/\D/g, "");
+    if ((await hashCode(given, account.id)) !== rec.codeHash) {
+      const attempts = rec.attempts + 1;
+      await this.ctx.storage.put(key, { ...rec, attempts });
+      const left = CODE_MAX_ATTEMPTS - attempts;
+      return { ok: false as const, reason: left > 0 ? `Código incorreto. Restam ${left} tentativas.` : "Código incorreto. Peça um novo código." };
+    }
+    await this.ctx.storage.put(`account:${account.id}`, { ...account, emailVerified: true });
+    await this.ctx.storage.delete(key);
     return { ok: true as const, profile: this.toPublicProfile(account) };
   }
 
@@ -646,6 +827,37 @@ export class AccountsRoom extends DurableObject<Env> {
           this.send(conn, { type: "AuthError", reason: result.reason });
           break;
         }
+        // Sem sessão ainda: a conta só vale depois do código enviado por e-mail.
+        this.send(conn, {
+          type: "VerificationRequired",
+          nickname: result.account.nickname,
+          email: maskEmail(result.account.email),
+          devCode: result.devCode,
+        });
+        break;
+      }
+
+      case "Login": {
+        const result = await this.login(event.nickname, event.password);
+        if (!result.ok) {
+          this.send(conn, { type: "AuthError", reason: result.reason });
+          break;
+        }
+        if (result.needsVerification) {
+          // Conta ainda sem e-mail confirmado: manda um código novo (se não pediu há pouco) e pede a confirmação.
+          const sent = await this.issueCode(result.account);
+          if (!sent.ok && sent.kind === "failed") {
+            this.send(conn, { type: "AuthError", reason: sent.reason });
+            break;
+          }
+          this.send(conn, {
+            type: "VerificationRequired",
+            nickname: result.account.nickname,
+            email: maskEmail(result.account.email),
+            devCode: sent.ok ? sent.devCode : undefined,
+          });
+          break;
+        }
         const session = await this.createSession(result.profile.id);
         player.accountId = result.profile.id;
         player.nickname = result.profile.nickname;
@@ -658,8 +870,8 @@ export class AccountsRoom extends DurableObject<Env> {
         break;
       }
 
-      case "Login": {
-        const result = await this.login(event.nickname, event.password);
+      case "VerifyEmail": {
+        const result = await this.verifyEmail(event.nickname, String(event.code ?? ""));
         if (!result.ok) {
           this.send(conn, { type: "AuthError", reason: result.reason });
           break;
@@ -673,6 +885,21 @@ export class AccountsRoom extends DurableObject<Env> {
           token: session.token,
           profile: { accountId: result.profile.id, nickname: result.profile.nickname, createdAt: result.profile.createdAt },
         });
+        break;
+      }
+
+      case "ResendVerification": {
+        const account = await this.findPendingAccount(event.nickname);
+        if (!account) {
+          this.send(conn, { type: "AuthError", reason: "Conta não encontrada ou já confirmada. Tente entrar." });
+          break;
+        }
+        const sent = await this.issueCode(account);
+        if (!sent.ok) {
+          this.send(conn, { type: "AuthError", reason: sent.reason });
+          break;
+        }
+        this.send(conn, { type: "VerificationRequired", nickname: account.nickname, email: maskEmail(account.email), devCode: sent.devCode });
         break;
       }
 
@@ -713,14 +940,16 @@ export class AccountsRoom extends DurableObject<Env> {
           player.playerId,
           player.nickname ?? player.playerName,
           player.accountId,
-          event.matchType,
+          // Toda partida online é ranqueada: o `matchType` pedido pelo cliente é ignorado (docs/16, "Sem casual").
+          "ranked",
+          normalizePace(event.pace),
         );
         if (!added.ok) {
           this.send(conn, { type: "ActionRejected", reason: added.reason ?? "Não foi possível criar a sala." });
           break;
         }
         await this.ctx.storage.put(`room:${roomId}`, true);
-        this.send(conn, { type: "RoomCreated", roomId, you: added.player });
+        this.send(conn, { type: "RoomCreated", roomId, you: added.player, pace: added.pace });
         break;
       }
 
@@ -743,7 +972,7 @@ export class AccountsRoom extends DurableObject<Env> {
           this.send(conn, { type: "ActionRejected", reason: added.reason ?? "Não foi possível entrar na sala." });
           break;
         }
-        this.send(conn, { type: "RoomJoined", roomId, you: added.player, players: added.players ?? [added.player] });
+        this.send(conn, { type: "RoomJoined", roomId, you: added.player, players: added.players ?? [added.player], pace: added.pace });
         break;
       }
 
@@ -759,8 +988,9 @@ export class AccountsRoom extends DurableObject<Env> {
           this.send(conn, { type: "AuthError", reason: "É preciso estar autenticado." });
           break;
         }
-        const entries = this.getLeaderboardRows(event.limit ?? 50);
-        this.send(conn, { type: "LeaderboardData", entries });
+        const lbPace = normalizePace(event.pace);
+        const entries = this.getLeaderboardRows(event.limit ?? 50, lbPace);
+        this.send(conn, { type: "LeaderboardData", entries, pace: lbPace });
         break;
       }
 
@@ -769,8 +999,9 @@ export class AccountsRoom extends DurableObject<Env> {
           this.send(conn, { type: "AuthError", reason: "É preciso estar autenticado." });
           break;
         }
+        const statsPace = normalizePace(event.pace);
         const account = await this.loadAccount(player.accountId);
-        this.send(conn, { type: "MyStatsData", stats: account ? this.toMyStatsData(account) : null });
+        this.send(conn, { type: "MyStatsData", stats: account ? this.toMyStatsData(account, statsPace) : null, pace: statsPace });
         break;
       }
 
@@ -796,17 +1027,18 @@ export class AccountsRoom extends DurableObject<Env> {
     playerName: string,
     accountId: string,
     matchType?: MatchType,
-  ): Promise<{ ok: true; player: RoomPlayerInfo; players?: RoomPlayerInfo[] } | { ok: false; reason?: string }> {
+    pace?: Pace,
+  ): Promise<{ ok: true; player: RoomPlayerInfo; players?: RoomPlayerInfo[]; pace: Pace } | { ok: false; reason?: string }> {
     const stub = this.env.ROOM.get(this.env.ROOM.idFromName(roomId));
     const response = await stub.fetch("https://internal/internal/add-player", {
       method: "POST",
       // Manda o roomId curto (canônico) junto — é assim que a GameRoom
       // aprende seu próprio roomId (Sprint QA-07); nunca usa o ID
       // interno de 64 caracteres da Durable Object para nada visível ao cliente.
-      body: JSON.stringify({ roomId, playerId, playerName, accountId, matchType }),
+      body: JSON.stringify({ roomId, playerId, playerName, accountId, matchType, pace }),
     });
     return (await response.json()) as
-      | { ok: true; player: RoomPlayerInfo; players?: RoomPlayerInfo[] }
+      | { ok: true; player: RoomPlayerInfo; players?: RoomPlayerInfo[]; pace: Pace }
       | { ok: false; reason?: string };
   }
 }

@@ -212,3 +212,50 @@ Na versão 1.0 o Sistema de Contas deverá permitir:
 - Definição do perfil do jogador.
 - Definição da integração com o Multiplayer.
 - Definição das diretrizes de segurança.
+
+---
+
+# Confirmação de E-mail (cadastro)
+
+O e-mail é obrigatório no cadastro e a conta só passa a valer depois de confirmado por um código.
+
+## Cadastro
+1. O jogador informa nickname, e-mail e senha. O e-mail precisa ter um formato válido e não pode estar em uso por outra conta.
+2. O servidor cria a conta como **não confirmada**, gera um código de 6 dígitos e o envia por e-mail. Nenhuma sessão é criada ainda.
+3. O jogador digita o código. Com o código certo, a conta é confirmada e o jogador já entra (sessão criada).
+
+## Regras do código
+- O código vale 15 minutos e serve uma única vez. O servidor guarda só o hash do código, nunca o código em si.
+- Cada código aceita no máximo 5 tentativas erradas; depois disso é preciso pedir um novo.
+- É possível pedir um novo código a cada 60 segundos, no máximo 5 por hora por conta.
+- O código antigo deixa de valer quando um novo é enviado.
+
+## Login
+- Conta não confirmada: após a senha correta, o login não entra; o servidor envia um código e a tela pede a confirmação.
+- Contas criadas antes desta regra (sem o campo de confirmação) continuam entrando normalmente.
+- Uma conta não confirmada há mais de 24 horas libera o nickname e o e-mail para um novo cadastro.
+
+## Envio do e-mail
+- O envio usa um provedor de e-mail configurado no servidor (variáveis `RESEND_API_KEY` e `EMAIL_FROM`). Sem provedor configurado, o cadastro é recusado com uma mensagem clara, em vez de criar uma conta que ninguém consegue confirmar.
+- Só no desenvolvimento local, com `DEV_SHOW_CODE=1` no `.dev.vars`, o código é mostrado na própria tela de confirmação e no log do servidor, para testar sem enviar e-mail.
+
+---
+
+# Ranqueada por modo
+
+Cada modo de jogo (Partida Rápida, Normal e Intensa; documento 04, seção 19) tem a sua própria ranqueada, totalmente separada das outras.
+
+- **Pontuação por modo:** todo jogador começa com 500 pontos em cada modo. Uma partida ranqueada só altera os pontos, a patente, as vitórias, as derrotas e as sequências do modo em que foi jogada. Os outros modos não mudam.
+- **Cálculo:** é o mesmo Elo de sempre, feito no servidor, só que usando as pontuações daquele modo.
+- **Ranking:** um placar por modo. O jogador só aparece no placar de um modo depois de completar a primeira partida ranqueada nesse modo.
+- **Perfil e histórico:** o perfil mostra as estatísticas do modo escolhido. Cada partida do histórico guarda o modo em que foi jogada.
+- **Contas e partidas antigas:** a pontuação que as contas já tinham passa a valer como a da Partida Intensa (o único modo online até então). As partidas antigas do histórico contam como Partida Intensa.
+- **Sem casual:** não existe mais partida casual. Toda partida online é ranqueada. Contra o computador (Campanha) nenhuma partida conta pontos: a pontuação existe só na ranqueada.
+
+---
+
+# Login obrigatório
+
+- Para jogar qualquer partida, contra o computador ou online, o jogador precisa estar logado. Sem login, as telas de jogo levam à tela de login.
+- A sessão fica guardada no aparelho (não é preciso entrar a cada visita) até o jogador usar "Sair da conta". Uma sessão que o servidor não reconhece mais é descartada e pede um novo login.
+- Observação: as partidas contra o computador rodam no próprio aparelho, então essa exigência é uma barreira da interface e não uma proteção do servidor. A pontuação, que é o que importa proteger, só existe nas partidas online ranqueadas, validadas pelo servidor.

@@ -101,7 +101,7 @@ export function ScreenBackdrop() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { mounted, portrait } = useDeviceMode();
   return (
-    <div className="fixed inset-0 z-0 bg-gradient-to-b from-[#2f6fb5] to-[#f6c98a]" aria-hidden="true">
+    <div className="fixed inset-0 z-0 bg-[#2f78c4]" aria-hidden="true">
       {mounted && (
         <Canvas shadows camera={{ position: [0, 4, 14], fov: portrait ? 44 : 34, near: 0.5, far: 1500 }} gl={{ toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.9 }}>
           <Suspense fallback={null}>

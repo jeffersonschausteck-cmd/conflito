@@ -6,7 +6,7 @@ import { AudioManager } from "@/services/audioManager";
 import { settingsService } from "@/services/settingsService";
 
 export const Route = createFileRoute("/settings")({
-  head: () => ({ meta: [{ title: "Settings — Conflito" }] }),
+  head: () => ({ meta: [{ title: "Configurações — Conflito" }] }),
   component: SettingsPage,
 });
 
@@ -19,26 +19,26 @@ interface Row {
 // Sprint AUDIO-02 — Display continua decorativo (fora de escopo desta
 // sprint); só a seção Audio ganhou estado real, abaixo.
 const DISPLAY_SECTION: { title: string; rows: Row[] } = {
-  title: "Display",
+  title: "Tela",
   rows: [
-    { label: "High Contrast", value: 0, toggle: true },
-    { label: "Reduce Motion", value: 0, toggle: true },
+    { label: "Alto contraste", value: 0, toggle: true },
+    { label: "Reduzir movimento", value: 0, toggle: true },
   ],
 };
 
 function SettingsPage() {
   return (
     <ScreenShell
-      eyebrow="// SYSTEM"
-      title="Settings"
-      subtitle="Calibrate your interface."
+      eyebrow="// SISTEMA"
+      title="Configurações"
+      subtitle="Ajuste sua interface."
       backTo="/"
-      backLabel="← Home"
+      backLabel="← Início"
     >
       <div className="mx-auto grid max-w-2xl gap-6 text-left">
         <AudioSection />
 
-        <GamePanel variant="blue" eyebrow="// CONFIG" title={DISPLAY_SECTION.title}>
+        <GamePanel variant="blue" eyebrow="// CONFIGURAÇÃO" title={DISPLAY_SECTION.title}>
           <div className="space-y-4">
             {DISPLAY_SECTION.rows.map((r) => (
               <div key={r.label} className="flex items-center justify-between gap-4">
@@ -78,10 +78,10 @@ function AudioSection() {
   }, []);
 
   return (
-    <GamePanel variant="blue" eyebrow="// CONFIG" title="Audio">
+    <GamePanel variant="blue" eyebrow="// CONFIGURAÇÃO" title="Áudio">
       <div className="space-y-4">
         <VolumeSlider
-          label="Master Volume"
+          label="Volume geral"
           value={master}
           onChange={(v) => {
             setMaster(v);
@@ -89,7 +89,7 @@ function AudioSection() {
           }}
         />
         <VolumeSlider
-          label="Music"
+          label="Música"
           value={music}
           onChange={(v) => {
             setMusic(v);
@@ -97,7 +97,7 @@ function AudioSection() {
           }}
         />
         <VolumeSlider
-          label="SFX"
+          label="Efeitos"
           value={sfx}
           onChange={(v) => {
             setSfx(v);

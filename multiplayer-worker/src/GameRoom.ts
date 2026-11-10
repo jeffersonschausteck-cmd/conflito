@@ -20,8 +20,9 @@ import { acceptWebSocket, type TransportConnection } from "./durableTransport";
 import { GameEngine } from "@/services/gameEngine";
 import { ownerToPlayer } from "@/types/gameState";
 import { DeploymentManager, DEPLOYMENT_DURATION_MS } from "@/services/deploymentManager";
-import { ACTIVE_MAP, getBlockedTiles } from "@/maps";
-import type { GameAction, GameState, Player } from "@/types/gameState";
+import { getBlockedTiles, mapForPace } from "@/maps";
+import { formatFor, normalizePace } from "@/services/battleFormat";
+import type { GameAction, GameState, Pace, Player } from "@/types/gameState";
 import type { Piece, PlayerOwner } from "@/types/piece";
 import { sanitizeSkins, type SkinTable } from "@/config/skinCatalog";
 import type {
@@ -34,7 +35,6 @@ import type {
 import type { MatchRecord, MatchType, RankingResultView } from "@/types/ranking";
 import type { Env } from "./env";
 
-const BLOCKED_TILES = getBlockedTiles(ACTIVE_MAP);
 
 /**
  * Sprint REC-01 — janela de tolerância pra reconexão depois que a
@@ -49,11 +49,13 @@ const RECONNECT_GRACE_MS = 3 * 60 * 1000;
 class GameSession {
   private state: GameState;
 
-  constructor(initialPieces?: Piece[]) {
+  constructor(initialPieces?: Piece[], pace: Pace = "classic") {
+    const map = mapForPace(pace);
     this.state = GameEngine.createInitialState({
-      rows: ACTIVE_MAP.rows,
-      cols: ACTIVE_MAP.cols,
-      blockedTiles: getBlockedTiles(ACTIVE_MAP),
+      rows: map.rows,
+      cols: map.cols,
+      blockedTiles: getBlockedTiles(map),
+      pace,
     });
     if (initialPieces) {
       this.state = { ...this.state, pieces: initialPieces };
@@ -117,6 +119,8 @@ interface PersistedRoom {
   disconnectDeadline: number | null;
   /** Sprint RANKING-01 — tipo da sala (hoje sempre "casual" pras salas por código) e o matchId único gerado quando a Partida começa (`null` antes disso). */
   matchType: MatchType;
+  /** Modo da sala (tamanho do tabuleiro e do exército). Ausente em salas antigas = Partida Intensa. */
+  pace?: Pace;
   matchId: string | null;
   /** Sprint RANKING-01 — o `AccountsRoom` já processou esse `matchId`? Evita reprocessar Rating se `finalizeMatch` for chamado mais de uma vez pro mesmo resultado. */
   rankingProcessed: boolean;
@@ -159,6 +163,8 @@ export class GameRoom extends DurableObject<Env> {
   private disconnectDeadline: number | null = null;
   /** Sprint RANKING-01 — Direcionamento Oficial #5/#6: toda sala por código nasce "casual" e nunca altera Rating. */
   private matchType: MatchType = "casual";
+  /** Modo da sala, decidido por quem a cria. */
+  private pace: Pace = "classic";
   /** Sprint RANKING-01 — gerado uma única vez quando a `GameSession` é criada (`confirmDeployment`); identifica esta partida pro `AccountsRoom` de forma idempotente. */
   private matchId: string | null = null;
   private rankingProcessed = false;
@@ -187,6 +193,7 @@ export class GameRoom extends DurableObject<Env> {
       this.disconnectedPlayerId = stored.disconnectedPlayerId ?? null;
       this.disconnectDeadline = stored.disconnectDeadline ?? null;
       this.matchType = stored.matchType ?? "casual";
+      this.pace = normalizePace(stored.pace);
       this.matchId = stored.matchId ?? null;
       this.rankingProcessed = stored.rankingProcessed ?? false;
       this.skinsByPlayer = new Map((stored.skins ?? []).map(([id, t]) => [id, sanitizeSkins(t)]));
@@ -212,6 +219,7 @@ export class GameRoom extends DurableObject<Env> {
       disconnectedPlayerId: this.disconnectedPlayerId,
       disconnectDeadline: this.disconnectDeadline,
       matchType: this.matchType,
+      pace: this.pace,
       matchId: this.matchId,
       rankingProcessed: this.rankingProcessed,
       skins: [...this.skinsByPlayer.entries()],
@@ -248,12 +256,15 @@ export class GameRoom extends DurableObject<Env> {
         playerName: string;
         accountId: string;
         matchType?: MatchType;
+        pace?: Pace;
       };
       if (!this.roomId) this.roomId = body.roomId;
       // Sprint RANKING-01 — só o primeiro jogador (quem cria a sala)
       // decide `matchType`; hoje sempre "casual" (nenhum fluxo manda
       // "ranked" ainda — ver Direcionamento Oficial #5/#6).
       if (this.players.length === 0 && body.matchType) this.matchType = body.matchType;
+      // O modo também é decidido só por quem cria a sala.
+      if (this.players.length === 0) this.pace = normalizePace(body.pace);
       const result = this.addPlayer(body.playerId, body.playerName, body.accountId);
       // Avisa quem já estiver conectado a esta sala (ex.: quem a criou)
       // que um novo jogador entrou — equivalente ao antigo
@@ -262,7 +273,7 @@ export class GameRoom extends DurableObject<Env> {
         await this.persist();
         this.broadcastRoomState();
       }
-      return Response.json(result);
+      return Response.json(result.ok ? { ...result, pace: this.pace } : result);
     }
 
     // O Worker (`index.ts`) repassa a requisição original sem reescrever o
@@ -336,13 +347,14 @@ export class GameRoom extends DurableObject<Env> {
     const owner = this.ownerOf(playerId);
     if (!owner) return { ok: false, reason: "Jogador não pertence a esta sala." };
 
-    const isValid = DeploymentManager.validateDeployment(pieces, ACTIVE_MAP.rows, ACTIVE_MAP.cols, BLOCKED_TILES, owner);
+    const map = mapForPace(this.pace);
+    const isValid = DeploymentManager.validateDeployment(pieces, map.rows, map.cols, getBlockedTiles(map), owner, formatFor(this.pace));
     if (!isValid) return { ok: false, reason: "Posicionamento inválido." };
 
     this.deployments.set(playerId, pieces);
     if (this.deployments.size >= 2) {
       const allPieces = [...this.deployments.values()].flat();
-      this.session = new GameSession(allPieces);
+      this.session = new GameSession(allPieces, this.pace);
       this.status = "playing";
       // Sprint TIMER-01 — instante único do início da Partida; o
       // cronômetro de Posicionamento não é mais relevante a partir daqui.
@@ -407,6 +419,7 @@ export class GameRoom extends DurableObject<Env> {
           startedAt: this.matchStartTime,
           endedAt: this.matchEndTime,
           turnCount: finalState.turnNumber,
+          pace: this.pace,
         }),
       });
       const result = (await response.json()) as { ok: boolean; record?: MatchRecord; reason?: string };
@@ -423,6 +436,7 @@ export class GameRoom extends DurableObject<Env> {
             ratingBefore: record.winnerRatingBefore,
             ratingAfter: record.winnerRatingAfter,
             ratingDelta: record.winnerRatingDelta,
+            pace: this.pace,
           });
         } else if (player.accountId === record.loserId) {
           results.set(player.playerId, {
@@ -430,6 +444,7 @@ export class GameRoom extends DurableObject<Env> {
             ratingBefore: record.loserRatingBefore,
             ratingAfter: record.loserRatingAfter,
             ratingDelta: record.loserRatingDelta,
+            pace: this.pace,
           });
         } else {
           results.set(player.playerId, null);
@@ -474,6 +489,7 @@ export class GameRoom extends DurableObject<Env> {
           startedAt: this.matchStartTime,
           endedAt: this.matchEndTime,
           turnCount: finalState.turnNumber,
+          pace: this.pace,
           rating: rankedRecord
             ? {
                 winnerRatingBefore: rankedRecord.winnerRatingBefore,
@@ -574,6 +590,7 @@ export class GameRoom extends DurableObject<Env> {
       deployedPlayerIds: [...this.deployments.keys()],
       deploymentDeadline: this.deploymentDeadline,
       matchType: this.matchType,
+      pace: this.pace,
     });
   }
 
@@ -605,6 +622,7 @@ export class GameRoom extends DurableObject<Env> {
       deployedPlayerIds: [...this.deployments.keys()],
       deploymentDeadline: this.deploymentDeadline,
       matchType: this.matchType,
+      pace: this.pace,
     });
     // Oficina do Exército — manda o visual já conhecido de cada lado (reconexão/F5 inclusos).
     this.send(conn, { type: "SkinsUpdated", skins: this.skinsByOwner() });
@@ -797,14 +815,16 @@ export class GameRoom extends DurableObject<Env> {
       // existe um `GameState` pra mostrar na tela de resultado.
       for (const player of this.players) {
         if (this.deployments.has(player.playerId)) continue;
+        const forfeitMap = mapForPace(this.pace);
         const autoPieces = DeploymentManager.createDefaultPlayerDeployment(
-          ACTIVE_MAP.rows,
-          ACTIVE_MAP.cols,
+          forfeitMap.rows,
+          forfeitMap.cols,
           player.owner,
+          formatFor(this.pace),
         );
         this.deployments.set(player.playerId, autoPieces);
       }
-      this.session = new GameSession([...this.deployments.values()].flat());
+      this.session = new GameSession([...this.deployments.values()].flat(), this.pace);
       this.matchStartTime = this.matchStartTime ?? Date.now();
     }
 
@@ -839,10 +859,12 @@ export class GameRoom extends DurableObject<Env> {
     if (this.status === "deployment" && this.deploymentDeadline !== null && now >= this.deploymentDeadline) {
       for (const player of this.players) {
         if (this.deployments.has(player.playerId)) continue;
+        const alarmMap = mapForPace(this.pace);
         const autoPieces = DeploymentManager.createDefaultPlayerDeployment(
-          ACTIVE_MAP.rows,
-          ACTIVE_MAP.cols,
+          alarmMap.rows,
+          alarmMap.cols,
           player.owner,
+          formatFor(this.pace),
         );
         this.confirmDeployment(player.playerId, autoPieces);
       }

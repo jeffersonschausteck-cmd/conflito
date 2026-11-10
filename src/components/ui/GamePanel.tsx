@@ -1,6 +1,7 @@
 import React, { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { theme } from "@/design/theme";
+import { MenuTitle } from "@/components/ui/MenuTitle";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -34,14 +35,6 @@ const GLOW_SHADOW: Record<GamePanelVariant, string> = {
   red: theme.shadows.redGlow,
   green: theme.shadows.green,
   yellow: theme.shadows.yellow,
-};
-
-const TITLE_COLOR: Record<GamePanelVariant, string> = {
-  default: "text-muted-foreground",
-  blue: "text-game-blue",
-  red: "text-game-red",
-  green: "text-game-green",
-  yellow: "text-game-yellow",
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -83,29 +76,11 @@ export function GamePanel({
         className={cn("absolute bottom-0 right-0 w-2 h-2 border-b border-r", BORDER[variant])}
       />
 
-      {/* Optional header section */}
-      {(eyebrow || title) && (
-        <div className="mb-4 border-b border-border/40 pb-3">
-          {eyebrow && (
-            <div className="font-display text-[9px] uppercase tracking-[0.35em] text-muted-foreground/75 mb-0.5">
-              {eyebrow}
-            </div>
-          )}
-          {title && (
-            <h3
-              className={cn(
-                "font-display text-sm font-bold uppercase tracking-[0.15em]",
-                TITLE_COLOR[variant]
-              )}
-            >
-              {title}
-            </h3>
-          )}
-        </div>
-      )}
+      {/* Cabeçalho padrão dos menus: igual em todos os painéis */}
+      {(eyebrow || title) && <MenuTitle eyebrow={title ? eyebrow : undefined} title={title ?? eyebrow} className="mb-4 border-b border-border/40 pb-3" />}
 
       {/* Body */}
-      <div className="relative z-10 text-sm leading-relaxed text-game-text">
+      <div className="relative z-10 text-sm leading-relaxed text-sky-50">
         {children}
       </div>
 

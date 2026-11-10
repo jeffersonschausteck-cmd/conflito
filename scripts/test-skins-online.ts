@@ -45,8 +45,12 @@ async function login(nick: string, pass: string): Promise<WebSocket> {
   const reg = await connect(BASE + "/connect");
   await waitFor(reg, (m) => m.type === "PlayerConnected");
   send(reg, { type: "Register", nickname: nick, email: nick + "@test.com", password: pass });
-  const r = await waitFor(reg, (m) => m.type === "AuthSuccess" || m.type === "AuthError");
-  if (r.type !== "AuthSuccess") throw new Error("Cadastro falhou: " + (r as any).reason);
+  const r: any = await waitFor(reg, (m) => m.type === "VerificationRequired" || m.type === "AuthError");
+  if (r.type !== "VerificationRequired" || !r.devCode) throw new Error("Cadastro falhou: " + (r.reason ?? "sem código (rode o servidor local com DEV_SHOW_CODE=1)"));
+  // Confirma o e-mail com o código que o modo de desenvolvimento devolve (docs/16 - Sistema de Contas).
+  send(reg, { type: "VerifyEmail", nickname: nick, code: r.devCode });
+  const v = await waitFor(reg, (m) => m.type === "AuthSuccess" || m.type === "AuthError");
+  if (v.type !== "AuthSuccess") throw new Error("Confirmação falhou: " + (v as any).reason);
   reg.close();
   const ws = await connect(BASE + "/connect");
   await waitFor(ws, (m) => m.type === "PlayerConnected");

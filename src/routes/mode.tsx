@@ -1,16 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { withAuth } from "@/components/RequireAuth";
 import { ScreenShell } from "@/components/ScreenShell";
 import { GameButton } from "@/components/ui/GameButton";
 import { GameCard } from "@/components/ui/GameCard";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { MenuTitle } from "@/components/ui/MenuTitle";
 import { flowState, type GameMode } from "@/services/flowState";
 import { AuthClient } from "@/multiplayer/AuthClient";
+import { getNetworkClient } from "@/multiplayer/networkSingleton";
 
 export const Route = createFileRoute("/mode")({
   head: () => ({
     meta: [{ title: "Modo de Jogo — Conflito" }],
   }),
-  component: ModeSelectPage,
+  component: withAuth(ModeSelectPage),
 });
 
 interface ModeCard {
@@ -24,24 +26,20 @@ interface ModeCard {
   to?: "/oficina";
 }
 
+// Três opções (docs/08-Interface.md, "Login Obrigatório e Centro de Operações"): contra a IA não conta pontos;
+// o multijogador é sempre ranqueado e é a única forma de pontuar.
 const MODES: ModeCard[] = [
   {
     id: "classic",
     name: "Campanha",
-    tagline: "Missões Oficiais",
-    description: "Jogue a campanha principal.",
-  },
-  {
-    id: "modern",
-    name: "Escaramuça",
     tagline: "Contra a IA",
-    description: "Partidas rápidas contra o computador.",
+    description: "Enfrente o computador no tamanho de partida que quiser. Não conta pontos.",
   },
   {
     id: "modern",
     name: "Multijogador",
-    tagline: "Online",
-    description: "Dispute partidas contra outros comandantes. Requer login.",
+    tagline: "Ranqueada",
+    description: "Dispute partidas ranqueadas contra outros comandantes. Vale pontos no ranking do modo.",
     online: true,
   },
   {
@@ -66,8 +64,7 @@ function ModeSelectPage() {
 
     if (mode.online) {
       flowState.write({ mode: mode.id, online: true });
-      const destination = AuthClient.isAuthenticated() ? "/online-lobby" : "/login";
-      navigate({ to: destination });
+      navigate({ to: "/online-lobby" });
       return;
     }
 
@@ -83,7 +80,7 @@ function ModeSelectPage() {
       backTo="/"
       backLabel="← Início"
     >
-      <div className="grid gap-2 sm:grid-cols-2 [@media(min-height:480px)]:gap-6">
+      <div className="grid gap-2 sm:grid-cols-3 [@media(min-height:480px)]:gap-6">
         {MODES.map((m) => (
           <GameCard
             key={m.name}
@@ -93,27 +90,13 @@ function ModeSelectPage() {
             style={{ cursor: m.disabled ? "not-allowed" : "pointer", textAlign: "left" }}
           >
             <div className="p-1 [@media(min-height:480px)]:p-2">
-              <div className="flex items-center justify-between mb-1 [@media(min-height:480px)]:mb-3">
-                <div className="font-display text-[9px] uppercase tracking-[0.3em] text-primary/80 [@media(min-height:480px)]:text-[10px] [@media(min-height:480px)]:tracking-[0.4em]">
-                  {m.tagline}
-                </div>
-                {m.disabled && (
-                  <StatusBadge color="red" label="Bloqueado" />
-                )}
-              </div>
-              <h3 className="font-display text-sm font-bold uppercase tracking-[0.1em] text-foreground [@media(min-height:480px)]:text-2xl">
-                {m.name}
-              </h3>
-              <p className="mt-1 text-[11px] leading-snug text-muted-foreground [@media(min-height:480px)]:mt-4 [@media(min-height:480px)]:text-sm [@media(min-height:480px)]:leading-relaxed">
+              <MenuTitle eyebrow={m.tagline} title={m.name} />
+              <p className="mt-1 text-[11px] leading-snug text-sky-50 [@media(min-height:480px)]:mt-3 [@media(min-height:480px)]:text-sm">
                 {m.description}
               </p>
-              <div className="mt-1.5 font-display text-[9px] uppercase tracking-[0.2em] [@media(min-height:480px)]:mt-6 [@media(min-height:480px)]:text-[10px] [@media(min-height:480px)]:tracking-[0.3em]">
-                {m.disabled ? (
-                  <span className="text-destructive/70">⛔ Locked</span>
-                ) : (
-                  <StatusBadge color="green" label="▶ ▶ Selecionar" />
-                )}
-              </div>
+              <GameButton variant={m.disabled ? "secondary" : "primary"} disabled={m.disabled} size="sm" className="mt-2 w-full [@media(min-height:480px)]:mt-4">
+                {m.disabled ? "Bloqueado" : "▶ Selecionar"}
+              </GameButton>
             </div>
           </GameCard>
         ))}
@@ -123,6 +106,19 @@ function ModeSelectPage() {
         <Link to="/">
           <GameButton variant="ghost" size="sm">Cancelar</GameButton>
         </Link>
+        <GameButton
+          variant="ghost"
+          size="sm"
+          className="ml-2"
+          onClick={() => {
+            const client = getNetworkClient();
+            AuthClient.logout(client);
+            client.disconnect();
+            navigate({ to: "/login" });
+          }}
+        >
+          Sair da conta
+        </GameButton>
       </div>
     </ScreenShell>
   );

@@ -98,7 +98,7 @@ export function HomePage() {
   const narrow = portrait;
 
   return (
-    <main className="fixed inset-0 overflow-hidden bg-gradient-to-b from-[#2f6fb5] to-[#f6c98a] text-foreground">
+    <main className="fixed inset-0 overflow-hidden bg-[#2f78c4] text-foreground">
       {mounted && (
         <div className="absolute inset-0 z-[1]">
           <Canvas
@@ -135,7 +135,7 @@ export function HomePage() {
           </div>
 
           <div className={narrow ? "flex flex-col gap-2.5" : "mt-6 flex flex-col gap-2.5 [@media(max-height:500px)]:mt-2 [@media(max-height:500px)]:gap-1.5"}>
-            <MenuButton to="/mode" primary hint="Campanha · Escaramuça · Online">
+            <MenuButton to="/mode" primary hint="Campanha · Multijogador">
               ▶ Jogar
             </MenuButton>
             <div className="grid grid-cols-2 gap-2.5 [@media(max-height:500px)]:gap-1.5">

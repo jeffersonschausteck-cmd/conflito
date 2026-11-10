@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
+import { withAuth } from "@/components/RequireAuth";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/loading")({
   head: () => ({
     meta: [{ title: "Inicializando — Conflito" }],
   }),
-  component: LoadingPage,
+  component: withAuth(LoadingPage),
 });
 
 const MESSAGES = [

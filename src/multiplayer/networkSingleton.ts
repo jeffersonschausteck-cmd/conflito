@@ -17,7 +17,7 @@ import { installSkinSync } from "./skinSync";
 // e `window.__CONFLITO_WS_URL__` continuam funcionando como override,
 // caso a URL do Worker mude no futuro sem precisar mexer no código.
 const PRODUCTION_WS_URL = "wss://conflito-multiplayer.jefinhoschaus50.workers.dev/connect";
-const LOCAL_DEV_WS_URL = "ws://localhost:8787/ws";
+const LOCAL_DEV_WS_URL = "ws://localhost:8787/connect";
 
 const WS_URL =
   (typeof window !== "undefined" && (window as any).__CONFLITO_WS_URL__) ||

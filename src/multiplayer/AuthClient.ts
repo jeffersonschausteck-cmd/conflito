@@ -22,20 +22,36 @@ export const AuthClient = {
     client.send({ type: "Login", nickname, password });
   },
 
+  /** Confirma o e-mail com o código de 6 dígitos. A resposta (AuthSuccess/AuthError) chega via onEvent. */
+  verifyEmail(client: NetworkClient, nickname: string, code: string): void {
+    client.send({ type: "VerifyEmail", nickname, code });
+  },
+
+  /** Pede um novo código de confirmação (o servidor impõe a espera entre pedidos). */
+  resendVerification(client: NetworkClient, nickname: string): void {
+    client.send({ type: "ResendVerification", nickname });
+  },
+
   logout(client: NetworkClient): void {
     client.send({ type: "Logout" });
     AuthClient.clearSession();
   },
 
+  /** A sessão fica no aparelho (docs/16 - Sistema de Contas, "Login obrigatório"): não pede login a cada visita. */
   saveSession(session: StoredSession): void {
     if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    } catch {
+      /* armazenamento bloqueado: vale só nesta aba */
+    }
     window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
   },
 
   readSession(): StoredSession | null {
     if (typeof window === "undefined") return null;
     try {
-      const raw = window.sessionStorage.getItem(STORAGE_KEY);
+      const raw = window.localStorage.getItem(STORAGE_KEY) ?? window.sessionStorage.getItem(STORAGE_KEY);
       return raw ? (JSON.parse(raw) as StoredSession) : null;
     } catch {
       return null;
@@ -44,6 +60,11 @@ export const AuthClient = {
 
   clearSession(): void {
     if (typeof window === "undefined") return;
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* ignora */
+    }
     window.sessionStorage.removeItem(STORAGE_KEY);
   },
 

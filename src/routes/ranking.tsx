@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ScreenShell } from "@/components/ScreenShell";
 import { GamePanel } from "@/components/ui/GamePanel";
@@ -6,6 +6,8 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getNetworkClient } from "@/multiplayer/networkSingleton";
 import { AuthClient } from "@/multiplayer/AuthClient";
 import { useMenuMusic } from "@/hooks/useMenuMusic";
+import { ModeTabs } from "@/components/ModeTabs";
+import type { Pace } from "@/types/gameState";
 import type { LeaderboardEntry, MyStatsData } from "@/types/ranking";
 
 export const Route = createFileRoute("/ranking")({
@@ -26,6 +28,24 @@ function RankingPage() {
   const session = AuthClient.readSession();
   const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
   const [myStats, setMyStats] = useState<MyStatsData | null>(null);
+  // Cada modo tem o seu ranking; começa pela Partida Intensa.
+  const [pace, setPace] = useState<Pace>("classic");
+  const paceRef = useRef<Pace>("classic");
+  const authed = useRef(false);
+
+  const request = (p: Pace) => {
+    const client = getNetworkClient();
+    client.send({ type: "GetLeaderboard", limit: 50, pace: p });
+    client.send({ type: "GetMyStats", pace: p });
+  };
+
+  const changePace = (p: Pace) => {
+    paceRef.current = p;
+    setPace(p);
+    setEntries(null);
+    setMyStats(null);
+    if (authed.current) request(p);
+  };
 
   useEffect(() => {
     if (!session) {
@@ -39,13 +59,14 @@ function RankingPage() {
         client.send({ type: "ResumeSession", token: session.token });
       }
       if (event.type === "AuthSuccess") {
-        client.send({ type: "GetLeaderboard", limit: 50 });
-        client.send({ type: "GetMyStats" });
+        authed.current = true;
+        request(paceRef.current);
       }
-      if (event.type === "LeaderboardData") {
+      // Ignora respostas de outro modo (chegam fora de ordem quando se troca de aba rápido).
+      if (event.type === "LeaderboardData" && event.pace === paceRef.current) {
         setEntries(event.entries);
       }
-      if (event.type === "MyStatsData") {
+      if (event.type === "MyStatsData" && event.pace === paceRef.current) {
         setMyStats(event.stats);
       }
     });
@@ -67,6 +88,7 @@ function RankingPage() {
       backLabel="← Modo"
     >
       <div className="mx-auto flex max-w-3xl flex-col gap-6">
+        <ModeTabs value={pace} onChange={changePace} />
         <MyPositionCard stats={myStats} />
 
         {isLoading && (

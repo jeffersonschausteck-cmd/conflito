@@ -4,6 +4,8 @@
 // cliente (telas de Ranking/resultado). O cálculo em si vive em
 // `src/services/eloRating.ts`, nunca aqui.
 
+import type { Pace } from "@/types/gameState";
+
 /** Salas por código (hoje) são sempre "casual". "ranked" existe só como
  * estrutura pronta pro matchmaking automático da Sprint RANKING-03 —
  * nenhum fluxo atual cria uma sala "ranked". */
@@ -93,6 +95,8 @@ export interface MatchRecord {
   loserRatingDelta: number;
 
   ranked: true;
+  /** Modo em que a partida foi jogada (ausente em registros antigos = Partida Intensa). */
+  pace?: Pace;
 }
 
 /** Entrada pública do Ranking global — Fase 10. Nunca inclui dado privado de conta. */
@@ -160,6 +164,8 @@ export interface MatchHistoryEntry {
   turnNumber: number;
   finishedAt: number;
   finishReason?: "victory" | "forfeit";
+  /** Modo em que a partida foi jogada. */
+  pace?: Pace;
 }
 
 /**
@@ -189,4 +195,6 @@ export interface RankingResultView {
   ratingBefore: number;
   ratingAfter: number;
   ratingDelta: number;
+  /** Modo cuja pontuação mudou. */
+  pace?: Pace;
 }

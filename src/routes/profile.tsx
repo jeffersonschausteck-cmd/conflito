@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ScreenShell } from "@/components/ScreenShell";
 import { GamePanel } from "@/components/ui/GamePanel";
@@ -7,6 +7,9 @@ import { getNetworkClient } from "@/multiplayer/networkSingleton";
 import { AuthClient } from "@/multiplayer/AuthClient";
 import { useMenuMusic } from "@/hooks/useMenuMusic";
 import { formatClock, formatTimeAgo, formatTotalPlayTime } from "@/lib/formatClock";
+import { ModeTabs } from "@/components/ModeTabs";
+import { PACE_NAMES } from "@/services/battleFormat";
+import type { Pace } from "@/types/gameState";
 import type { MatchHistoryEntry, MyStatsData } from "@/types/ranking";
 
 export const Route = createFileRoute("/profile")({
@@ -26,6 +29,17 @@ function ProfilePage() {
   const session = AuthClient.readSession();
   const [stats, setStats] = useState<MyStatsData | null>(null);
   const [matches, setMatches] = useState<MatchHistoryEntry[] | null>(null);
+  // As estatísticas são por modo; o histórico mostra todas as partidas, cada uma com o seu modo.
+  const [pace, setPace] = useState<Pace>("classic");
+  const paceRef = useRef<Pace>("classic");
+  const authed = useRef(false);
+
+  const changePace = (p: Pace) => {
+    paceRef.current = p;
+    setPace(p);
+    setStats(null);
+    if (authed.current) getNetworkClient().send({ type: "GetMyStats", pace: p });
+  };
 
   useEffect(() => {
     if (!session) {
@@ -39,10 +53,11 @@ function ProfilePage() {
         client.send({ type: "ResumeSession", token: session.token });
       }
       if (event.type === "AuthSuccess") {
-        client.send({ type: "GetMyStats" });
+        authed.current = true;
+        client.send({ type: "GetMyStats", pace: paceRef.current });
         client.send({ type: "GetMatchHistory", limit: 20 });
       }
-      if (event.type === "MyStatsData") {
+      if (event.type === "MyStatsData" && event.pace === paceRef.current) {
         setStats(event.stats);
       }
       if (event.type === "MatchHistoryData") {
@@ -62,6 +77,7 @@ function ProfilePage() {
       backLabel="← Modo"
     >
       <div className="mx-auto flex max-w-3xl flex-col gap-6">
+        <ModeTabs value={pace} onChange={changePace} />
         <HeaderCard stats={stats} fallbackNickname={session.profile.nickname} />
         <StatsGrid stats={stats} />
         <HistorySection matches={matches} />
@@ -178,6 +194,7 @@ function MatchRow({ match }: { match: MatchHistoryEntry }) {
             {isVictory ? "Vitória" : "Derrota"}
           </span>
           <StatusBadge color={match.matchType === "ranked" ? "yellow" : "gray"} label={match.matchType === "ranked" ? "Ranqueada" : "Casual"} />
+          <StatusBadge color="blue" label={PACE_NAMES[match.pace ?? "classic"].replace("Partida ", "")} />
           {match.finishReason === "forfeit" && <StatusBadge color="gray" label="W.O." />}
         </div>
         <span className="text-xs uppercase tracking-[0.08em] text-muted-foreground">

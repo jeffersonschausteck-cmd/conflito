@@ -1,4 +1,5 @@
 import { Suspense, useState, useMemo, useEffect, useRef } from "react";
+import { withAuth } from "@/components/RequireAuth";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PIECES } from "@/config/pieces";
 import { DeploymentManager, DEPLOYMENT_DURATION_MS } from "@/services/deploymentManager";
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/deployment")({
   head: () => ({
     meta: [{ title: "Fase de Posicionamento — Conflito" }],
   }),
-  component: DeploymentPage,
+  component: withAuth(DeploymentPage),
 });
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -96,8 +97,8 @@ function DeploymentPage() {
     () => flowState.read().onlineMatchType ?? "casual",
   );
 
-  // Formato do ritmo (exército e tabuleiro); o online é sempre a Clássica.
-  const pace = isOnline ? "classic" : effectivePace(flow.pace);
+  // Formato do modo (exército e tabuleiro). Online, é o modo da sala (gravado ao criar/entrar na sala).
+  const pace = effectivePace(flow.pace);
   const format = formatFor(pace);
   const map = mapForPace(pace);
 

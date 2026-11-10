@@ -7,7 +7,7 @@
 // (`server/src/*`), garantindo que os dois lados nunca divirjam sobre
 // o formato dos eventos.
 
-import type { GameState, Player } from "@/types/gameState";
+import type { GameState, Pace, Player } from "@/types/gameState";
 import type { Piece, PieceId } from "@/types/piece";
 import type { SkinTable } from "@/config/skinCatalog";
 import type { LeaderboardEntry, MatchHistoryEntry, MatchType, MyStatsData, RankingResultView } from "@/types/ranking";
@@ -26,6 +26,10 @@ export type ClientEvent =
   // Sistema de Contas (doc 16) — obrigatório para qualquer ação abaixo.
   | { type: "Register"; nickname: string; email: string; password: string }
   | { type: "Login"; nickname: string; password: string }
+  /** Confirmação de e-mail do cadastro: o código de 6 dígitos recebido por e-mail (docs/16 - Sistema de Contas). */
+  | { type: "VerifyEmail"; nickname: string; code: string }
+  /** Pede um novo código de confirmação (com espera entre pedidos). */
+  | { type: "ResendVerification"; nickname: string }
   /**
    * Sprint QA-03 — reautentica uma conexão NOVA usando o token já salvo
    * no cliente (`AuthClient.readSession`), sem pedir senha de novo.
@@ -43,7 +47,7 @@ export type ClientEvent =
    * quando o matchmaking automático (RANKING-03) existir — nenhum
    * fluxo atual manda "ranked".
    */
-  | { type: "CreateRoom"; playerName?: string; matchType?: MatchType }
+  | { type: "CreateRoom"; playerName?: string; matchType?: MatchType; /** Modo da sala (tamanho do tabuleiro e do exército). Ausente = Partida Intensa. */ pace?: Pace }
   | { type: "JoinRoom"; roomId: RoomId; playerName?: string }
   | { type: "LeaveRoom" }
   | { type: "PlayerReady" }
@@ -55,8 +59,8 @@ export type ClientEvent =
    */
   | { type: "SetSkins"; skins: SkinTable }
   /** Sprint RANKING-01 — Fase 9/11/12: buscar o Ranking global e as estatísticas do jogador logado. */
-  | { type: "GetLeaderboard"; limit?: number }
-  | { type: "GetMyStats" }
+  | { type: "GetLeaderboard"; limit?: number; /** Modo do ranking. Ausente = Partida Intensa. */ pace?: Pace }
+  | { type: "GetMyStats"; /** Modo das estatísticas. Ausente = Partida Intensa. */ pace?: Pace }
   /** Sprint RANKING-02 — Fase 4: histórico de partidas do jogador logado (casuais + ranqueadas). */
   | { type: "GetMatchHistory"; limit?: number }
   // Sprint SEC-01 — "SelectPiece" foi removido do protocolo de
@@ -106,6 +110,11 @@ export interface AuthenticatedProfile {
 export type ServerEvent =
   | { type: "AuthSuccess"; token: string; profile: AuthenticatedProfile }
   | { type: "AuthError"; reason: string }
+  /**
+   * A conta existe mas o e-mail ainda não foi confirmado: a tela pede o código. `email` vem mascarado.
+   * `devCode` só aparece no desenvolvimento local (`DEV_SHOW_CODE=1`).
+   */
+  | { type: "VerificationRequired"; nickname: string; email: string; devCode?: string }
   | { type: "PlayerConnected"; playerId: PlayerId }
   /**
    * Sprint REC-01 — antes derrubava o jogador da sala na hora
@@ -121,8 +130,8 @@ export type ServerEvent =
   | { type: "PlayerDisconnected"; playerId: PlayerId; reconnectDeadline: number | null }
   /** Sprint REC-01 — o jogador voltou dentro do prazo; some o aviso de desconexão no adversário. */
   | { type: "PlayerReconnected"; playerId: PlayerId }
-  | { type: "RoomCreated"; roomId: RoomId; you: RoomPlayerInfo }
-  | { type: "RoomJoined"; roomId: RoomId; you: RoomPlayerInfo; players: RoomPlayerInfo[] }
+  | { type: "RoomCreated"; roomId: RoomId; you: RoomPlayerInfo; pace: Pace }
+  | { type: "RoomJoined"; roomId: RoomId; you: RoomPlayerInfo; players: RoomPlayerInfo[]; pace: Pace }
   /**
    * Disparado sempre que a sala muda de fase (jogador entrou, ficou
    * pronto, confirmou o posicionamento) — a Interface usa isso para
@@ -155,6 +164,8 @@ export type ServerEvent =
        * `matchType` de sempre viajando mais cedo.
        */
       matchType: MatchType;
+      /** Modo da sala: define o tabuleiro e o exército. */
+      pace: Pace;
     }
   /**
    * Sprint TIMER-01 — `matchStartTime` (epoch ms) é o instante em que o
@@ -207,9 +218,9 @@ export type ServerEvent =
   | { type: "SkinsUpdated"; skins: Partial<Record<"blue" | "red", SkinTable>> }
   | { type: "ActionRejected"; reason: string }
   /** Sprint RANKING-01 — Fase 10. Nunca inclui dado privado de conta. */
-  | { type: "LeaderboardData"; entries: LeaderboardEntry[] }
+  | { type: "LeaderboardData"; entries: LeaderboardEntry[]; pace: Pace }
   /** Sprint RANKING-01 — Fase 12/13. `stats` é `null` só se a conta não existir mais (sessão órfã). */
-  | { type: "MyStatsData"; stats: MyStatsData | null }
+  | { type: "MyStatsData"; stats: MyStatsData | null; pace: Pace }
   /** Sprint RANKING-02 — Fase 1/4. Já ordenado `finishedAt DESC`, já limitado ao `limit` pedido. `[]` se o jogador nunca terminou uma partida. */
   | { type: "MatchHistoryData"; matches: MatchHistoryEntry[] };
 

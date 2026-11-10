@@ -41,6 +41,14 @@ export function formatFor(pace: Pace | undefined | null): BattleFormat {
   return BATTLE_FORMATS[pace ?? "classic"];
 }
 
+/** Aceita só os três modos conhecidos; qualquer outra coisa (ou nada) vira a Partida Intensa. Usado pelo servidor com dado do cliente. */
+export function normalizePace(value: unknown): Pace {
+  return value === "rapid" || value === "blitz" || value === "classic" ? value : "classic";
+}
+
+/** Nome de cada modo para a tela. */
+export const PACE_NAMES: Record<Pace, string> = { blitz: "Partida Rápida", rapid: "Partida Normal", classic: "Partida Intensa" };
+
 /** Total de peças por exército. */
 export function armySize(format: BattleFormat): number {
   return TYPES.reduce((a, t) => a + format.roster[t], 0);

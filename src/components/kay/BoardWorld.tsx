@@ -187,6 +187,8 @@ function KayBases({ rows, cols, boardW, boardH, towersOnly = false, flags = fals
 // Atmosfera: sol baixo (cerca de 22 graus), névoa na cor do horizonte.
 const SUN_DIR = new THREE.Vector3(-0.62, 0.38, -0.5).normalize();
 const FOG_COLOR = "#c3d6e8";
+/** Céu e névoa do menu e das telas de fundo: azul do alto ao horizonte, para o texto branco sempre aparecer. */
+const MENU_SKY = "#2f78c4";
 
 /** Nuvens altas que passam devagar. Só visual: não projetam sombra. */
 function Clouds({ still = false }: { still?: boolean }) {
@@ -224,11 +226,12 @@ function Clouds({ still = false }: { still?: boolean }) {
 }
 
 /** Mar: plano grande abaixo da ilha. Tudo que não é ilha é água, sem faixa de céu entre elas. */
-function Sea() {
+/** Mar. No menu (`matte`) fica fosco: o brilho do sol na água fazia uma faixa branca no horizonte. */
+function Sea({ matte = false }: { matte?: boolean }) {
   return (
     <mesh position={[0, -0.66, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
       <planeGeometry args={[600, 600]} />
-      <meshStandardMaterial color="#2f88c6" roughness={0.35} metalness={0.05} />
+      <meshStandardMaterial color="#2f88c6" roughness={matte ? 1 : 0.35} metalness={matte ? 0 : 0.05} />
     </mesh>
   );
 }
@@ -353,8 +356,9 @@ export function BoardWorld({ far = false, clouds = true, onSelectTile }: { far?:
   return (
     <>
       {/* Tarde dourada: sol baixo e quente vindo do fundo-esquerda, céu e névoa no mesmo tom do horizonte */}
-      <Sky distance={4500} sunPosition={SUN_DIR.clone().multiplyScalar(100)} turbidity={5} rayleigh={1.8} mieCoefficient={0.006} mieDirectionalG={0.85} />
-      <fog attach="fog" args={[FOG_COLOR, far ? 75 : 34, far ? 150 : 70]} />
+      {/* Partida: tarde dourada. Menu e fundos de tela (`far`): céu todo azul, sem o horizonte claro que escondia o texto branco. */}
+      {far ? <color attach="background" args={[MENU_SKY]} /> : <Sky distance={4500} sunPosition={SUN_DIR.clone().multiplyScalar(100)} turbidity={5} rayleigh={1.8} mieCoefficient={0.006} mieDirectionalG={0.85} />}
+      <fog attach="fog" args={[far ? MENU_SKY : FOG_COLOR, far ? 75 : 34, far ? 150 : 70]} />
       <hemisphereLight args={["#cfe4ff", "#5b7a3c", 0.5]} />
       <directionalLight
         position={SUN_DIR.clone().multiplyScalar(26).toArray()}
@@ -374,7 +378,7 @@ export function BoardWorld({ far = false, clouds = true, onSelectTile }: { far?:
       {clouds && <Clouds still={far} />}
       <Sparkles count={70} scale={[34, 5, 22]} position={[0, 2.6, 0]} size={3.2} speed={0.25} opacity={0.55} color="#ffe9b8" />
 
-      <Sea />
+      <Sea matte={far} />
       <KayRing rows={map.rows} cols={map.cols} boardW={boardW} boardH={boardH} />
       <KayWall rows={map.rows} cols={map.cols} boardW={boardW} boardH={boardH} skipBottom={!flip} skipTop={flip} />
       <KayBases rows={map.rows} cols={map.cols} boardW={boardW} boardH={boardH} castlesAtEnds={playView} />

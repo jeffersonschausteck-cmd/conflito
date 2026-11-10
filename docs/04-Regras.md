@@ -292,7 +292,8 @@ Composição de cada exército:
 | Bandeira | 1 | 1 | 1 |
 | **Total** | **40** | **30** | **24** |
 
-- O formato vale só contra o computador. O online segue com a Partida Intensa (40 peças, 12 × 18).
+- Os três modos valem contra o computador e também no online. Quem cria a sala online escolhe o modo; quem entra joga no modo da sala. O tabuleiro e o exército seguem o modo escolhido. No online toda partida é ranqueada (documento 16).
+- A ranqueada é separada por modo: cada modo tem a sua própria pontuação, o seu ranking e as suas estatísticas (documento 16, seção "Ranqueada por modo"). Uma partida só mexe nos pontos do modo em que foi jogada.
 
 ---
 
