@@ -18,6 +18,7 @@ export const AuthClient = {
     client.send({ type: "Register", nickname, email, password });
   },
 
+  /** `nickname` aceita o nickname ou o e-mail da conta. */
   login(client: NetworkClient, nickname: string, password: string): void {
     client.send({ type: "Login", nickname, password });
   },
@@ -30,6 +31,16 @@ export const AuthClient = {
   /** Pede um novo código de confirmação (o servidor impõe a espera entre pedidos). */
   resendVerification(client: NetworkClient, nickname: string): void {
     client.send({ type: "ResendVerification", nickname });
+  },
+
+  /** "Esqueci minha senha": pede o código de redefinição. `identifier` é o nickname ou o e-mail. */
+  forgotPassword(client: NetworkClient, identifier: string): void {
+    client.send({ type: "ForgotPassword", identifier });
+  },
+
+  /** Troca a senha com o código recebido por e-mail. A resposta (PasswordResetDone/AuthError) chega via onEvent. */
+  resetPassword(client: NetworkClient, identifier: string, code: string, newPassword: string): void {
+    client.send({ type: "ResetPassword", identifier, code, newPassword });
   },
 
   logout(client: NetworkClient): void {

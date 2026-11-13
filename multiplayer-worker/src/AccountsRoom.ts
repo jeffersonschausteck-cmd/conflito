@@ -58,7 +58,8 @@ import {
   isValidEmail,
   maskEmail,
   normalizeEmail,
-  sendVerificationEmail,
+  sendCodeEmail,
+  type CodePurpose,
 } from "./emailVerification";
 
 interface Account {
@@ -100,7 +101,17 @@ function withStats(account: Account, pace: Pace, stats: PlayerStats): Account {
   return { ...account, statsByPace: { ...account.statsByPace, [pace]: stats } };
 }
 
-/** Código de confirmação em andamento de uma conta (chave `verify:<accountId>`). */
+/** Limite de senhas erradas por conta (chave `loginfail:<accountId>`): 8 erros em 15 min bloqueiam por 15 min. */
+const LOGIN_MAX_FAILS = 8;
+const LOGIN_WINDOW_MS = 15 * 60_000;
+const LOGIN_BLOCK_MS = 15 * 60_000;
+interface LoginFails {
+  count: number;
+  windowStart: number;
+  blockedUntil: number;
+}
+
+/** Código em andamento de uma conta: confirmação do cadastro (`verify:<accountId>`) ou redefinição de senha (`reset:<accountId>`). */
 interface EmailVerification {
   codeHash: string;
   expiresAt: number;
@@ -667,12 +678,36 @@ export class AccountsRoom extends DurableObject<Env> {
     return { ok: true as const, account, devCode: sent.devCode };
   }
 
-  private async login(nickname: string, password: string) {
-    const id = await this.ctx.storage.get<string>(`nickname:${nickname.trim().toLowerCase()}`);
-    const account = id ? await this.loadAccount(id) : undefined;
-    if (!account) return { ok: false as const, reason: "Nickname ou senha incorretos." };
+  /** Acha a conta pelo nickname ou pelo e-mail (quem tem "@" é procurado como e-mail). */
+  private async findAccount(identifier: string): Promise<Account | undefined> {
+    const text = String(identifier ?? "").trim();
+    if (!text) return undefined;
+    const indexKey = text.includes("@") ? `email:${normalizeEmail(text)}` : `nickname:${text.toLowerCase()}`;
+    const id = await this.ctx.storage.get<string>(indexKey);
+    return id ? await this.loadAccount(id) : undefined;
+  }
+
+  private async login(identifier: string, password: string) {
+    if (!String(identifier ?? "").trim()) return { ok: false as const, reason: "Informe seu usuário ou e-mail." };
+    if (!password) return { ok: false as const, reason: "Digite sua senha." };
+    const account = await this.findAccount(identifier);
+    if (!account) return { ok: false as const, reason: "Usuário ou e-mail não encontrado." };
+    const failKey = `loginfail:${account.id}`;
+    const fails = await this.ctx.storage.get<LoginFails>(failKey);
+    const now = Date.now();
+    if (fails && fails.blockedUntil > now) {
+      const min = Math.max(1, Math.ceil((fails.blockedUntil - now) / 60_000));
+      return { ok: false as const, reason: `Muitas tentativas. Tente de novo em ${min} min.` };
+    }
     const valid = await CryptoService.verify(password, account.passwordHash);
-    if (!valid) return { ok: false as const, reason: "Nickname ou senha incorretos." };
+    if (!valid) {
+      const fresh = !fails || now - fails.windowStart > LOGIN_WINDOW_MS;
+      const count = fresh ? 1 : fails.count + 1;
+      const next: LoginFails = { count, windowStart: fresh ? now : fails.windowStart, blockedUntil: count >= LOGIN_MAX_FAILS ? now + LOGIN_BLOCK_MS : 0 };
+      await this.ctx.storage.put(failKey, next);
+      return { ok: false as const, reason: count >= LOGIN_MAX_FAILS ? `Senha incorreta. Muitas tentativas: tente de novo em ${LOGIN_BLOCK_MS / 60_000} min.` : "Senha incorreta." };
+    }
+    if (fails) await this.ctx.storage.delete(failKey);
     if (account.emailVerified === false) return { ok: true as const, needsVerification: true as const, account };
     return { ok: true as const, needsVerification: false as const, profile: this.toPublicProfile(account) };
   }
@@ -698,8 +733,8 @@ export class AccountsRoom extends DurableObject<Env> {
    * limite por hora. `kind` diz por que falhou: "limit" = pediu cedo demais (o código anterior ainda
    * vale), "failed" = o e-mail não saiu.
    */
-  private async issueCode(account: Account): Promise<{ ok: true; devCode?: string } | { ok: false; reason: string; kind: "limit" | "failed" }> {
-    const key = `verify:${account.id}`;
+  private async issueCode(account: Account, purpose: CodePurpose = "verify"): Promise<{ ok: true; devCode?: string } | { ok: false; reason: string; kind: "limit" | "failed" }> {
+    const key = `${purpose}:${account.id}`;
     const prev = await this.ctx.storage.get<EmailVerification>(key);
     const now = Date.now();
     if (prev && now - prev.lastSentAt < RESEND_COOLDOWN_MS) {
@@ -711,7 +746,7 @@ export class AccountsRoom extends DurableObject<Env> {
       return { ok: false, kind: "limit", reason: "Você pediu códigos demais. Tente de novo em alguns minutos." };
     }
     const code = generateCode();
-    const sent = await sendVerificationEmail(this.env, account.email, account.nickname, code);
+    const sent = await sendCodeEmail(this.env, account.email, account.nickname, code, purpose);
     if (!sent.ok) return { ok: false, kind: "failed", reason: sent.reason };
     const record: EmailVerification = {
       codeHash: await hashCode(code, account.id),
@@ -731,24 +766,51 @@ export class AccountsRoom extends DurableObject<Env> {
     return account && account.emailVerified === false ? account : undefined;
   }
 
-  private async verifyEmail(nickname: string, code: string) {
-    const account = await this.findPendingAccount(nickname);
-    if (!account) return { ok: false as const, reason: "Conta não encontrada ou já confirmada. Tente entrar." };
-    const key = `verify:${account.id}`;
+  /** Confere o código de 6 dígitos de uma conta (validade, tentativas e hash). Não apaga o código: quem chama faz isso. */
+  private async checkCode(account: Account, key: string, code: string): Promise<{ ok: true } | { ok: false; reason: string }> {
     const rec = await this.ctx.storage.get<EmailVerification>(key);
-    if (!rec) return { ok: false as const, reason: "Nenhum código ativo. Peça um novo código." };
-    if (Date.now() > rec.expiresAt) return { ok: false as const, reason: "O código expirou. Peça um novo código." };
-    if (rec.attempts >= CODE_MAX_ATTEMPTS) return { ok: false as const, reason: "Tentativas demais. Peça um novo código." };
+    if (!rec) return { ok: false, reason: "Nenhum código ativo. Peça um novo código." };
+    if (Date.now() > rec.expiresAt) return { ok: false, reason: "O código expirou. Peça um novo código." };
+    if (rec.attempts >= CODE_MAX_ATTEMPTS) return { ok: false, reason: "Tentativas demais. Peça um novo código." };
     const given = code.replace(/\D/g, "");
     if ((await hashCode(given, account.id)) !== rec.codeHash) {
       const attempts = rec.attempts + 1;
       await this.ctx.storage.put(key, { ...rec, attempts });
       const left = CODE_MAX_ATTEMPTS - attempts;
-      return { ok: false as const, reason: left > 0 ? `Código incorreto. Restam ${left} tentativas.` : "Código incorreto. Peça um novo código." };
+      return { ok: false, reason: left > 0 ? `Código incorreto. Restam ${left} tentativas.` : "Código incorreto. Peça um novo código." };
     }
+    return { ok: true };
+  }
+
+  private async verifyEmail(nickname: string, code: string) {
+    const account = await this.findPendingAccount(nickname);
+    if (!account) return { ok: false as const, reason: "Conta não encontrada ou já confirmada. Tente entrar." };
+    const key = `verify:${account.id}`;
+    const checked = await this.checkCode(account, key, code);
+    if (!checked.ok) return { ok: false as const, reason: checked.reason };
     await this.ctx.storage.put(`account:${account.id}`, { ...account, emailVerified: true });
     await this.ctx.storage.delete(key);
     return { ok: true as const, profile: this.toPublicProfile(account) };
+  }
+
+  // ── Recuperação de senha (docs/16 - Sistema de Contas, "Esqueci minha senha") ──
+
+  private async resetPassword(identifier: string, code: string, newPassword: string) {
+    const account = await this.findAccount(identifier);
+    if (!account) return { ok: false as const, reason: "Não encontramos uma conta com esse usuário ou e-mail." };
+    // A senha nova é conferida antes de gastar uma tentativa do código.
+    if (String(newPassword ?? "").length < 4) return { ok: false as const, reason: "A nova senha precisa ter pelo menos 4 caracteres." };
+    const key = `reset:${account.id}`;
+    const checked = await this.checkCode(account, key, String(code ?? ""));
+    if (!checked.ok) return { ok: false as const, reason: checked.reason };
+    // O código prova que o jogador tem acesso ao e-mail: a conta passa a valer como confirmada.
+    await this.ctx.storage.put(`account:${account.id}`, {
+      ...account,
+      passwordHash: await CryptoService.hash(newPassword),
+      emailVerified: true,
+    });
+    await this.ctx.storage.delete([key, `loginfail:${account.id}`, `verify:${account.id}`]);
+    return { ok: true as const };
   }
 
   private toPublicProfile(account: Account) {
@@ -885,6 +947,31 @@ export class AccountsRoom extends DurableObject<Env> {
           token: session.token,
           profile: { accountId: result.profile.id, nickname: result.profile.nickname, createdAt: result.profile.createdAt },
         });
+        break;
+      }
+
+      case "ForgotPassword": {
+        const account = await this.findAccount(event.identifier);
+        if (!account) {
+          this.send(conn, { type: "AuthError", reason: String(event.identifier ?? "").trim() ? "Não encontramos uma conta com esse usuário ou e-mail." : "Informe seu usuário ou e-mail." });
+          break;
+        }
+        const sent = await this.issueCode(account, "reset");
+        if (!sent.ok) {
+          this.send(conn, { type: "AuthError", reason: sent.reason });
+          break;
+        }
+        this.send(conn, { type: "PasswordResetSent", nickname: account.nickname, email: maskEmail(account.email), devCode: sent.devCode });
+        break;
+      }
+
+      case "ResetPassword": {
+        const result = await this.resetPassword(event.identifier, String(event.code ?? ""), String(event.newPassword ?? ""));
+        if (!result.ok) {
+          this.send(conn, { type: "AuthError", reason: result.reason });
+          break;
+        }
+        this.send(conn, { type: "PasswordResetDone" });
         break;
       }
 

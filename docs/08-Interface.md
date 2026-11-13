@@ -297,6 +297,7 @@ A escolha do modo (tamanho da partida) é uma tela própria, entre o Centro de O
 # Login Obrigatório e Centro de Operações
 
 - **Sem login não se joga.** Para jogar qualquer modo é preciso ter feito login (documento 16). Quem tenta abrir o Centro de Operações, a escolha de modo, o posicionamento, a partida, a Oficina, o Ranking ou o Perfil sem estar logado é levado à tela de login. A tela inicial, as Configurações e os Créditos continuam abertas.
+- **Tela de login (documento 16):** o campo de acesso aceita nickname ou e-mail; erros e acertos aparecem sempre na tela (usuário não encontrado, senha incorreta, muitas tentativas, sem conexão, "Login realizado!"); há o link "Esqueci minha senha", que leva ao envio e à digitação do código por e-mail e à nova senha.
 - **A conta fica salva neste aparelho.** Depois de entrar, o jogador não precisa fazer login de novo a cada visita; só depois de usar "Sair da conta".
 - **Centro de Operações com 3 opções:**
   1. **Campanha:** partida contra o computador. Escolhe-se o modo (Partida Rápida, Normal ou Intensa). Não conta pontos.

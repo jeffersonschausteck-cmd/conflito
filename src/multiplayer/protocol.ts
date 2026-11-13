@@ -25,11 +25,16 @@ export type RoomStatus = "waiting" | "ready" | "deployment" | "playing" | "finis
 export type ClientEvent =
   // Sistema de Contas (doc 16) — obrigatório para qualquer ação abaixo.
   | { type: "Register"; nickname: string; email: string; password: string }
+  /** `nickname` aceita o nickname OU o e-mail da conta (docs/16 - Sistema de Contas, "Entrar"). */
   | { type: "Login"; nickname: string; password: string }
   /** Confirmação de e-mail do cadastro: o código de 6 dígitos recebido por e-mail (docs/16 - Sistema de Contas). */
   | { type: "VerifyEmail"; nickname: string; code: string }
   /** Pede um novo código de confirmação (com espera entre pedidos). */
   | { type: "ResendVerification"; nickname: string }
+  /** "Esqueci minha senha": pede o código de redefinição. `identifier` é o nickname ou o e-mail. */
+  | { type: "ForgotPassword"; identifier: string }
+  /** Troca a senha com o código recebido por e-mail. */
+  | { type: "ResetPassword"; identifier: string; code: string; newPassword: string }
   /**
    * Sprint QA-03 — reautentica uma conexão NOVA usando o token já salvo
    * no cliente (`AuthClient.readSession`), sem pedir senha de novo.
@@ -115,6 +120,10 @@ export type ServerEvent =
    * `devCode` só aparece no desenvolvimento local (`DEV_SHOW_CODE=1`).
    */
   | { type: "VerificationRequired"; nickname: string; email: string; devCode?: string }
+  /** O código de redefinição de senha foi enviado (`email` mascarado; `devCode` só no desenvolvimento local). */
+  | { type: "PasswordResetSent"; nickname: string; email: string; devCode?: string }
+  /** A senha foi trocada: a tela volta ao login. */
+  | { type: "PasswordResetDone" }
   | { type: "PlayerConnected"; playerId: PlayerId }
   /**
    * Sprint REC-01 — antes derrubava o jogador da sala na hora

@@ -47,10 +47,21 @@ export type SendResult = { ok: true; devCode?: string } | { ok: false; reason: s
  * falta de provedor recusa o cadastro (melhor do que criar uma conta que ninguém consegue confirmar).
  */
 export async function sendVerificationEmail(env: Env, to: string, nickname: string, code: string): Promise<SendResult> {
+  return sendCodeEmail(env, to, nickname, code, "verify");
+}
+
+export type CodePurpose = "verify" | "reset";
+
+/** Envia um código de 6 dígitos: confirmação do cadastro (`verify`) ou redefinição de senha (`reset`). */
+export async function sendCodeEmail(env: Env, to: string, nickname: string, code: string, purpose: CodePurpose): Promise<SendResult> {
+  const reset = purpose === "reset";
+  const subject = reset ? `Redefinir sua senha do Conflito: ${code}` : `Seu código do Conflito: ${code}`;
+  const intro = reset ? "Recebemos um pedido para redefinir a senha da sua conta. Seu código é" : "Seu código de confirmação do Conflito é";
+  const ignore = reset ? "Se você não pediu para redefinir a senha, ignore este e-mail: a senha continua a mesma." : "Se você não criou uma conta, ignore este e-mail.";
   const devMode = env.DEV_SHOW_CODE === "1";
   if (!env.RESEND_API_KEY || !env.EMAIL_FROM) {
     if (devMode) {
-      console.log(`[dev] código de confirmação de ${to}: ${code}`);
+      console.log(`[dev] código ${reset ? "de redefinição de senha" : "de confirmação"} de ${to}: ${code}`);
       return { ok: true, devCode: code };
     }
     return { ok: false, reason: "O envio de e-mail ainda não está configurado. Tente novamente mais tarde." };
@@ -62,23 +73,23 @@ export async function sendVerificationEmail(env: Env, to: string, nickname: stri
       body: JSON.stringify({
         from: env.EMAIL_FROM,
         to: [to],
-        subject: `Seu código do Conflito: ${code}`,
+        subject,
         text: `Olá, ${nickname}!
 
-Seu código de confirmação do Conflito é ${code}.
+${intro} ${code}.
 Ele vale por 15 minutos.
 
-Se você não criou uma conta, ignore este e-mail.`,
-        html: `<p>Olá, <strong>${nickname.replace(/[<>&]/g, "")}</strong>!</p><p>Seu código de confirmação do Conflito é:</p><p style="font-size:28px;letter-spacing:6px;font-weight:bold">${code}</p><p>Ele vale por 15 minutos.</p><p style="color:#666">Se você não criou uma conta, ignore este e-mail.</p>`,
+${ignore}`,
+        html: `<p>Olá, <strong>${nickname.replace(/[<>&]/g, "")}</strong>!</p><p>${intro}:</p><p style="font-size:28px;letter-spacing:6px;font-weight:bold">${code}</p><p>Ele vale por 15 minutos.</p><p style="color:#666">${ignore}</p>`,
       }),
     });
     if (!res.ok) {
-      console.error("Falha ao enviar e-mail de confirmação:", res.status, await res.text().catch(() => ""));
-      return { ok: false, reason: "Não foi possível enviar o e-mail de confirmação. Confira o endereço e tente de novo." };
+      console.error("Falha ao enviar e-mail de código:", res.status, await res.text().catch(() => ""));
+      return { ok: false, reason: "Não foi possível enviar o e-mail. Confira o endereço e tente de novo." };
     }
     return devMode ? { ok: true, devCode: code } : { ok: true };
   } catch (err) {
-    console.error("Erro ao enviar e-mail de confirmação:", err);
-    return { ok: false, reason: "Não foi possível enviar o e-mail de confirmação. Tente novamente mais tarde." };
+    console.error("Erro ao enviar e-mail de código:", err);
+    return { ok: false, reason: "Não foi possível enviar o e-mail. Tente novamente mais tarde." };
   }
 }

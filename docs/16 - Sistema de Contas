@@ -259,3 +259,27 @@ Cada modo de jogo (Partida Rápida, Normal e Intensa; documento 04, seção 19) 
 - Para jogar qualquer partida, contra o computador ou online, o jogador precisa estar logado. Sem login, as telas de jogo levam à tela de login.
 - A sessão fica guardada no aparelho (não é preciso entrar a cada visita) até o jogador usar "Sair da conta". Uma sessão que o servidor não reconhece mais é descartada e pede um novo login.
 - Observação: as partidas contra o computador rodam no próprio aparelho, então essa exigência é uma barreira da interface e não uma proteção do servidor. A pontuação, que é o que importa proteger, só existe nas partidas online ranqueadas, validadas pelo servidor.
+
+---
+
+# Entrar e Recuperar a Senha
+
+## Entrar
+- O campo de acesso aceita o **nickname ou o e-mail** da conta (sem diferenciar maiúsculas de minúsculas) e a senha.
+- A tela sempre devolve um retorno claro ao jogador:
+  - campo vazio: "Informe seu usuário ou e-mail." e "Digite sua senha.";
+  - conta que não existe: "Usuário ou e-mail não encontrado.";
+  - senha errada: "Senha incorreta.";
+  - muitas tentativas: "Muitas tentativas. Tente de novo em N min.";
+  - servidor sem resposta ou sem conexão: uma mensagem dizendo que não foi possível falar com o servidor;
+  - sucesso: "Login realizado! Entrando..." antes de abrir o Centro de Operações;
+  - conta ainda não confirmada: a tela pede o código de confirmação (seção "Confirmação de E-mail").
+- **Limite de tentativas:** como a tela diz se o usuário existe, o servidor limita as senhas erradas: 8 erros seguidos em 15 minutos bloqueiam novas tentativas daquela conta por 15 minutos. Um login certo zera a contagem.
+
+## Esqueci minha senha
+1. Na tela de login há o link "Esqueci minha senha". O jogador informa o nickname ou o e-mail da conta.
+2. O servidor envia ao e-mail da conta um código de 6 dígitos para redefinir a senha. As regras do código são as mesmas da confirmação de e-mail: vale 15 minutos, serve uma única vez, aceita no máximo 5 tentativas erradas, um novo pedido só a cada 60 segundos e no máximo 5 por hora.
+3. O jogador digita o código e a nova senha duas vezes. A nova senha segue a mesma regra do cadastro (mínimo de 4 caracteres) e é conferida antes de o código ser gasto.
+4. Com o código certo, a senha é trocada, o código deixa de valer e o jogador volta ao login com o aviso "Senha alterada. Entre com a nova senha." Se a conta ainda não tinha o e-mail confirmado, ele passa a valer como confirmado, pois o código prova que o jogador tem acesso ao e-mail.
+- Conta que não existe: "Não encontramos uma conta com esse usuário ou e-mail."
+- Nesta versão, outros aparelhos que já estavam logados continuam logados até o jogador usar "Sair da conta".
