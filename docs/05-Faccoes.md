@@ -79,14 +79,14 @@ Independentemente da facção escolhida, todos os jogadores utilizarão exatamen
 
 Cada facção possui:
 
-- 1 Comandante
-- 2 Oficiais
-- 3 Franco-atiradores
-- 12 Infantarias
-- 8 Engenheiros
-- 6 Exploradores
-- 1 Espião
-- 6 Bombas
+- 1 Rei
+- 2 Duques
+- 3 Arqueiros Reais
+- 12 Guardas Reais
+- 8 Sapadores
+- 6 Batedores
+- 1 Assassino
+- 6 Armadilhas
 - 1 Bandeira
 
 Totalizando 40 peças.

@@ -16,9 +16,9 @@ import type { CombatOutcome, CombatResult } from "@/types/combat";
  *   - Higher rank wins; loser removed.
  *   - Equal rank => mutual destruction (both removed).
  *   - Special exceptions (checked before rank comparison):
- *     - Espião attacking the Comandante always wins, regardless of rank.
- *     - Only the Engenheiro defeats a Bomba; any other attacker is
- *       eliminated and the Bomba remains on the board.
+ *     - Assassino attacking the Rei always wins, regardless of rank.
+ *     - Only the Sapador defeats an Armadilha; any other attacker is
+ *       eliminated and the Armadilha remains on the board.
  *   - Winner occupies the target tile.
  *   - Both pieces become isRevealed after combat.
  *
@@ -43,12 +43,12 @@ export interface ResolveOutcome {
 }
 
 function decide(attacker: Piece, defender: Piece): CombatOutcome {
-  // Espião: vence o Comandante sempre, mas apenas quando ataca.
+  // Assassino: vence o Rei sempre, mas apenas quando ataca.
   if (attacker.pieceType === "spy" && defender.pieceType === "commander") {
     return "ATTACKER_WINS";
   }
-  // Bomba: só o Engenheiro a neutraliza; qualquer outro atacante morre
-  // e a bomba permanece no tabuleiro (a defesa "vence" nesse caso).
+  // Armadilha: só o Sapador a desarma; qualquer outro atacante morre
+  // e a armadilha permanece no tabuleiro (a defesa "vence" nesse caso).
   if (defender.pieceType === "bomb") {
     return attacker.pieceType === "engineer" ? "ATTACKER_WINS" : "DEFENDER_WINS";
   }

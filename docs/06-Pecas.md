@@ -43,14 +43,14 @@ Cada jogador inicia a partida com um exército composto por **40 peças**.
 
 | Peça | Quantidade | Força |
 |------|-----------:|------:|
-| Comandante | 1 | 7 |
-| Oficial | 2 | 6 |
-| Franco-atirador | 3 | 5 |
-| Infantaria | 12 | 4 |
-| Engenheiro | 8 | 3 |
-| Explorador | 6 | 2 |
-| Espião | 1 | 1 |
-| Bomba | 6 | — |
+| Rei | 1 | 7 |
+| Duque | 2 | 6 |
+| Arqueiro Real | 3 | 5 |
+| Guarda Real | 12 | 4 |
+| Sapador | 8 | 3 |
+| Batedor | 6 | 2 |
+| Assassino | 1 | 1 |
+| Armadilha | 6 | — |
 | Bandeira | 1 | — |
 
 Total: **40 peças**
@@ -61,19 +61,19 @@ Total: **40 peças**
 
 A hierarquia oficial do Conflito é composta pelas seguintes unidades:
 
-1. Comandante
-2. Oficial
-3. Franco-atirador
-4. Infantaria
-5. Engenheiro
-6. Explorador
-7. Espião
-8. Bomba
+1. Rei
+2. Duque
+3. Arqueiro Real
+4. Guarda Real
+5. Sapador
+6. Batedor
+7. Assassino
+8. Armadilha
 9. Bandeira
 
 A força representa apenas o poder de combate das unidades militares.
 
-Bomba e Bandeira não possuem força.
+Armadilha e Bandeira não possuem força.
 
 ---
 
@@ -83,8 +83,8 @@ As peças são divididas em quatro categorias.
 
 ## Comando
 
-- Comandante
-- Oficial
+- Rei
+- Duque
 
 Responsáveis por liderar o exército e formar a principal linha ofensiva.
 
@@ -92,8 +92,8 @@ Responsáveis por liderar o exército e formar a principal linha ofensiva.
 
 ## Combate
 
-- Franco-atirador
-- Infantaria
+- Arqueiro Real
+- Guarda Real
 
 Representam as principais tropas de confronto direto.
 
@@ -101,9 +101,9 @@ Representam as principais tropas de confronto direto.
 
 ## Especialistas
 
-- Engenheiro
-- Explorador
-- Espião
+- Sapador
+- Batedor
+- Assassino
 
 Unidades com funções estratégicas específicas durante a partida.
 
@@ -111,7 +111,7 @@ Unidades com funções estratégicas específicas durante a partida.
 
 ## Objetivos Estratégicos
 
-- Bomba
+- Armadilha
 - Bandeira
 
 Peças utilizadas para defesa e objetivo principal da partida.
@@ -120,29 +120,29 @@ Peças utilizadas para defesa e objetivo principal da partida.
 
 # Descrição das Peças
 
-## Comandante
+## Rei
 
 Quantidade: **1**
 
 Força: **7**
 
-É a unidade de maior autoridade militar do exército.
+É o soberano do exército e a peça de maior força do jogo.
 
-Representa a peça de maior força do jogo.
+Perder o Rei não encerra a partida (quem encerra é a captura da Bandeira), mas só o Assassino consegue derrotá-lo atacando primeiro.
 
 ---
 
-## Oficial
+## Duque
 
 Quantidade: **2**
 
 Força: **6**
 
-Responsável por apoiar o Comandante nas operações ofensivas e defensivas.
+Nobre de confiança do Rei, responsável por apoiá-lo nas operações ofensivas e defensivas.
 
 ---
 
-## Franco-atirador
+## Arqueiro Real
 
 Quantidade: **3**
 
@@ -152,7 +152,7 @@ Unidade especializada em eliminar tropas de alto valor estratégico.
 
 ---
 
-## Infantaria
+## Guarda Real
 
 Quantidade: **12**
 
@@ -164,17 +164,17 @@ Representa o núcleo principal do exército.
 
 ---
 
-## Engenheiro
+## Sapador
 
 Quantidade: **8**
 
 Força: **3**
 
-Especialista em operações táticas e neutralização de obstáculos.
+Especialista em operações táticas e na neutralização de Armadilhas.
 
 ---
 
-## Explorador
+## Batedor
 
 Quantidade: **6**
 
@@ -184,17 +184,17 @@ Responsável pelo reconhecimento do campo de batalha e exploração do tabuleiro
 
 ---
 
-## Espião
+## Assassino
 
 Quantidade: **1**
 
 Força: **1**
 
-Especialista em infiltração e ações estratégicas.
+Especialista em infiltração: se atacar primeiro, derrota o Rei.
 
 ---
 
-## Bomba
+## Armadilha
 
 Quantidade: **6**
 

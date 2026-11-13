@@ -20,9 +20,9 @@ const evil = sanitizeSkins({
   commander: { model: "Hacker", color: "neon", hat: "<script>", weapon: "nuke", shield: 123 },
   officer: { model: "Skeleton_Mage", color: "roxo", hat: "quepe", weapon: "cajado", shield: "redondo" },
 });
-check("modelo inventado vira o padrão do Comandante", evil.commander.model === DEFAULT_SKINS.commander.model);
+check("modelo inventado vira o padrão do Rei", evil.commander.model === DEFAULT_SKINS.commander.model);
 check("cor, chapéu, arma e escudo inválidos viram padrão", evil.commander.color === "time" && evil.commander.hat === "padrao" && evil.commander.weapon === "nenhuma" && evil.commander.shield === "nenhum");
-check("valores válidos do Oficial passam intactos", evil.officer.model === "Skeleton_Mage" && evil.officer.color === "roxo" && evil.officer.hat === "quepe" && evil.officer.weapon === "cajado" && evil.officer.shield === "redondo");
+check("valores válidos do Duque passam intactos", evil.officer.model === "Skeleton_Mage" && evil.officer.color === "roxo" && evil.officer.hat === "quepe" && evil.officer.weapon === "cajado" && evil.officer.shield === "redondo");
 check("peças não enviadas ficam no padrão", isDefault(evil, "spy") && isDefault(evil, "scout"));
 
 // 3. campos extras e chaves perigosas são descartados
@@ -30,7 +30,7 @@ const polluted = sanitizeSkins(JSON.parse('{"__proto__":{"admin":true},"construc
 check("só as 7 peças existem no resultado", Object.keys(polluted).sort().join() === [...SKINNABLE_PIECES].sort().join());
 check("chaves extras não vazam", !("bomb" in polluted) && !("admin" in polluted) && !(("extra" in (polluted.infantry as any))));
 check("o protótipo global não foi poluído", ({} as any).admin === undefined && ({} as any).y === undefined);
-check("Infantaria com Cavaleiro válido passa", polluted.infantry.model === "Knight");
+check("Guarda Real com Cavaleiro válido passa", polluted.infantry.model === "Knight");
 
 // 4. todo modelo do catálogo é aceito
 check("os " + SKIN_MODELS.length + " modelos do catálogo são aceitos", SKIN_MODELS.every((m) => sanitizeSkins({ sniper: { model: m.id } }).sniper.model === m.id));

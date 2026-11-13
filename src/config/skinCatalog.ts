@@ -8,7 +8,7 @@
  */
 import type { PieceType } from "@/types/piece";
 
-/** Tipos de peça que são personagens (Bomba e Bandeira são objetos e não entram aqui). */
+/** Tipos de peça que são personagens (Armadilha e Bandeira são objetos e não entram aqui). */
 export type SkinnablePiece = Extract<PieceType, "commander" | "officer" | "sniper" | "infantry" | "engineer" | "scout" | "spy">;
 export const SKINNABLE_PIECES: readonly SkinnablePiece[] = ["commander", "officer", "sniper", "infantry", "engineer", "scout", "spy"];
 
@@ -55,7 +55,7 @@ export const SKIN_COLORS: readonly SkinColor[] = [
 ];
 export const colorHex = (id: string | null | undefined): string | null => SKIN_COLORS.find((c) => c.id === id)?.hex ?? null;
 
-/** Chapéus. "padrao" = o da peça (quepe no Oficial, capacete de obra no Engenheiro, o do modelo nas demais). */
+/** Chapéus. "padrao" = o da peça (quepe no Duque, capacete de obra no Sapador, o do modelo nas demais). */
 export interface SkinOption {
   id: string;
   label: string;
@@ -190,7 +190,7 @@ export const SKIN_PRESETS: readonly SkinPreset[] = [
   },
 ];
 
-/** Visual aleatório (o Espião continua como é: todo preto). `rand` é injetável para teste. */
+/** Visual aleatório (o Assassino continua como é: todo preto). `rand` é injetável para teste. */
 export function randomSkins(rand: () => number = Math.random): SkinTable {
   const pick = <T,>(list: readonly T[]): T => list[Math.floor(rand() * list.length) % list.length];
   const out: Record<string, PieceSkin> = {};

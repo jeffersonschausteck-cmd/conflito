@@ -192,7 +192,7 @@ function OficinaEditor() {
           <section>
             <div className="mb-1 uppercase tracking-widest text-slate-400">Cor da roupa</div>
             {type === "spy" ? (
-              <div className="text-slate-400">O Espião é sempre todo preto.</div>
+              <div className="text-slate-400">O Assassino é sempre todo preto.</div>
             ) : (
               <>
                 <div className="flex flex-wrap gap-1.5">

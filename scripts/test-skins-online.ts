@@ -99,7 +99,7 @@ async function main() {
   send(wsA, { type: "SetSkins", skins: evil });
   await waitFor(wsB, (m) => m.type === "SkinsUpdated" && (m.skins as any)[created.you.owner]?.infantry?.model === "Knight");
   const ownA: any = (skinsEvents(wsB).at(-1)!.skins as any)[created.you.owner];
-  ok("modelo inventado virou o padrão do Comandante", ownA.commander.model === DEFAULT_SKINS.commander.model && ownA.commander.hat === "padrao");
+  ok("modelo inventado virou o padrão do Rei", ownA.commander.model === DEFAULT_SKINS.commander.model && ownA.commander.hat === "padrao");
   ok("campos e peças extras foram descartados", !("extra" in ownA.infantry) && !("bomb" in ownA));
 
   console.log("== B não consegue mexer no visual de A ==");
@@ -108,7 +108,7 @@ async function main() {
   send(wsB, { type: "SetSkins", skins: skinsB });
   await waitFor(wsA, (m) => m.type === "SkinsUpdated" && (m.skins as any)[joined.you.owner]?.scout?.model === "Mage");
   const last: any = skinsEvents(wsA).at(-1)!.skins;
-  ok("cada lado guarda só o próprio visual (A segue com Cavaleiro na Infantaria)", last[created.you.owner].infantry.model === "Knight" && last[joined.you.owner].scout.model === "Mage");
+  ok("cada lado guarda só o próprio visual (A segue com Cavaleiro na Guarda Real)", last[created.you.owner].infantry.model === "Knight" && last[joined.you.owner].scout.model === "Mage");
 
   console.log("== Posicionamento e início da partida ==");
   send(wsA, { type: "PlayerReady" });

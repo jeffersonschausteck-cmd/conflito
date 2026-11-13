@@ -53,7 +53,7 @@ export function KayModel({ file, x, z, y = 0, rotY = 0, scale = 1, sy = 1, sz = 
   return <primitive object={obj} position={[x, y, z]} rotation={[0, rotY, 0]} scale={[KAY_SCALE * scale, KAY_SCALE * scale * sy, KAY_SCALE * scale * sz]} />;
 }
 
-/** Gira o grupo continuamente em torno do eixo Y — usado só pelo Comandante. */
+/** Gira o grupo continuamente em torno do eixo Y — usado só pelo Rei. */
 export function SpinGroup({ speed, children }: { speed: number; children: ReactNode }) {
   const ref = useRef<THREE.Group>(null);
   useFrame((_, delta) => {
@@ -287,7 +287,7 @@ export function KayPiece({
       ) : def.kind === "char" ? (
         <KayCharacter ctl={ctl} file={file} rotY={facing} scale={def.scale} pieceType={hidden ? "infantry" : pieceType} shade={hidden} owner={owner} accent={accent} hat={gear.hat} weapon={gear.weapon} shield={gear.shield} />
       ) : (
-        // A bomba tem a origem no centro da esfera: sobe metade da altura pra não afundar na base.
+        // A armadilha tem a origem no centro da esfera: sobe metade da altura pra não afundar na base.
         <KayModel file={file} x={0} z={0} y={file === "bomb" ? 0.07 + 0.4 * KAY_SCALE * def.scale : 0.07} rotY={facing} scale={def.scale} />
       )}
     </group>
@@ -366,7 +366,7 @@ export function KayCharacter({ file, rotY, scale, pieceType, shade = false, owne
   const melee = useGLTF(`${KAY_BASE}Rig_Medium_CombatMelee.glb`).animations;
   const ranged = useGLTF(`${KAY_BASE}Rig_Medium_CombatRanged.glb`).animations;
   const allClips = useMemo(() => [...animations, ...mv, ...melee, ...ranged], [animations, mv, melee, ranged]);
-  // Chapéu efetivo: "padrao" depende da peça (quepe no Oficial, capacete de obra no Engenheiro).
+  // Chapéu efetivo: "padrao" depende da peça (quepe no Duque, capacete de obra no Sapador).
   const hatId = shade ? "modelo" : hat === "padrao" ? (pieceType === "officer" ? "quepe" : pieceType === "engineer" ? "obra" : "modelo") : hat;
   // O mixer nasce junto com o boneco e é devolvido pelo mesmo useMemo: se o React descartar uma
   // das duas execuções (modo de desenvolvimento), boneco e animação nunca ficam desencontrados.
@@ -382,7 +382,7 @@ export function KayCharacter({ file, rotY, scale, pieceType, shade = false, owne
         o.visible = false;
         return;
       }
-      // Sem capa em nenhum personagem (o Espião fica como está).
+      // Sem capa em nenhum personagem (o Assassino fica como está).
       if (pieceType !== "spy" && !shade && /cape/i.test(o.name)) {
         o.visible = false;
         return;

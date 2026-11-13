@@ -42,7 +42,7 @@ export function TacticalGuide() {
 
                         <li>• O Batedor move várias casas em linha reta.</li>
 
-                        <li>• Bomba e Bandeira não se movem.</li>
+                        <li>• Armadilha e Bandeira não se movem.</li>
 
                     </ul>
 
@@ -64,9 +64,9 @@ export function TacticalGuide() {
 
                         <li>• Patentes iguais eliminam ambas.</li>
 
-                        <li>• O Espião elimina o Comandante se atacar primeiro.</li>
+                        <li>• O Assassino elimina o Rei se atacar primeiro.</li>
 
-                        <li>• O Engenheiro desarma Bombas.</li>
+                        <li>• O Sapador desarma Armadilhas.</li>
 
                     </ul>
 

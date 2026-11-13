@@ -42,15 +42,15 @@ A personalização vale para cada **tipo** de peça, nunca para uma peça indivi
 
 Peças personalizáveis (sete):
 
-- Comandante
-- Oficial
-- Franco-atirador
-- Infantaria
-- Engenheiro
-- Explorador (Batedor)
-- Espião
+- Rei
+- Duque
+- Arqueiro Real
+- Guarda Real
+- Sapador
+- Batedor
+- Assassino
 
-Bomba e Bandeira são objetos e não entram na personalização.
+Armadilha e Bandeira são objetos e não entram na personalização.
 
 Para cada peça personalizável o jogador escolhe:
 
@@ -96,21 +96,21 @@ Cada time continua identificado pela cor da base sob a peça (azul ou vermelha),
 
 Na ausência de escolha, a cor principal da roupa segue a cor do time.
 
-## 4. Espião
+## 4. Assassino
 
-O Espião é sempre todo preto. A cor da roupa do Espião não é personalizável. O jogador pode escolher modelo, chapéu, arma e escudo do Espião.
+O Assassino é sempre todo preto. A cor da roupa do Assassino não é personalizável. O jogador pode escolher modelo, chapéu, arma e escudo do Assassino.
 
 ## 5. Informação oculta
 
 A Oficina nunca revela informação oculta (documento 04, seção 7):
 
-- Uma peça inimiga não revelada é sempre exibida como o mesmo vulto encapuzado preto, para todos os tipos, inclusive Bomba e Bandeira.
+- Uma peça inimiga não revelada é sempre exibida como o mesmo vulto encapuzado preto, para todos os tipos, inclusive Armadilha e Bandeira.
 - O visual escolhido pelo adversário só é visto quando a peça é revelada em combate.
 - O visual descreve apenas como cada **tipo** de peça é desenhado. Ele nunca informa onde as peças estão nem qual peça oculta é qual.
 
 ## 6. Leitura do tipo da peça
 
-Como o visual é livre, uma peça revelada do adversário deve continuar identificável. Por isso, toda peça revelada do adversário exibe uma etiqueta com o nome e a força, por exemplo "Infantaria · 4".
+Como o visual é livre, uma peça revelada do adversário deve continuar identificável. Por isso, toda peça revelada do adversário exibe uma etiqueta com o nome e a força, por exemplo "Guarda Real · 4".
 
 ## 7. Tamanho
 
@@ -175,14 +175,14 @@ Não existe edição do visual dentro da tela da partida.
 
 # Arte
 
-Os personagens e acessórios usados pela Oficina vêm do pacote KayKit (Kay Lousberg), distribuído sob licença Creative Commons Zero (CC0): Adventurers, Skeletons, Character Animations e Mixed Bag (personagens, animações, armas, escudos e capacete de mineração). O cenário e a Bomba usam os pacotes Medieval Hexagon e Platformer, do mesmo autor e com a mesma licença.
+Os personagens e acessórios usados pela Oficina vêm do pacote KayKit (Kay Lousberg), distribuído sob licença Creative Commons Zero (CC0): Adventurers, Skeletons, Character Animations e Mixed Bag (personagens, animações, armas, escudos e capacete de mineração). O cenário e a Armadilha usam os pacotes Medieval Hexagon e Platformer, do mesmo autor e com a mesma licença.
 
 Regras visuais:
 
 - Todos os personagens compartilham o mesmo esqueleto de animação e a mesma animação de repouso.
 - Armas e escudos são encaixados nas mãos e orientados pelo corpo do personagem.
 - A cor da roupa troca apenas os pixels da roupa principal do modelo. Pele, cabelo, couro, metal e acessórios não mudam.
-- Nenhum personagem usa capa em partida, exceto o Espião, cujo visual é fixo (roupa e capa pretas).
+- Nenhum personagem usa capa em partida, exceto o Assassino, cujo visual é fixo (roupa e capa pretas).
 
 Limites do catálogo atual:
 

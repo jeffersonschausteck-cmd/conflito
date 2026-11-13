@@ -9,9 +9,9 @@ import type { Piece, PieceType, PlayerOwner } from "@/types/piece";
  * `PIECES` (the single official source of truth — Documento 06) so
  * this grid can never drift out of sync with the rest of the app.
  *
- * Counts match Documento 06 exactly: 1 Comandante, 2 Oficiais,
- * 3 Franco-atiradores, 12 Infantarias, 8 Engenheiros, 6 Exploradores,
- * 1 Espião, 6 Bombas, 1 Bandeira = 40 peças.
+ * Counts match Documento 06 exactly: 1 Rei, 2 Duques,
+ * 3 Arqueiros Reais, 12 Guardas Reais, 8 Sapadores, 6 Batedores,
+ * 1 Assassino, 6 Armadilhas, 1 Bandeira = 40 peças.
  *
  * Sprint 2.5: teams now face each other left/right instead of
  * top/bottom, so the outer index is DEPTH (columns from the player's

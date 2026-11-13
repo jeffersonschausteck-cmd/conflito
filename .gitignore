@@ -33,3 +33,6 @@ dist-ssr
 
 # Variáveis locais do Worker (não vão para o repositório)
 .dev.vars
+
+# Arquivos de teste locais (nao vao para o repositorio)
+.scratch-qa/

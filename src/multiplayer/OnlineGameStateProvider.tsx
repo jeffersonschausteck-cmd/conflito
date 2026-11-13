@@ -34,7 +34,7 @@ export function OnlineGameStateProvider({ initialState, children, localOwner, ma
   // servidor, nunca é rebroadcastada). Antes ela viajava como uma ação
   // de rede (`SelectPiece`) e o servidor devolvia o `GameState` já com
   // `selectedPieceId` preenchido pros DOIS jogadores — o que deixava o
-  // alcance de movimento do Explorador (a única peça de longo alcance)
+  // alcance de movimento do Batedor (a única peça de longo alcance)
   // visível também na tela do adversário, denunciando o tipo da peça
   // mesmo escondida pelo Fog of War. Guardando a seleção só neste
   // client e "emprestando" o campo `selectedPieceId` apenas na hora de

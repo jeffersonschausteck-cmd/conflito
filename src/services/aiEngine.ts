@@ -14,13 +14,13 @@ import type { Piece, PieceType, PlayerOwner } from "@/types/piece";
  * v0.2 — joga com a mesma informação de um jogador humano (docs/04-Regras.md, seção 7):
  *   - conhece as próprias peças, as peças inimigas já reveladas e a Bandeira inimiga (sempre visível);
  *   - das demais, só sabe o que a partida mostrou: quais tipos já saíram (combates) e quais peças
- *     se moveram (uma peça que andou não é Bomba). Nunca lê tipo, patente ou mobilidade de peça oculta.
+ *     se moveram (uma peça que andou não é Armadilha). Nunca lê tipo, patente ou mobilidade de peça oculta.
  *
  * Como decide: dá uma nota a cada jogada legal e escolhe a melhor.
  *   - Ataque a peça revelada: resultado exato (ganha, perde ou troca).
  *   - Ataque a peça oculta: valor esperado, pela chance de cada tipo ainda em campo; só compensa com
- *     peças baratas (testar com Batedor/Infantaria) ou quando o risco é baixo.
- *   - Casa vazia: avança rumo à Bandeira inimiga (o Engenheiro, único que desarma Bomba, com mais
+ *     peças baratas (testar com Batedor/Guarda Real) ou quando o risco é baixo.
+ *   - Casa vazia: avança rumo à Bandeira inimiga (o Sapador, único que desarma Armadilha, com mais
  *     pressa), foge de peças que a venceriam e evita ficar indo e voltando.
  *   - Bandeira ao alcance: sempre captura.
  */
@@ -96,7 +96,7 @@ function observe(state: GameState, owner: PlayerOwner): void {
     const before = memory.prevPos.get(p.id);
     if (before !== undefined && before !== here) {
       if (p.owner === owner) memory.lastFrom.set(p.id, before); // minha peça: de onde veio
-      else memory.moved.add(p.id); // peça inimiga que andou: não é Bomba
+      else memory.moved.add(p.id); // peça inimiga que andou: não é Armadilha
     }
     memory.prevPos.set(p.id, here);
   }
@@ -260,7 +260,7 @@ export const AIEngine = {
           if (threats.some((t) => t.id === occupant.id)) score += 2;
         } else {
           // ── Casa vazia ──
-          // Rumo à Bandeira inimiga (ou ao centro, se ela sumiu); o Engenheiro tem mais pressa.
+          // Rumo à Bandeira inimiga (ou ao centro, se ela sumiu); o Sapador tem mais pressa.
           const goalRow = enemyFlag ? enemyFlag.currentRow : midRow;
           const goalCol = enemyFlag ? enemyFlag.currentColumn : midCol;
           const closer =

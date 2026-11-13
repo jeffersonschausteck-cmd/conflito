@@ -22,7 +22,7 @@ export interface PlayerPanelProps {
 /**
  * Painel lateral "Jogador Azul" / "Jogador Vermelho" — mesmo
  * componente para os dois lados, parametrizado por `owner`. Mostra só
- * dados reais derivados de `state.pieces` (peças ativas, Comandante
+ * dados reais derivados de `state.pieces` (peças ativas, Rei
  * vivo, contagem por tipo) — sem "recursos" ou qualquer stat que não
  * exista no Conflito.
  */
@@ -44,7 +44,7 @@ export function PlayerPanel({ owner }: PlayerPanelProps) {
       <div className="space-y-2 border-b border-white/10 pb-4">
         <StatRow label="Peças Ativas" value={String(alive.length)} />
         <StatRow
-          label="Comandante"
+          label="Rei"
           value={commanderAlive ? "Vivo" : "Eliminado"}
           valueClassName={commanderAlive ? "text-game-green" : "text-game-red"}
         />

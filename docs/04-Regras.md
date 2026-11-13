@@ -93,8 +93,8 @@ Durante toda a partida:
 - Cada jogador conhece apenas suas próprias peças.
 - As peças adversárias permanecem ocultas.
 - Uma peça somente é revelada quando ocorre um combate.
-- Exceção: o Explorador que se move mais de uma casa em uma única ação é revelado para ambos os jogadores. Mover uma única casa não revela o Explorador.
-- Exceção: a Bandeira é sempre visível para os dois jogadores, desde o início da partida. Saber onde ela está não dá a ela proteção: quem a defende precisa cercá-la com Bombas e peças. Na tela, ela é desenhada bem alta (cerca de duas vezes a altura anterior), com haste longa e o pano ao vento, para ser vista de longe.
+- Exceção: o Batedor que se move mais de uma casa em uma única ação é revelado para ambos os jogadores. Mover uma única casa não revela o Batedor.
+- Exceção: a Bandeira é sempre visível para os dois jogadores, desde o início da partida. Saber onde ela está não dá a ela proteção: quem a defende precisa cercá-la com Armadilhas e peças. Na tela, ela é desenhada bem alta (cerca de duas vezes a altura anterior), com haste longa e o pano ao vento, para ser vista de longe.
 
 Após revelada, sua identidade passa a ser conhecida por ambos os jogadores.
 
@@ -117,7 +117,7 @@ Caso a casa de destino contenha uma peça inimiga, inicia-se imediatamente um co
 
 As seguintes peças não podem ser movimentadas após o início da partida:
 
-- Bomba
+- Armadilha
 - Bandeira
 
 Qualquer tentativa de movimentação deverá ser considerada inválida.
@@ -140,28 +140,28 @@ As exceções encontram-se nas Regras Especiais.
 
 # 11. Regras Especiais
 
-## Espião
+## Assassino
 
 Possui força 1.
 
-Quando ataca diretamente o Comandante, derrota-o independentemente da diferença de força.
+Quando ataca diretamente o Rei, derrota-o independentemente da diferença de força.
 
-Caso seja atacado pelo Comandante, será eliminado normalmente.
-
----
-
-## Engenheiro
-
-É a única peça capaz de neutralizar uma Bomba.
-
-Ao atacar uma Bomba:
-
-- A Bomba é removida.
-- O Engenheiro permanece no tabuleiro.
+Caso seja atacado pelo Rei, será eliminado normalmente.
 
 ---
 
-## Explorador
+## Sapador
+
+É a única peça capaz de desarmar uma Armadilha.
+
+Ao atacar uma Armadilha:
+
+- A Armadilha é removida.
+- O Sapador permanece no tabuleiro.
+
+---
+
+## Batedor
 
 Possui movimentação especial.
 
@@ -169,17 +169,17 @@ Pode mover-se qualquer quantidade de casas em linha reta (horizontal ou vertical
 
 Caso encontre uma peça inimiga, encerra imediatamente seu movimento e inicia o combate.
 
-Ao se mover mais de uma casa em uma única ação, o Explorador é revelado para ambos os jogadores (seção 7). Ao se mover uma única casa, permanece oculto.
+Ao se mover mais de uma casa em uma única ação, o Batedor é revelado para ambos os jogadores (seção 7). Ao se mover uma única casa, permanece oculto.
 
 ---
 
-## Bomba
+## Armadilha
 
 Não possui força.
 
 Não pode ser movimentada.
 
-Qualquer peça que ataque uma Bomba será eliminada, exceto o Engenheiro.
+Qualquer peça que ataque uma Armadilha será eliminada, exceto o Sapador.
 
 ---
 
@@ -197,7 +197,7 @@ Sua captura encerra imediatamente a partida.
 
 A vitória ocorre quando um jogador captura a Bandeira adversária.
 
-A vitória também ocorre quando o adversário, na sua vez, não tem nenhuma peça que possa se mover (só restam Bombas e Bandeira): ele não consegue jogar e perde.
+A vitória também ocorre quando o adversário, na sua vez, não tem nenhuma peça que possa se mover (só restam Armadilhas e Bandeira): ele não consegue jogar e perde.
 
 A partida é encerrada imediatamente.
 
@@ -224,7 +224,7 @@ Após a vitória:
 
 São consideradas ações inválidas:
 
-- Mover uma Bomba.
+- Mover uma Armadilha.
 - Mover a Bandeira.
 - Mover para fora do tabuleiro.
 - Atravessar outras peças.
@@ -281,14 +281,14 @@ Composição de cada exército:
 
 | Peça | Intensa | Normal | Rápida |
 |------|----------|--------|-----------|
-| Comandante | 1 | 1 | 1 |
-| Oficial | 2 | 1 | 1 |
-| Atirador | 3 | 2 | 2 |
-| Engenheiro | 8 | 5 | 4 |
-| Infantaria | 12 | 10 | 7 |
+| Rei | 1 | 1 | 1 |
+| Duque | 2 | 1 | 1 |
+| Arqueiro Real | 3 | 2 | 2 |
+| Sapador | 8 | 5 | 4 |
+| Guarda Real | 12 | 10 | 7 |
 | Batedor | 6 | 5 | 3 |
-| Espião | 1 | 1 | 1 |
-| Bomba | 6 | 4 | 4 |
+| Assassino | 1 | 1 | 1 |
+| Armadilha | 6 | 4 | 4 |
 | Bandeira | 1 | 1 | 1 |
 | **Total** | **40** | **30** | **24** |
 

@@ -15,7 +15,7 @@ import type { BoardBounds, Coord, Move, MoveResult } from "@/types/movement";
  * Rules (Documento 04 §8, §9, §11):
  *   - Most pieces step exactly one tile to any of the 6 hexagonal
  *     neighbors — never 4 (grid ortogonal) nem 8 (grid com diagonais).
- *   - The Explorador (scout) moves any number of tiles in a single
+ *   - The Batedor (scout) moves any number of tiles in a single
  *     straight hexagonal direction, stopping the instant it reaches
  *     the board edge, a blocked/terrain tile, a friendly piece
  *     (blocked), or an enemy piece (attack target) — never curving,
@@ -40,10 +40,10 @@ import type { BoardBounds, Coord, Move, MoveResult } from "@/types/movement";
  * (layout "odd-r": linhas ímpares desenhadas meio-hex à direita), mas
  * este arquivo ainda calculava vizinhos como grid quadrado (4 direções
  * fixas N/S/E/W, sem paridade de linha) — a causa raiz de peças
- * "fazendo curva" e do Explorador não conseguir andar em algumas
+ * "fazendo curva" e do Batedor não conseguir andar em algumas
  * direções hexagonais. Corrigido para a tabela de vizinhança
  * hexagonal padrão (odd-r offset), usada tanto pra 1 passo quanto pra
- * linha reta do Explorador.
+ * linha reta do Batedor.
  */
 
 /**

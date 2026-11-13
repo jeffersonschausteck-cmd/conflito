@@ -8,30 +8,30 @@ export interface PieceInfo {
     quantidade: number;
     /** Fonte única para a regra "peças imóveis" (Documento 04 §9). */
     podeMover: boolean;
-    /** Fonte única para a regra especial de movimento do Explorador (Documento 04 §11). */
+    /** Fonte única para a regra especial de movimento do Batedor (Documento 04 §11). */
     movimentoEmLinha: boolean;
 }
 
 export const PIECES: Record<string, PieceInfo> = {
     commander: {
-        nome: "Comandante",
+        nome: "Rei",
         patente: 7,
         movimento: 2,
         descricao:
-            "Líder máximo das tropas. Sua captura encerra a missão.",
+            "O soberano do exército e a peça mais forte do jogo.",
         habilidade:
-            "Coordena as unidades e protege a Bandeira.",
+            "Mais forte do jogo; só o Assassino o derruba atacando primeiro.",
         quantidade: 1,
         podeMover: true,
         movimentoEmLinha: false,
     },
 
     officer: {
-        nome: "Oficial",
+        nome: "Duque",
         patente: 6,
         movimento: 2,
         descricao:
-            "Veterano responsável por comandar a linha de frente.",
+            "Nobre de confiança do Rei, comanda a linha de frente.",
         habilidade:
             "Excelente em confrontos diretos.",
         quantidade: 2,
@@ -40,11 +40,11 @@ export const PIECES: Record<string, PieceInfo> = {
     },
 
     sniper: {
-        nome: "Atirador",
+        nome: "Arqueiro Real",
         patente: 5,
         movimento: 2,
         descricao:
-            "Especialista em combate de precisão.",
+            "Arqueiro de elite a serviço da coroa.",
         habilidade:
             "Grande poder ofensivo.",
         quantidade: 3,
@@ -53,24 +53,24 @@ export const PIECES: Record<string, PieceInfo> = {
     },
 
     engineer: {
-        nome: "Engenheiro",
+        nome: "Sapador",
         patente: 3,
         movimento: 2,
         descricao:
-            "Responsável por suporte técnico e operações especiais.",
+            "Especialista em abrir caminho e desmontar armadilhas.",
         habilidade:
-            "Versátil em campo.",
+            "Desarma Armadilhas.",
         quantidade: 8,
         podeMover: true,
         movimentoEmLinha: false,
     },
 
     infantry: {
-        nome: "Infantaria",
+        nome: "Guarda Real",
         patente: 4,
         movimento: 2,
         descricao:
-            "Soldado padrão utilizado na maior parte das missões.",
+            "Soldado padrão da guarda do reino.",
         habilidade:
             "Equilibrado em ataque e defesa.",
         quantidade: 12,
@@ -92,26 +92,26 @@ export const PIECES: Record<string, PieceInfo> = {
     },
 
     spy: {
-        nome: "Espião",
+        nome: "Assassino",
         patente: 1,
         movimento: 2,
         descricao:
-            "Especialista em infiltração.",
+            "Especialista em infiltração e golpes silenciosos.",
         habilidade:
-            "Pode eliminar unidades de alta patente quando ataca primeiro.",
+            "Pode eliminar o Rei se atacar primeiro.",
         quantidade: 1,
         podeMover: true,
         movimentoEmLinha: false,
     },
 
     bomb: {
-        nome: "Bomba",
+        nome: "Armadilha",
         patente: null,
         movimento: 0,
         descricao:
-            "Armadilha explosiva posicionada no campo.",
+            "Armadilha escondida no campo de batalha.",
         habilidade:
-            "Destrói quase qualquer unidade atacante.",
+            "Elimina quase qualquer unidade que a ataque.",
         quantidade: 6,
         podeMover: false,
         movimentoEmLinha: false,

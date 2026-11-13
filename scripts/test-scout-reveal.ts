@@ -1,4 +1,4 @@
-// Explorador: 1 casa continua oculto; mais de 1 casa fica revelado (doc 04, seção 7).
+// Batedor: 1 casa continua oculto; mais de 1 casa fica revelado (doc 04, seção 7).
 import { GameEngine } from "../src/services/gameEngine";
 
 function run(steps: number) {

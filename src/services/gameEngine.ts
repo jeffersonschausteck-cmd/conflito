@@ -224,7 +224,7 @@ export const GameEngine = {
         target,
         bounds,
       );
-      // Explorador que anda mais de uma casa é visto por ambos os jogadores (doc 04, seção 7).
+      // Batedor que anda mais de uma casa é visto por ambos os jogadores (doc 04, seção 7).
       const steps = Math.max(
         Math.abs(target.row - selected.currentRow),
         Math.abs(target.column - selected.currentColumn),
