@@ -85,6 +85,13 @@ export interface GameStateApi {
    * RANQUEADA durante toda a batalha. Offline sempre "casual".
    */
   matchType: MatchType;
+  /**
+   * Revanche (docs/10-Multiplayer.md): estado do pedido de jogar de novo. `"idle"` = ninguém pediu;
+   * `"waiting"` = eu pedi e espero o adversário; `"opponent"` = o adversário pediu. Offline é sempre `"idle"`.
+   */
+  rematchStatus: "idle" | "waiting" | "opponent";
+  /** Online: pede a revanche (a sala volta ao Posicionamento quando os dois pedem). Offline: sem efeito. */
+  requestRematch: () => void;
 }
 
 /**
@@ -175,6 +182,8 @@ export function GameStateProvider({ config, children, localOwner = "blue" }: Gam
       rankingResult: null,
       // Sprint RANKING-03 — offline é sempre casual.
       matchType: "casual",
+      rematchStatus: "idle",
+      requestRematch: noop,
     }),
     [
       state,
@@ -196,6 +205,8 @@ export function GameStateProvider({ config, children, localOwner = "blue" }: Gam
     </GameStateContext.Provider>
   );
 }
+
+const noop = () => {};
 
 export function useGameState(): GameStateApi {
   const ctx = useContext(GameStateContext);

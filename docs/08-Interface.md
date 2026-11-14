@@ -323,3 +323,12 @@ Todos os menus e submenus (Centro de Operações, escolha de modo, Sala Online, 
 - **Roleta de mapas (Campanha):** ao tocar num modo (Partida Rápida, Normal ou Intensa), abre uma faixa com a roleta: os 5 mapas daquele modo, cada um com a prévia do terreno e o nome, passam em sequência, desaceleram e param no mapa sorteado, que fica em destaque com o texto "Mapa sorteado". Depois de um instante a partida segue para o carregamento. Não há botão para escolher: o sorteio é ao acaso. Quem pede redução de movimento vê o resultado sem a animação.
 - **Escolha do mapa na sala online:** na tela de criar sala, depois do modo, aparecem os 5 mapas do modo escolhido (prévia e nome) e o criador toca no que quer. Trocar o modo troca a lista de mapas. A sala de espera mostra o mapa escolhido para quem entra.
 - **Mapa na partida:** o posicionamento e a partida usam o terreno e o cenário do mapa da vez (documento 19): céu, luz, cores e enfeites mudam conforme o cenário.
+
+---
+
+# Jogar de Novo (Tela Final)
+
+- O botão da tela final é **JOGAR DE NOVO** e leva de volta ao **Posicionamento**, não direto à partida: o jogador posiciona o exército outra vez, e o adversário (computador ou o outro jogador) reposiciona o dele. Modo, mapa e lado se mantêm.
+- Contra o computador, o clique já abre o Posicionamento.
+- Online, o botão avisa o adversário; enquanto ele não aceitar, a tela mostra "Aguardando o adversário" e, se o adversário clicar primeiro, "O adversário quer jogar de novo". Quando os dois aceitam, os dois vão para o Posicionamento ao mesmo tempo.
+- Há também o botão **MENU** para sair (online, sai da sala).

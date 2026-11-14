@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { withAuth } from "@/components/RequireAuth";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CyberBackground } from "@/components/CyberBackground";
 import { GameStateProvider, useGameState } from "@/hooks/useGameState";
 import { RevealLogProvider } from "@/hooks/useRevealLog";
@@ -14,6 +14,7 @@ import { getBlockedTiles, mapForPace } from "@/maps";
 import { victoryDelayMs } from "@/components/kay/fightTiming";
 import { effectivePace } from "@/services/matchRules";
 import { flowState } from "@/services/flowState";
+import { getNetworkClient } from "@/multiplayer/networkSingleton";
 import { OnlineGameStateProvider } from "@/multiplayer/OnlineGameStateProvider";
 import { rehydrateGameState } from "@/multiplayer/NetworkClient";
 import { ownerToPlayer, type GameState } from "@/types/gameState";
@@ -252,7 +253,25 @@ function GamePage() {
 /* ========================================================================== */
 
 function GameOverOverlay({ holdForCapture }: { holdForCapture: boolean }) {
-  const { state, reset, localOwner, matchStartTime, matchEndTime, matchEndReason, rankingResult } = useGameState();
+  const { state, localOwner, matchStartTime, matchEndTime, matchEndReason, rankingResult, rematchStatus, requestRematch } = useGameState();
+  const navigate = useNavigate();
+  const online = flowState.read().online === true;
+  // Jogar de novo volta ao Posicionamento (docs/04-Regras.md, seção 14): contra o computador, direto;
+  // online, só quando os dois pedem (o servidor leva os dois ao mesmo tempo).
+  const playAgain = () => {
+    if (online) requestRematch();
+    else navigate({ to: "/deployment" });
+  };
+  const leave = () => {
+    if (online) {
+      try {
+        getNetworkClient().send({ type: "LeaveRoom" });
+      } catch {
+        // sem conexão: sair do mesmo jeito
+      }
+    }
+    navigate({ to: "/" });
+  };
   // Sprint TIMER-01 — `endTime` fixo assim que a partida acaba: o
   // relógio para de contar e nunca mais muda, igual pros dois jogadores
   // (os dois valores vêm da mesma fonte — servidor online, mesmo
@@ -387,9 +406,25 @@ function GameOverOverlay({ holdForCapture }: { holdForCapture: boolean }) {
         )}
 
         <div className="mt-2 flex justify-center [@media(min-height:480px)]:mt-6">
-          <GameButton variant="primary" size="sm" onClick={reset} className="[@media(min-height:480px)]:!px-6 [@media(min-height:480px)]:!py-2.5 [@media(min-height:480px)]:!text-xs">
-            NOVA PARTIDA
-          </GameButton>
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex justify-center gap-2">
+              <GameButton
+                variant={rematchStatus === "waiting" ? "disabled" : "primary"}
+                size="sm"
+                onClick={playAgain}
+                disabled={rematchStatus === "waiting"}
+                className="[@media(min-height:480px)]:!px-6 [@media(min-height:480px)]:!py-2.5 [@media(min-height:480px)]:!text-xs"
+              >
+                {rematchStatus === "waiting" ? "AGUARDANDO O ADVERSÁRIO…" : "JOGAR DE NOVO"}
+              </GameButton>
+              <GameButton variant="secondary" size="sm" onClick={leave} className="[@media(min-height:480px)]:!px-6 [@media(min-height:480px)]:!py-2.5 [@media(min-height:480px)]:!text-xs">
+                MENU
+              </GameButton>
+            </div>
+            {rematchStatus === "opponent" && (
+              <p className="text-[11px] uppercase tracking-[0.12em] text-cyan-300">O adversário quer jogar de novo</p>
+            )}
+          </div>
         </div>
       </div>
     </div>

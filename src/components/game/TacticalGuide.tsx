@@ -64,7 +64,7 @@ export function TacticalGuide() {
 
                         <li>• Patentes iguais eliminam ambas.</li>
 
-                        <li>• O Assassino elimina o Rei se atacar primeiro.</li>
+                        <li>• O Assassino e o Rei se eliminam assim: o Rei sempre morre, quem atacar.</li>
 
                         <li>• O Sapador desarma Armadilhas.</li>
 

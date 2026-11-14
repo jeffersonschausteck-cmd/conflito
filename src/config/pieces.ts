@@ -20,7 +20,7 @@ export const PIECES: Record<string, PieceInfo> = {
         descricao:
             "O soberano do exército e a peça mais forte do jogo.",
         habilidade:
-            "Mais forte do jogo; só o Assassino o derruba atacando primeiro.",
+            "Mais forte do jogo; só o Assassino o derrota, e o Rei morre se atacar o Assassino.",
         quantidade: 1,
         podeMover: true,
         movimentoEmLinha: false,
@@ -98,7 +98,7 @@ export const PIECES: Record<string, PieceInfo> = {
         descricao:
             "Especialista em infiltração e golpes silenciosos.",
         habilidade:
-            "Pode eliminar o Rei se atacar primeiro.",
+            "Elimina o Rei se atacar, e também se for atacado por ele.",
         quantidade: 1,
         podeMover: true,
         movimentoEmLinha: false,

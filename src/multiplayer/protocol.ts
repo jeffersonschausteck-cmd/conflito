@@ -56,6 +56,8 @@ export type ClientEvent =
   | { type: "JoinRoom"; roomId: RoomId; playerName?: string }
   | { type: "LeaveRoom" }
   | { type: "PlayerReady" }
+  /** Revanche (docs/10-Multiplayer.md): pede jogar de novo depois da partida; quando os dois pedem, a sala volta ao Posicionamento. */
+  | { type: "Rematch" }
   | { type: "ConfirmDeployment"; pieces: Piece[] }
   /**
    * Oficina do Exército (etapa 4) — o visual (só aparência) que este jogador escolheu pras
@@ -163,6 +165,8 @@ export type ServerEvent =
        * prazo próprio.
        */
       deploymentDeadline: number | null;
+      /** Revanche: quem já pediu para jogar de novo (vazio fora da tela final). */
+      rematchPlayerIds: PlayerId[];
       /**
        * Sprint RANKING-03 — o mesmo `matchType` que já existia desde a
        * RANKING-01 (`GameRoom`, decidido uma única vez na criação da

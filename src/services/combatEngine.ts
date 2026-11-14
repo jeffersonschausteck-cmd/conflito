@@ -16,7 +16,8 @@ import type { CombatOutcome, CombatResult } from "@/types/combat";
  *   - Higher rank wins; loser removed.
  *   - Equal rank => mutual destruction (both removed).
  *   - Special exceptions (checked before rank comparison):
- *     - Assassino attacking the Rei always wins, regardless of rank.
+ *     - Rei × Assassino: the Rei always dies, whoever attacks (Assassino attacking
+ *       wins and moves in; Rei attacking loses and the Assassino holds its tile).
  *     - Only the Sapador defeats an Armadilha; any other attacker is
  *       eliminated and the Armadilha remains on the board.
  *   - Winner occupies the target tile.
@@ -43,9 +44,12 @@ export interface ResolveOutcome {
 }
 
 function decide(attacker: Piece, defender: Piece): CombatOutcome {
-  // Assassino: vence o Rei sempre, mas apenas quando ataca.
+  // Rei × Assassino: o Rei sempre morre, quem quer que ataque (docs/04-Regras.md, seção 11).
   if (attacker.pieceType === "spy" && defender.pieceType === "commander") {
     return "ATTACKER_WINS";
+  }
+  if (attacker.pieceType === "commander" && defender.pieceType === "spy") {
+    return "DEFENDER_WINS";
   }
   // Armadilha: só o Sapador a desarma; qualquer outro atacante morre
   // e a armadilha permanece no tabuleiro (a defesa "vence" nesse caso).

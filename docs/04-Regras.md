@@ -144,9 +144,12 @@ As exceções encontram-se nas Regras Especiais.
 
 Possui força 1.
 
-Quando ataca diretamente o Rei, derrota-o independentemente da diferença de força.
+O Rei e o Assassino se eliminam de um jeito só: **o Rei sempre morre, quem quer que ataque.**
 
-Caso seja atacado pelo Rei, será eliminado normalmente.
+- Quando o Assassino ataca o Rei, derrota-o independentemente da diferença de força.
+- Quando o Rei ataca o Assassino, o Rei é derrotado e o Assassino permanece onde está.
+
+Contra qualquer outra peça, o Assassino segue a regra normal de força (1).
 
 ---
 
@@ -217,6 +220,13 @@ Após a vitória:
 - Todas as peças são reveladas.
 - O resultado da partida é exibido.
 - Nenhuma nova ação poderá ser realizada.
+
+## Jogar de novo
+
+Na tela final o jogador pode jogar de novo. Uma nova partida **não reaproveita o tabuleiro anterior**: ela volta para a fase de Posicionamento (seção 5, Início da Partida), com o mesmo modo, o mesmo mapa e o mesmo lado, e todas as peças são colocadas de novo.
+
+- Contra o computador: o jogador posiciona o seu exército e o computador posiciona o dele de novo.
+- Online: os dois jogadores precisam escolher jogar de novo; a sala volta ao Posicionamento e cada um reposiciona o seu exército (docs/10-Multiplayer.md, Revanche).
 
 ---
 

@@ -1,5 +1,6 @@
 import { InitialSetup } from "@/services/initialSetup";
 import { armySize, formatFor, type BattleFormat } from "@/services/battleFormat";
+import { hexNeighbors } from "@/services/hexNav";
 import type { Piece, PlayerOwner } from "@/types/piece";
 
 /**
@@ -38,10 +39,13 @@ export const DeploymentManager = {
   },
 
   /**
-   * Generates a randomized AI (Red) deployment in the right columns
-   * (cols - DEPLOYMENT_DEPTH .. cols - 1). Shuffles all Red pieces into
-   * random slots within that zone, skipping any blocked (terrain
-   * obstacle) coordinate.
+   * Posicionamento do computador (docs/09-IA.md, versão 1.2). Não é sorteio puro:
+   *  - a Bandeira vai para o fundo, numa casa de pouca exposição (a casa exata é sorteada entre as melhores);
+   *  - as casas ao redor dela são todas ocupadas: Armadilhas na frente (menos uma, que vira isca) e guardas móveis
+   *    nas demais, para nenhuma peça (nem o Batedor, em linha reta) chegar à Bandeira de uma vez;
+   *  - o resto segue a profundidade de cada tipo: Rei, Duque e Arqueiros no miolo, Batedores na linha de frente,
+   *    Sapadores espalhados, Assassino perto do Rei; Armadilhas extras como isca à frente.
+   * Só usa casas livres da zona do lado; nunca olha as peças do adversário.
    */
   generateAIDeployment(
     rows: number = 10,
@@ -51,35 +55,89 @@ export const DeploymentManager = {
     format: BattleFormat = formatFor("classic"),
   ): Piece[] {
     const all = InitialSetup.generate({ rows, cols, format });
-    const redPieces = all.filter((p) => p.owner === owner);
+    const mine = all.filter((p) => p.owner === owner);
 
-    // A zona do Vermelho são as DEPLOYMENT_DEPTH colunas da direita; a do Azul, as da esquerda.
+    // A zona do Vermelho são as colunas da direita; a do Azul, as da esquerda.
     const zoneStart = owner === "red" ? Math.max(0, cols - format.depth) : 0;
     const zoneEnd = owner === "red" ? cols : Math.min(format.depth, cols);
-    const coordinates: { row: number; col: number }[] = [];
+    const backCol = owner === "red" ? cols - 1 : 0;
+    const span = Math.max(1, zoneEnd - zoneStart - 1);
+    type Cell = { row: number; col: number };
+    const free = new Map<string, Cell>();
     for (let r = 0; r < rows; r++) {
       for (let c = zoneStart; c < zoneEnd; c++) {
-        if (blockedTiles.has(`${r}-${c}`)) continue;
-        coordinates.push({ row: r, col: c });
+        if (!blockedTiles.has(`${r}-${c}`)) free.set(`${r}-${c}`, { row: r, col: c });
       }
     }
+    const rand = Math.random;
+    const frac = (col: number) => Math.min(1, Math.abs(col - backCol) / span); // 0 = fundo, 1 = linha de frente
+    const placed = new Map<string, Cell>(); // id da peça -> casa
+    const pool = new Map<string, Piece[]>();
+    for (const p of mine) pool.set(p.pieceType, [...(pool.get(p.pieceType) ?? []), p]);
+    const take = (type: string): Piece | undefined => pool.get(type)?.shift();
+    const put = (piece: Piece | undefined, cell: Cell) => {
+      if (!piece) return;
+      placed.set(piece.id, cell);
+      free.delete(`${cell.row}-${cell.col}`);
+    };
 
-    // Fisher-Yates shuffle coordinates
-    for (let i = coordinates.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const temp = coordinates[i];
-      coordinates[i] = coordinates[j];
-      coordinates[j] = temp;
+    // 1) Bandeira: fundo do exército, pouca exposição.
+    const openNeighbors = (cell: Cell) =>
+      hexNeighbors(cell.row, cell.col).filter(([r, c]) => r >= 0 && r < rows && c >= 0 && c < cols && !blockedTiles.has(`${r}-${c}`)).length;
+    const flagSpots = [...free.values()].filter((cell) => frac(cell.col) <= 0.34);
+    const flagPool = flagSpots.length > 0 ? flagSpots : [...free.values()];
+    let flagCell = flagPool[0];
+    let flagScore = Infinity;
+    for (const cell of flagPool) {
+      const score = openNeighbors(cell) + frac(cell.col) * 2 + rand() * 1.6;
+      if (score < flagScore) {
+        flagScore = score;
+        flagCell = cell;
+      }
+    }
+    put(take("flag"), flagCell);
+
+    // 2) Ao redor da Bandeira: Armadilhas (as mais à frente primeiro) e guardas móveis.
+    const around = hexNeighbors(flagCell.row, flagCell.col)
+      .map(([r, c]) => free.get(`${r}-${c}`))
+      .filter((cell): cell is Cell => !!cell)
+      .sort((a, b) => frac(b.col) - frac(a.col) + (rand() - 0.5) * 0.2);
+    const bombCount = pool.get("bomb")?.length ?? 0;
+    const bombsAround = Math.min(around.length, Math.max(0, bombCount - (bombCount >= 3 ? 1 : 0)));
+    around.slice(0, bombsAround).forEach((cell) => put(take("bomb"), cell));
+    const guardOrder = ["infantry", "sniper", "engineer", "infantry", "officer", "scout"];
+    for (const cell of around.slice(bombsAround)) {
+      const type = guardOrder.find((t) => (pool.get(t)?.length ?? 0) > 0);
+      put(type ? take(type) : undefined, cell);
     }
 
-    // Map Red pieces to shuffled coordinates
-    return redPieces.map((piece, idx) => {
-      const coord = coordinates[idx];
-      return {
-        ...piece,
-        currentRow: coord.row,
-        currentColumn: coord.col,
-      };
+    // 3) O resto: cada tipo procura a profundidade que lhe cabe (0 = fundo, 1 = frente), com sorteio.
+    const target: Record<string, number> = { commander: 0.55, officer: 0.5, sniper: 0.5, engineer: 0.45, infantry: 0.65, scout: 1, spy: 0.55, bomb: 0.8 };
+    const order = ["commander", "officer", "sniper", "spy", "engineer", "bomb", "infantry", "scout"];
+    for (const type of order) {
+      for (const piece of pool.get(type) ?? []) {
+        let best: Cell | null = null;
+        let bestScore = Infinity;
+        for (const cell of free.values()) {
+          let score = Math.abs(frac(cell.col) - (target[type] ?? 0.6)) + rand() * 0.4;
+          if (type === "spy") {
+            const king = mine.find((p) => p.pieceType === "commander");
+            const kc = king ? placed.get(king.id) : undefined;
+            if (kc) score += Math.min(4, Math.abs(kc.row - cell.row) + Math.abs(kc.col - cell.col)) * 0.12;
+          }
+          if (score < bestScore) {
+            bestScore = score;
+            best = cell;
+          }
+        }
+        if (best) put(piece, best);
+      }
+      pool.set(type, []);
+    }
+
+    return mine.map((piece) => {
+      const cell = placed.get(piece.id);
+      return cell ? { ...piece, currentRow: cell.row, currentColumn: cell.col } : piece;
     });
   },
 

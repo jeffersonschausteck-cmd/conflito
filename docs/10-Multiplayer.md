@@ -236,3 +236,14 @@ A especificação completa está no documento 17 - Oficina do Exército.
 ## Versão 1.1
 
 - Inclusão da seção sobre o visual dos personagens (documento 17).
+
+---
+
+# Revanche
+
+Quando uma partida termina em vitória por captura da Bandeira ou por falta de peças móveis, e os dois jogadores continuam na sala, qualquer um pode pedir **revanche**.
+
+- O pedido é o evento `Rematch`; o servidor guarda quem já pediu e avisa os dois pelo `RoomStateChanged` (campo `rematchPlayerIds`).
+- Só vale com a sala em `finished`, com a partida já decidida e os dois jogadores presentes. Um jogador que saiu ou que perdeu por W.O. encerra a sala: não há revanche.
+- Quando os dois pediram, o servidor apaga a partida anterior (estado, posicionamentos e prontidões), mantém jogadores, lados, modo, mapa, visual e tipo de sala, abre um novo Posicionamento com novo prazo e dá um novo identificador à partida (o Rating é processado de novo, normalmente, no fim dela).
+- Os dois clientes recebem `RoomStateChanged` com status `deployment` e vão para a tela de Posicionamento; o resto do fluxo é o de sempre.

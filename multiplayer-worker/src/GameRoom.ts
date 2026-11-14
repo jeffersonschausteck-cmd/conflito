@@ -129,6 +129,8 @@ interface PersistedRoom {
   rankingProcessed: boolean;
   /** Oficina do Exército — visual (já validado) de cada jogador. Só aparência. */
   skins?: [PlayerId, SkinTable][];
+  /** Revanche: quem já pediu para jogar de novo. */
+  rematchPlayerIds?: PlayerId[];
 }
 
 const ROOM_STORAGE_KEY = "room";
@@ -152,6 +154,8 @@ export class GameRoom extends DurableObject<Env> {
   private players: RoomPlayer[] = [];
   private readyPlayers = new Set<PlayerId>();
   private deployments = new Map<PlayerId, Piece[]>();
+  /** Revanche: jogadores que já pediram para jogar de novo (docs/10-Multiplayer.md). */
+  private rematchPlayers = new Set<PlayerId>();
   private connectionsByPlayer = new Map<PlayerId, TransportConnection>();
   private loaded = false;
   /** Sprint TIMER-01 — prazo (epoch ms) do fim da fase de Posicionamento. `null` fora dessa fase. */
@@ -185,6 +189,7 @@ export class GameRoom extends DurableObject<Env> {
       this.status = stored.status;
       this.players = stored.players;
       this.readyPlayers = new Set(stored.readyPlayerIds);
+      this.rematchPlayers = new Set(stored.rematchPlayerIds ?? []);
       this.deployments = new Map(stored.deployments);
       this.session = stored.gameState
         ? GameSession.fromState({
@@ -215,6 +220,7 @@ export class GameRoom extends DurableObject<Env> {
       status: this.status,
       players: this.players,
       readyPlayerIds: [...this.readyPlayers],
+      rematchPlayerIds: [...this.rematchPlayers],
       deployments: [...this.deployments.entries()],
       gameState: gameState
         ? { ...gameState, config: { ...gameState.config, blockedTiles: [...(gameState.config.blockedTiles ?? [])] } }
@@ -350,6 +356,34 @@ export class GameRoom extends DurableObject<Env> {
       this.deploymentDeadline = Date.now() + DEPLOYMENT_DURATION_MS;
     }
     return { ok: true };
+  }
+
+  /**
+   * Revanche (docs/10-Multiplayer.md). Só depois de uma partida decidida, com os dois jogadores na sala.
+   * Quando os dois pedem, a sala volta ao Posicionamento: mesma sala, lados, modo e mapa; partida nova.
+   */
+  private requestRematch(playerId: PlayerId): { ok: boolean; reason?: string; started?: boolean } {
+    if (this.status !== "finished" || !this.session?.getState().gameOver) {
+      return { ok: false, reason: "A revanche só existe depois do fim da partida." };
+    }
+    if (!this.ownerOf(playerId)) return { ok: false, reason: "Jogador não pertence a esta sala." };
+    if (this.players.length < 2) return { ok: false, reason: "O adversário saiu da sala." };
+    this.rematchPlayers.add(playerId);
+    const everyoneHere = this.players.every((p) => this.connectionsByPlayer.has(p.playerId));
+    if (this.rematchPlayers.size >= 2 && everyoneHere) {
+      this.session = null;
+      this.deployments.clear();
+      this.readyPlayers.clear();
+      this.rematchPlayers.clear();
+      this.matchStartTime = null;
+      this.matchEndTime = null;
+      this.matchId = null;
+      this.rankingProcessed = false;
+      this.status = "deployment";
+      this.deploymentDeadline = Date.now() + DEPLOYMENT_DURATION_MS;
+      return { ok: true, started: true };
+    }
+    return { ok: true, started: false };
   }
 
   private confirmDeployment(playerId: PlayerId, pieces: Piece[]): { ok: boolean; reason?: string } {
@@ -601,6 +635,7 @@ export class GameRoom extends DurableObject<Env> {
       readyPlayerIds: [...this.readyPlayers],
       deployedPlayerIds: [...this.deployments.keys()],
       deploymentDeadline: this.deploymentDeadline,
+      rematchPlayerIds: [...this.rematchPlayers],
       matchType: this.matchType,
       pace: this.pace,
       mapId: this.mapId,
@@ -634,6 +669,7 @@ export class GameRoom extends DurableObject<Env> {
       readyPlayerIds: [...this.readyPlayers],
       deployedPlayerIds: [...this.deployments.keys()],
       deploymentDeadline: this.deploymentDeadline,
+      rematchPlayerIds: [...this.rematchPlayers],
       matchType: this.matchType,
       pace: this.pace,
       mapId: this.mapId,
@@ -668,6 +704,12 @@ export class GameRoom extends DurableObject<Env> {
       this.broadcast({ type: "PlayerDisconnected", playerId, reconnectDeadline: null });
       this.broadcastRoomState();
       return;
+    }
+
+    // Revanche: quem saiu deixa de contar, e o adversário que esperava é avisado pelo estado da sala.
+    if (this.status === "finished" && this.rematchPlayers.delete(playerId)) {
+      await this.persist();
+      this.broadcastRoomState();
     }
 
     // Sprint REC-01 — "deployment"/"playing": NUNCA remove o jogador
@@ -731,6 +773,18 @@ export class GameRoom extends DurableObject<Env> {
         if (this.status === "deployment" && this.deploymentDeadline !== null) {
           await this.scheduleNextAlarm();
         }
+        break;
+      }
+
+      case "Rematch": {
+        const result = this.requestRematch(playerId);
+        if (!result.ok) {
+          this.send(conn, { type: "ActionRejected", reason: result.reason ?? "Não foi possível pedir a revanche." });
+          break;
+        }
+        await this.persist();
+        this.broadcastRoomState();
+        if (result.started) await this.scheduleNextAlarm();
         break;
       }
 

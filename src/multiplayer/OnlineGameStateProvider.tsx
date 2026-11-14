@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { flowState } from "@/services/flowState";
 import { GameStateContext, type GameStateApi } from "@/hooks/useGameState";
 import { GameEngine } from "@/services/gameEngine";
 import { SoundHooks } from "@/services/soundHooks";
@@ -57,6 +59,9 @@ export function OnlineGameStateProvider({ initialState, children, localOwner, ma
   // partida terminar (ou numa partida casual, onde o servidor manda
   // `ranking: null` de propósito).
   const [rankingResult, setRankingResult] = useState<RankingResultView | null>(null);
+  // Revanche: quem já pediu (por lado), vindo do servidor em `RoomStateChanged`.
+  const navigate = useNavigate();
+  const [rematchOwners, setRematchOwners] = useState<PlayerOwner[]>([]);
 
   useEffect(() => {
     // Sprint QA-09 — diferente de todas as outras telas do fluxo online
@@ -106,8 +111,25 @@ export function OnlineGameStateProvider({ initialState, children, localOwner, ma
       if (event.type === "PlayerReconnected") {
         setOpponentDisconnectDeadline(null);
       }
+      if (event.type === "RoomStateChanged") {
+        // Revanche: o servidor mostra quem já pediu; quando os dois pedem, a sala volta ao Posicionamento.
+        setRematchOwners(
+          event.rematchPlayerIds
+            .map((id) => event.players.find((p) => p.playerId === id)?.owner)
+            .filter((o): o is PlayerOwner => o === "blue" || o === "red"),
+        );
+        if (event.status === "deployment") {
+          flowState.write({ onlineDeploymentDeadline: event.deploymentDeadline });
+          try {
+            window.sessionStorage.removeItem("conflito:online-state");
+          } catch {
+            // sem sessionStorage: o Posicionamento não depende dele
+          }
+          navigate({ to: "/deployment" });
+        }
+      }
     });
-  }, []);
+  }, [navigate]);
 
   // Sprint SEC-01 — puramente local: nenhum envio de rede, nenhum
   // vazamento pro adversário (ver comentário no state acima). Reusa
@@ -148,6 +170,19 @@ export function OnlineGameStateProvider({ initialState, children, localOwner, ma
   const clearLastCombat = useCallback(() => {}, []);
   const reset = useCallback(() => {}, []);
 
+  const requestRematch = useCallback(() => {
+    try {
+      getNetworkClient().send({ type: "Rematch" });
+    } catch {
+      // socket reconectando: o botão pode ser clicado de novo
+    }
+  }, []);
+  const rematchStatus: "idle" | "waiting" | "opponent" = rematchOwners.includes(localOwner)
+    ? "waiting"
+    : rematchOwners.length > 0
+      ? "opponent"
+      : "idle";
+
   const dispatch = useCallback((action: GameAction) => {
     if (action.type === "END_TURN") {
       getNetworkClient().send({ type: "EndTurn" });
@@ -187,6 +222,8 @@ export function OnlineGameStateProvider({ initialState, children, localOwner, ma
       matchEndReason,
       rankingResult,
       matchType,
+      rematchStatus,
+      requestRematch,
     }),
     [
       state,
@@ -204,6 +241,8 @@ export function OnlineGameStateProvider({ initialState, children, localOwner, ma
       matchEndReason,
       rankingResult,
       matchType,
+      rematchStatus,
+      requestRematch,
     ],
   );
 

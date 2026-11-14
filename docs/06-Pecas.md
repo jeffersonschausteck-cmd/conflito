@@ -128,7 +128,7 @@ Força: **7**
 
 É o soberano do exército e a peça de maior força do jogo.
 
-Perder o Rei não encerra a partida (quem encerra é a captura da Bandeira), mas só o Assassino consegue derrotá-lo atacando primeiro.
+Perder o Rei não encerra a partida (quem encerra é a captura da Bandeira), mas o Assassino o derrota atacando primeiro, e o Rei também morre se atacar o Assassino (ver Assassino).
 
 ---
 
@@ -190,7 +190,7 @@ Quantidade: **1**
 
 Força: **1**
 
-Especialista em infiltração: se atacar primeiro, derrota o Rei.
+Especialista em infiltração: se atacar o Rei, derrota-o. Se for atacado pelo Rei, também o derrota: o Rei morre em qualquer confronto com o Assassino, e o Assassino fica vivo.
 
 ---
 
