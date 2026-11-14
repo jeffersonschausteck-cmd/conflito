@@ -1,6 +1,7 @@
 import { InitialSetup } from "@/services/initialSetup";
 import { armySize, formatFor, type BattleFormat } from "@/services/battleFormat";
 import { hexNeighbors } from "@/services/hexNav";
+import { pickLayout, type LearningData } from "@/services/aiLearning";
 import type { Piece, PlayerOwner } from "@/types/piece";
 
 /**
@@ -53,9 +54,35 @@ export const DeploymentManager = {
     blockedTiles: ReadonlySet<string> = NO_BLOCKED_TILES,
     owner: PlayerOwner = "red",
     format: BattleFormat = formatFor("classic"),
+    learning: LearningData | null = null,
   ): Piece[] {
     const all = InitialSetup.generate({ rows, cols, format });
     const mine = all.filter((p) => p.owner === owner);
+
+    // Aprendizado (docs/09-IA.md, 1.3): em parte das vezes, repete um posicionamento vencedor de um jogador, se couber neste mapa.
+    if (learning && Math.random() < 0.6) {
+      const layout = pickLayout(learning);
+      if (layout && layout.length === mine.length) {
+        const bag = new Map<string, Piece[]>();
+        for (const p of mine) bag.set(p.pieceType, [...(bag.get(p.pieceType) ?? []), p]);
+        const used = new Set<string>();
+        const placedPieces: Piece[] = [];
+        let fits = true;
+        for (const [type, depth, row] of layout) {
+          const col = owner === "blue" ? depth : cols - 1 - depth;
+          const key = `${row}-${col}`;
+          const piece = bag.get(type)?.shift();
+          const inZone = owner === "red" ? col >= Math.max(0, cols - format.depth) && col < cols : col >= 0 && col < Math.min(format.depth, cols);
+          if (!piece || !inZone || row < 0 || row >= rows || blockedTiles.has(key) || used.has(key)) {
+            fits = false;
+            break;
+          }
+          used.add(key);
+          placedPieces.push({ ...piece, currentRow: row, currentColumn: col });
+        }
+        if (fits && placedPieces.length === mine.length) return placedPieces;
+      }
+    }
 
     // A zona do Vermelho são as colunas da direita; a do Azul, as da esquerda.
     const zoneStart = owner === "red" ? Math.max(0, cols - format.depth) : 0;
@@ -113,7 +140,8 @@ export const DeploymentManager = {
 
     // 3) O resto: cada tipo procura a profundidade que lhe cabe (0 = fundo, 1 = frente), com sorteio.
     const target: Record<string, number> = { commander: 0.55, officer: 0.5, sniper: 0.5, engineer: 0.45, infantry: 0.65, scout: 1, spy: 0.55, bomb: 0.8 };
-    const order = ["commander", "officer", "sniper", "spy", "engineer", "bomb", "infantry", "scout"];
+    // Quem tem profundidade extrema escolhe primeiro (o zona costuma ficar cheia; o último fica com as casas que sobram).
+    const order = ["scout", "bomb", "commander", "officer", "sniper", "spy", "engineer", "infantry"];
     for (const type of order) {
       for (const piece of pool.get(type) ?? []) {
         let best: Cell | null = null;

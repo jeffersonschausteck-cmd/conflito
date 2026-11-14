@@ -1,6 +1,7 @@
 import { PIECES } from "@/config/pieces";
 import { formatFor } from "@/services/battleFormat";
 import { distanceField, distanceFieldMulti, hexDistance, hexNeighbors, UNREACHABLE } from "@/services/hexNav";
+import { depthOf, typeLift, type LearningData } from "@/services/aiLearning";
 import { MovementEngine } from "@/services/movementEngine";
 import { PieceManager } from "@/services/pieceManager";
 import type { GameState, Player } from "@/types/gameState";
@@ -87,13 +88,20 @@ function fresh(): Memory {
   return { turn: 0, prevPos: new Map(), moved: new Set(), seenCombat: new Set(), deadEnemy: {}, lastFrom: new Map() };
 }
 
-// Uma memória por lado, para duas IAs na mesma página (ou nos testes) não se misturarem.
-const memories: Record<PlayerOwner, Memory> = { blue: fresh(), red: fresh() };
-let memory: Memory = memories.blue;
+// Uma memória por partida (chave) e por lado, para várias IAs ao mesmo tempo (servidor com várias salas, testes) não se misturarem.
+const memories = new Map<string, Memory>();
+let memory: Memory = fresh();
 
-function observe(state: GameState, owner: PlayerOwner): void {
-  if (state.turnNumber < memories[owner].turn) memories[owner] = fresh(); // partida nova
-  memory = memories[owner];
+function observe(state: GameState, owner: PlayerOwner, key: string): void {
+  const slot = `${key}:${owner}`;
+  let mem = memories.get(slot);
+  if (!mem || state.turnNumber < mem.turn) {
+    mem = fresh(); // partida nova
+    memories.delete(slot);
+    memories.set(slot, mem);
+    if (memories.size > 400) memories.delete(memories.keys().next().value as string); // descarta as mais antigas
+  }
+  memory = mem;
   memory.turn = state.turnNumber;
   for (const p of state.pieces) {
     if (!p.isAlive) continue;
@@ -289,15 +297,31 @@ function clearLine(from: Coord, flag: Piece, rows: number, cols: number, blocked
 
 // ───────────────────────── Escolha ─────────────────────────
 
+export interface AIOptions {
+  /** Identifica a partida (memória própria). Sem chave, vale a partida "padrão" (uma IA por página). */
+  memoryKey?: string;
+  /** O que a IA aprendeu com os jogadores (docs/09-IA.md, versão 1.3); ajusta o palpite sobre peças ocultas paradas. */
+  learning?: LearningData | null;
+}
+
+/** Aprendizado padrão da página (a Campanha busca no servidor e guarda aqui); `opts.learning` tem prioridade. */
+let defaultLearning: LearningData | null = null;
+
 export const AIEngine = {
+  /** Define o aprendizado usado quando `chooseMove` não recebe um (Campanha no navegador). */
+  setLearning(data: LearningData | null): void {
+    defaultLearning = data;
+  },
+
   /**
    * Escolhe uma jogada para o jogador. Devolve null quando não há jogada legal
    * (todas as peças presas): quem chama deve passar a vez.
    */
-  chooseMove(state: GameState, player: Player): AIDecision | null {
+  chooseMove(state: GameState, player: Player, opts: AIOptions = {}): AIDecision | null {
     const owner = playerToOwner(player);
     const enemy: PlayerOwner = owner === "blue" ? "red" : "blue";
-    observe(state, owner);
+    observe(state, owner, opts.memoryKey ?? "default");
+    const learning = opts.learning ?? defaultLearning;
 
     const own = PieceManager.byOwner(state.pieces, owner).filter((p) => p.canMove);
     if (own.length === 0) return null;
@@ -404,7 +428,12 @@ export const AIEngine = {
             const nearFlag = enemyFlag && hexDistance(occupant.currentRow, occupant.currentColumn, enemyFlag.currentRow, enemyFlag.currentColumn) <= 1;
             const unmoved = !memory.moved.has(occupant.id);
             // Peça parada colada à Bandeira inimiga tem muita chance de ser Armadilha.
-            const b = unmoved ? scaleBombs(belief.any, nearFlag ? 3 : 1) : belief.moved;
+            let b = unmoved ? scaleBombs(belief.any, nearFlag && (learning?.games ?? 0) < 30 ? 3 : 1) : belief.moved;
+            if (unmoved && learning) {
+              // O que os jogadores costumam pôr naquela casa (profundidade e linha a partir do fundo deles).
+              const lift = typeLift(learning, depthOf(occupant.currentColumn, cols, enemy), occupant.currentRow, rows);
+              b = b.map((x) => ({ type: x.type, w: x.w * (lift[x.type] ?? 1) }));
+            }
             score = expectedAttack(piece.pieceType, b) + INFO_BONUS * (1 + urgency) * (piece.pieceType === "scout" ? 2 : 1);
             probs = outcomeProbs(piece.pieceType, b);
             // O Sapador que abre o cerco da Bandeira inimiga vale mais.

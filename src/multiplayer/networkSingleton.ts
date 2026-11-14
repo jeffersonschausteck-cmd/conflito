@@ -24,6 +24,9 @@ const WS_URL =
   import.meta.env.VITE_MULTIPLAYER_WS_URL ||
   (import.meta.env.DEV ? LOCAL_DEV_WS_URL : PRODUCTION_WS_URL);
 
+/** Endereço do servidor (usado também para buscar o aprendizado da IA em `learningClient.ts`). */
+export const MULTIPLAYER_WS_URL: string = WS_URL;
+
 let client: NetworkClient | null = null;
 
 export function getNetworkClient(): NetworkClient {

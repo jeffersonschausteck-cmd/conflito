@@ -46,7 +46,10 @@ import {
 import type { ClientEvent, PlayerId, RoomPlayerInfo, ServerEvent } from "@/multiplayer/protocol";
 import type { Pace } from "@/types/gameState";
 import { normalizePace } from "@/services/battleFormat";
-import { normalizeMapId } from "@/maps";
+import { normalizeMapId, pickRandomMap } from "@/maps";
+import { randomBotName } from "@/multiplayer/botNames";
+import { recordDeployment, sanitizeLearning, type LearningData } from "@/services/aiLearning";
+import type { Piece } from "@/types/piece";
 import type { Env } from "./env";
 import {
   CODE_MAX_ATTEMPTS,
@@ -146,7 +149,23 @@ interface ProcessRankedResultInput {
   turnCount: number;
   /** Modo da partida (ausente = Partida Intensa). */
   pace?: Pace;
+  /** Pontuação virtual do computador, somada à do jogador (só quando um dos lados é `bot:...`). */
+  botRatingOffset?: number;
 }
+
+/** Entrada da fila de busca ranqueada. */
+interface QueueEntry {
+  conn: TransportConnection;
+  playerId: PlayerId;
+  accountId: string;
+  nickname: string;
+  pace: Pace;
+  deadline: number;
+  timer: ReturnType<typeof setTimeout>;
+}
+
+const BOT_PREFIX = "bot:";
+const isBotId = (id: string) => id.startsWith(BOT_PREFIX);
 
 /**
  * Sprint RANKING-02 — corpo do POST interno `GameRoom` → `AccountsRoom`
@@ -202,6 +221,8 @@ interface MatchHistoryRow {
 export class AccountsRoom extends DurableObject<Env> {
   private playersByConnection = new Map<string, ConnectedPlayer>();
   private schemaReady = false;
+  /** Fila de busca ranqueada: uma entrada por conta. */
+  private queue = new Map<string, QueueEntry>();
 
   async fetch(request: Request): Promise<Response> {
     this.ensureSchema();
@@ -222,6 +243,22 @@ export class AccountsRoom extends DurableObject<Env> {
     if (url.pathname.endsWith("/internal/record-match-history") && request.method === "POST") {
       const body = (await request.json()) as RecordMatchHistoryInput;
       this.recordMatchHistory(body);
+      return Response.json({ ok: true });
+    }
+
+    // Aprendizado da IA (docs/09-IA.md, 1.3): agregados anônimos por modo.
+    if (url.pathname.endsWith("/internal/get-learning") && request.method === "GET") {
+      const learning = await this.loadLearning(normalizePace((url.searchParams.get("pace") ?? undefined) as Pace | undefined));
+      return Response.json(learning);
+    }
+    if (url.pathname.endsWith("/internal/record-learning") && request.method === "POST") {
+      const body = (await request.json()) as {
+        pace?: Pace;
+        rows: number;
+        cols: number;
+        sides: { owner: "blue" | "red"; pieces: Piece[]; won: boolean }[];
+      };
+      await this.recordLearning(normalizePace(body.pace), body);
       return Response.json({ ok: true });
     }
 
@@ -548,16 +585,27 @@ export class AccountsRoom extends DurableObject<Env> {
     const existing = await this.ctx.storage.get<MatchRecord>(`match:${input.matchId}`);
     if (existing) return { ok: true, record: existing };
 
-    const blue = await this.loadAccount(input.blueAccountId);
-    const red = await this.loadAccount(input.redAccountId);
-    if (!blue || !red) return { ok: false, reason: "Conta não encontrada." };
+    const blueBot = isBotId(input.blueAccountId);
+    const redBot = isBotId(input.redAccountId);
+    if (blueBot && redBot) return { ok: false, reason: "Partida sem jogador humano." };
+    const blue = blueBot ? null : await this.loadAccount(input.blueAccountId);
+    const red = redBot ? null : await this.loadAccount(input.redAccountId);
+    if ((!blueBot && !blue) || (!redBot && !red)) return { ok: false, reason: "Conta não encontrada." };
 
     const winnerIsBlue = input.winnerOwner === "blue";
+    const pace = normalizePace(input.pace);
+    const human = (blue ?? red)!;
+    const humanStats = statsOf(human, pace);
+    // O computador não tem conta: a pontuação dele é virtual (a do jogador, mais ou menos o sorteio da sala) e não guarda nada.
+    const botStats: PlayerStats = { ...humanStats, rating: Math.max(100, humanStats.rating + (input.botRatingOffset ?? 0)) };
+    const blueStatsBefore = blue ? statsOf(blue, pace) : botStats;
+    const redStatsBefore = red ? statsOf(red, pace) : botStats;
     const winnerAccount = winnerIsBlue ? blue : red;
     const loserAccount = winnerIsBlue ? red : blue;
-    const pace = normalizePace(input.pace);
-    const winnerStatsBefore = statsOf(winnerAccount, pace);
-    const loserStatsBefore = statsOf(loserAccount, pace);
+    const winnerId = winnerIsBlue ? input.blueAccountId : input.redAccountId;
+    const loserId = winnerIsBlue ? input.redAccountId : input.blueAccountId;
+    const winnerStatsBefore = winnerIsBlue ? blueStatsBefore : redStatsBefore;
+    const loserStatsBefore = winnerIsBlue ? redStatsBefore : blueStatsBefore;
     const durationMs = Math.max(0, input.endedAt - input.startedAt);
 
     // Fase 3 — Elo padrão, calculado exclusivamente aqui no servidor.
@@ -596,19 +644,24 @@ export class AccountsRoom extends DurableObject<Env> {
       totalPlayTimeMs: loserStatsBefore.totalPlayTimeMs + durationMs,
     };
 
-    const winnerUpdated: Account = withStats(winnerAccount, pace, winnerStats);
-    const loserUpdated: Account = withStats(loserAccount, pace, loserStats);
-    await this.ctx.storage.put(`account:${winnerUpdated.id}`, winnerUpdated);
-    await this.ctx.storage.put(`account:${loserUpdated.id}`, loserUpdated);
-    this.upsertLeaderboardRow(winnerUpdated, pace);
-    this.upsertLeaderboardRow(loserUpdated, pace);
+    // Só contas de verdade são gravadas (e entram no ranking); o computador não deixa rastro.
+    if (winnerAccount) {
+      const winnerUpdated: Account = withStats(winnerAccount, pace, winnerStats);
+      await this.ctx.storage.put(`account:${winnerUpdated.id}`, winnerUpdated);
+      this.upsertLeaderboardRow(winnerUpdated, pace);
+    }
+    if (loserAccount) {
+      const loserUpdated: Account = withStats(loserAccount, pace, loserStats);
+      await this.ctx.storage.put(`account:${loserUpdated.id}`, loserUpdated);
+      this.upsertLeaderboardRow(loserUpdated, pace);
+    }
 
     const record: MatchRecord = {
       matchId: input.matchId,
       bluePlayerId: input.blueAccountId,
       redPlayerId: input.redAccountId,
-      winnerId: winnerAccount.id,
-      loserId: loserAccount.id,
+      winnerId,
+      loserId,
       winnerOwner: input.winnerOwner,
       startedAt: input.startedAt,
       endedAt: input.endedAt,
@@ -868,6 +921,11 @@ export class AccountsRoom extends DurableObject<Env> {
   }
 
   private handleClose(conn: TransportConnection): void {
+    const closing = this.playersByConnection.get(conn.id);
+    if (closing?.accountId) {
+      const q = this.queue.get(closing.accountId);
+      if (q && q.conn.id === conn.id) this.leaveQueue(closing.accountId);
+    }
     this.playersByConnection.delete(conn.id);
   }
 
@@ -1065,6 +1123,20 @@ export class AccountsRoom extends DurableObject<Env> {
         break;
       }
 
+      case "FindRankedMatch": {
+        if (!player.accountId) {
+          this.send(conn, { type: "AuthError", reason: "É preciso estar autenticado para jogar online." });
+          break;
+        }
+        await this.findMatch(conn, player, normalizePace(event.pace));
+        break;
+      }
+
+      case "CancelFindMatch": {
+        if (player.accountId && this.leaveQueue(player.accountId)) this.send(conn, { type: "MatchSearchCancelled" });
+        break;
+      }
+
       case "LeaveRoom": {
         // Só chega aqui se o jogador nunca reconectou à GameRoom (ex.: desistiu
         // antes da tela de espera terminar de trocar de socket) — nada a fazer,
@@ -1109,6 +1181,113 @@ export class AccountsRoom extends DurableObject<Env> {
     }
   }
 
+  // ── Busca de partida ranqueada (docs/10-Multiplayer.md) ──────────
+
+  private botAfterMs(): number {
+    const n = Number(this.env.MATCH_BOT_AFTER_MS);
+    return Number.isFinite(n) && n > 0 ? n : 4 * 60_000;
+  }
+
+  /** Tira a conta da fila (e apaga o prazo). Devolve se ela estava na fila. */
+  private leaveQueue(accountId: string): boolean {
+    const q = this.queue.get(accountId);
+    if (!q) return false;
+    clearTimeout(q.timer);
+    this.queue.delete(accountId);
+    return true;
+  }
+
+  private async findMatch(conn: TransportConnection, player: ConnectedPlayer, pace: Pace): Promise<void> {
+    const accountId = player.accountId!;
+    this.leaveQueue(accountId); // uma busca por conta: refazer substitui a anterior
+    const nickname = player.nickname ?? player.playerName;
+
+    // Há alguém de OUTRA conta esperando no mesmo modo? Quem espera há mais tempo é o anfitrião.
+    let waiting: QueueEntry | null = null;
+    for (const q of this.queue.values()) {
+      if (q.pace === pace && q.accountId !== accountId && (!waiting || q.deadline < waiting.deadline)) waiting = q;
+    }
+    if (waiting) {
+      const host: QueueEntry = waiting;
+      this.leaveQueue(host.accountId);
+      const roomId = crypto.randomUUID().slice(0, 8);
+      const mapId = pickRandomMap(pace, Math.random).id;
+      const created = await this.addPlayerToRoom(roomId, host.playerId, host.nickname, host.accountId, "ranked", pace, mapId);
+      const joined = created.ok ? await this.addPlayerToRoom(roomId, player.playerId, nickname, accountId) : null;
+      if (!created.ok || !joined || !joined.ok) {
+        const reason = "Não foi possível criar a partida. Tente buscar de novo.";
+        this.send(host.conn, { type: "ActionRejected", reason });
+        this.send(conn, { type: "ActionRejected", reason });
+        return;
+      }
+      await this.ctx.storage.put(`room:${roomId}`, true);
+      this.send(host.conn, { type: "RoomCreated", roomId, you: created.player, pace: created.pace, mapId: created.mapId });
+      this.send(conn, { type: "RoomJoined", roomId, you: joined.player, players: joined.players ?? [joined.player], pace: joined.pace, mapId: joined.mapId });
+      return;
+    }
+
+    const waitMs = this.botAfterMs();
+    const entry: QueueEntry = {
+      conn,
+      playerId: player.playerId,
+      accountId,
+      nickname,
+      pace,
+      deadline: Date.now() + waitMs,
+      timer: setTimeout(() => void this.matchWithBot(accountId), waitMs),
+    };
+    this.queue.set(accountId, entry);
+    this.send(conn, { type: "MatchSearchStarted", pace, deadline: entry.deadline });
+  }
+
+  /** Prazo vencido sem adversário: a partida é contra o computador, com nome de usuário sorteado. */
+  private async matchWithBot(accountId: string): Promise<void> {
+    const entry = this.queue.get(accountId);
+    if (!entry) return;
+    this.leaveQueue(accountId);
+    const roomId = crypto.randomUUID().slice(0, 8);
+    const mapId = pickRandomMap(entry.pace, Math.random).id;
+    const botPlayerId = crypto.randomUUID();
+    const botName = randomBotName();
+    const botAccountId = BOT_PREFIX + botPlayerId;
+    const botRatingOffset = Math.round((Math.random() * 2 - 1) * 50);
+    const botFirst = Math.random() < 0.5; // quem entra primeiro é o Azul (e joga primeiro)
+    const addBot = () =>
+      this.addPlayerToRoom(roomId, botPlayerId, botName, botAccountId, "ranked", entry.pace, mapId, { bot: true, botRatingOffset });
+    const addHuman = () => this.addPlayerToRoom(roomId, entry.playerId, entry.nickname, entry.accountId, "ranked", entry.pace, mapId);
+    const first = botFirst ? await addBot() : await addHuman();
+    const second = first.ok ? (botFirst ? await addHuman() : await addBot()) : null;
+    const human = botFirst ? second : first;
+    if (!first.ok || !second || !second.ok || !human || !human.ok) {
+      this.send(entry.conn, { type: "ActionRejected", reason: "Não foi possível criar a partida. Tente buscar de novo." });
+      return;
+    }
+    await this.ctx.storage.put(`room:${roomId}`, true);
+    if (botFirst) {
+      this.send(entry.conn, { type: "RoomJoined", roomId, you: human.player, players: human.players ?? [human.player], pace: human.pace, mapId: human.mapId });
+    } else {
+      this.send(entry.conn, { type: "RoomCreated", roomId, you: human.player, pace: human.pace, mapId: human.mapId });
+    }
+  }
+
+  // ── Aprendizado da IA (docs/09-IA.md, 1.3) ────────────────────────
+
+  private async loadLearning(pace: Pace): Promise<LearningData> {
+    return sanitizeLearning(await this.ctx.storage.get(`learning:${pace}`));
+  }
+
+  /** Soma os posicionamentos dos jogadores de uma partida entre humanos (só agregados, nada pessoal). */
+  private async recordLearning(
+    pace: Pace,
+    body: { rows: number; cols: number; sides: { owner: "blue" | "red"; pieces: Piece[]; won: boolean }[] },
+  ): Promise<void> {
+    let data = await this.loadLearning(pace);
+    for (const side of body.sides) {
+      data = recordDeployment(data, side.pieces, body.rows, body.cols, side.owner, side.won);
+    }
+    await this.ctx.storage.put(`learning:${pace}`, data);
+  }
+
   /** Registra o jogador na GameRoom (Durable Object própria da sala) via chamada interna DO-a-DO. */
   private async addPlayerToRoom(
     roomId: string,
@@ -1118,6 +1297,7 @@ export class AccountsRoom extends DurableObject<Env> {
     matchType?: MatchType,
     pace?: Pace,
     mapId?: string,
+    extra?: { bot?: boolean; botRatingOffset?: number },
   ): Promise<{ ok: true; player: RoomPlayerInfo; players?: RoomPlayerInfo[]; pace: Pace; mapId: string } | { ok: false; reason?: string }> {
     const stub = this.env.ROOM.get(this.env.ROOM.idFromName(roomId));
     const response = await stub.fetch("https://internal/internal/add-player", {
@@ -1125,7 +1305,7 @@ export class AccountsRoom extends DurableObject<Env> {
       // Manda o roomId curto (canônico) junto — é assim que a GameRoom
       // aprende seu próprio roomId (Sprint QA-07); nunca usa o ID
       // interno de 64 caracteres da Durable Object para nada visível ao cliente.
-      body: JSON.stringify({ roomId, playerId, playerName, accountId, matchType, pace, mapId }),
+      body: JSON.stringify({ roomId, playerId, playerName, accountId, matchType, pace, mapId, ...extra }),
     });
     return (await response.json()) as
       | { ok: true; player: RoomPlayerInfo; players?: RoomPlayerInfo[]; pace: Pace; mapId: string }

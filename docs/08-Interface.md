@@ -338,3 +338,10 @@ Todos os menus e submenus (Centro de Operações, escolha de modo, Sala Online, 
 # Submenus sem Barra Superior
 
 - As telas de submenu (Modo, Modos de jogo, Sala Online, Sala de Espera, Perfil, Ranking, Configurações, Créditos, Login e Resultado) não mostram mais a barra superior com "NET // SECURE" e "CONFLITO". O título da tela e o botão de voltar continuam.
+
+---
+
+# Buscar Partida (Sala Online)
+
+- A Sala Online ganha o painel **Buscar Partida**: escolha do modo e botão **Buscar adversário**. Enquanto busca, mostra o tempo decorrido, "Procurando um adversário…" e o botão **Cancelar**. Ao achar, leva à sala de espera (o mapa é o sorteado pelo servidor).
+- Criar sala e entrar com código continuam como antes. Entrar na sala da própria conta é recusado com uma mensagem clara.

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ScreenShell } from "@/components/ScreenShell";
 import { GameButton } from "@/components/ui/GameButton";
@@ -9,6 +9,8 @@ import { ensureConnected, getNetworkClient } from "@/multiplayer/networkSingleto
 import { AuthClient } from "@/multiplayer/AuthClient";
 import { flowState } from "@/services/flowState";
 import { useMenuMusic } from "@/hooks/useMenuMusic";
+import { useCountdown } from "@/hooks/useClock";
+import { formatClock } from "@/lib/formatClock";
 import type { MatchType } from "@/types/ranking";
 import type { Pace } from "@/types/gameState";
 import { BATTLE_FORMATS, PACE_NAMES, armySize } from "@/services/battleFormat";
@@ -34,6 +36,12 @@ function OnlineLobbyPage() {
   const [theme, setTheme] = useState<ThemeId>("planicie");
   const maps = mapsForPace(pace);
   const chosenMap = maps.find((m) => m.theme === theme) ?? maps[0];
+  // Buscar partida ranqueada (docs/10-Multiplayer.md): modo da busca e prazo (epoch ms) até jogar contra o computador.
+  const [searchPace, setSearchPace] = useState<Pace>("classic");
+  const [searchDeadline, setSearchDeadline] = useState<number | null>(null);
+  const searchingRef = useRef(false);
+  searchingRef.current = searchDeadline !== null;
+  const searchLeftMs = useCountdown(searchDeadline);
 
   useEffect(() => {
     if (!session) {
@@ -46,16 +54,25 @@ function OnlineLobbyPage() {
     // Quando isso reconecta de fato, a conexão nasce sem autenticação — reenvia
     // o token já salvo (`ResumeSession`) para não pedir login de novo.
     client.ensureLobbyConnection();
-    return client.onEvent((event) => {
+    const offEvents = client.onEvent((event) => {
       if (event.type === "PlayerConnected") {
         client.send({ type: "ResumeSession", token: session.token });
       }
+      if (event.type === "MatchSearchStarted") {
+        setError(null);
+        setSearchDeadline(event.deadline);
+      }
+      if (event.type === "MatchSearchCancelled") setSearchDeadline(null);
       if (event.type === "RoomCreated" || event.type === "RoomJoined") {
+        setSearchDeadline(null);
         // O modo da sala vale também para o posicionamento e a partida (e substitui o de uma partida offline antiga).
         flowState.write({ onlineRoomId: event.roomId, onlineOwner: event.you.owner, pace: event.pace, mapId: event.mapId });
         navigate({ to: "/waiting-room" });
       }
-      if (event.type === "ActionRejected") setError(event.reason);
+      if (event.type === "ActionRejected") {
+        setSearchDeadline(null);
+        setError(event.reason);
+      }
       if (event.type === "AuthError") {
         // Sessão que o servidor não reconhece mais: descarta e pede um novo login.
         if (/Sessão expirada|Conta não encontrada/i.test(event.reason)) {
@@ -66,6 +83,17 @@ function OnlineLobbyPage() {
         setError(event.reason);
       }
     });
+    return () => {
+      offEvents();
+      // Saiu da tela no meio da busca: tira o jogador da fila.
+      if (searchingRef.current) {
+        try {
+          client.send({ type: "CancelFindMatch" });
+        } catch {
+          // sem conexão: o servidor já tira da fila quando o socket cai
+        }
+      }
+    };
   }, [navigate, session]);
 
   if (!session) return null;
@@ -89,6 +117,57 @@ function OnlineLobbyPage() {
         <GameButton variant="ghost" size="sm" onClick={handleLogout}>
           Sair da Conta
         </GameButton>
+      </div>
+
+      <div className="mx-auto mb-6 max-w-2xl">
+        <GamePanel variant="blue" eyebrow="// RANQUEADA" title="Buscar Partida">
+          <p className="mb-3 text-sm text-muted-foreground">
+            O servidor procura um adversário do mesmo modo. Se ninguém aparecer em 4 minutos, você joga contra um adversário controlado pelo computador. A partida vale pontos do mesmo jeito.
+          </p>
+          <div className="mb-3 grid grid-cols-3 gap-2">
+            {(["blitz", "rapid", "classic"] as const).map((id) => {
+              const f = BATTLE_FORMATS[id];
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  disabled={searchDeadline !== null}
+                  onClick={() => setSearchPace(id)}
+                  className={`rounded border p-2 text-left transition-colors disabled:opacity-60 ${
+                    searchPace === id ? "border-cyan-400/70 bg-cyan-500/10" : "border-border/40 bg-transparent hover:border-border"
+                  }`}
+                >
+                  <div className="text-[11px] font-bold uppercase leading-tight tracking-[0.06em] text-foreground">{PACE_NAMES[id].replace("Partida ", "")}</div>
+                  <p className="mt-1 text-[10px] leading-snug text-muted-foreground">
+                    {armySize(f)} peças · {f.rows}×{f.cols}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+          {searchDeadline === null ? (
+            <GameButton
+              variant="primary"
+              size="lg"
+              className="w-full"
+              onClick={() => {
+                setError(null);
+                ensureConnected().send({ type: "FindRankedMatch", pace: searchPace });
+              }}
+            >
+              Buscar adversário
+            </GameButton>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <p className="font-display text-xs uppercase tracking-[0.2em] text-cyan-300" role="status">
+                Procurando um adversário… {formatClock(Math.max(0, 4 * 60_000 - searchLeftMs))}
+              </p>
+              <GameButton variant="secondary" size="md" onClick={() => ensureConnected().send({ type: "CancelFindMatch" })}>
+                Cancelar
+              </GameButton>
+            </div>
+          )}
+        </GamePanel>
       </div>
 
       <div className="mx-auto grid max-w-2xl gap-6 sm:grid-cols-2">

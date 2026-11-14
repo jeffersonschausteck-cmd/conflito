@@ -247,3 +247,15 @@ Quando uma partida termina em vitória por captura da Bandeira ou por falta de p
 - Só vale com a sala em `finished`, com a partida já decidida e os dois jogadores presentes. Um jogador que saiu ou que perdeu por W.O. encerra a sala: não há revanche.
 - Quando os dois pediram, o servidor apaga a partida anterior (estado, posicionamentos e prontidões), mantém jogadores, lados, modo, mapa, visual e tipo de sala, abre um novo Posicionamento com novo prazo e dá um novo identificador à partida (o Rating é processado de novo, normalmente, no fim dela).
 - Os dois clientes recebem `RoomStateChanged` com status `deployment` e vão para a tela de Posicionamento; o resto do fluxo é o de sempre.
+
+---
+
+# Busca de Partida e Adversário do Computador
+
+- **Eventos:** `FindRankedMatch` (com o modo) entra na fila; `CancelFindMatch` sai. O servidor responde `MatchSearchStarted` (com o prazo de 4 minutos) e `MatchSearchCancelled`. Quando há par, os dois recebem `RoomCreated` / `RoomJoined`, como numa sala criada à mão, e seguem o fluxo de sempre (sala de espera, posicionamento, partida).
+- **Fila:** uma por modo, em memória da `AccountsRoom`. Uma conta só pode estar uma vez na fila. Quem se desconecta sai dela. Se o servidor reiniciar, o cliente refaz a busca ao reconectar.
+- **Prazo:** 4 minutos (`MATCH_BOT_AFTER_MS`, configurável só para testes). Vencido o prazo, o servidor cria uma sala em que o segundo jogador é o computador.
+- **Adversário do computador:** o jogador "computador" é registrado na sala com nome sorteado e identificador interno `bot:...`; o cliente não recebe nenhuma marca de que ele é o computador. Ele confirma a prontidão e o posicionamento sozinho (posicionamento inteligente, documento 09) e joga pelo servidor, com a mesma Inteligência Artificial de sempre, esperando entre 0,7 e 1,6 segundo por jogada. Ele só usa o que um jogador veria.
+- **Resultado:** `process-ranked-result` aceita um lado `bot:...`: só a conta humana é alterada, com a pontuação virtual do computador (`botRatingOffset`, sorteado ao criar a sala). O histórico guarda o nome sorteado.
+- **Revanche:** na sala com o computador, o pedido do jogador já vale pelos dois.
+- **Mesma conta:** `add-player` recusa um segundo jogador da mesma conta na sala.

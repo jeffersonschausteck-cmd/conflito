@@ -283,3 +283,21 @@ Cada modo de jogo (Partida Rápida, Normal e Intensa; documento 04, seção 19) 
 4. Com o código certo, a senha é trocada, o código deixa de valer e o jogador volta ao login com o aviso "Senha alterada. Entre com a nova senha." Se a conta ainda não tinha o e-mail confirmado, ele passa a valer como confirmado, pois o código prova que o jogador tem acesso ao e-mail.
 - Conta que não existe: "Não encontramos uma conta com esse usuário ou e-mail."
 - Nesta versão, outros aparelhos que já estavam logados continuam logados até o jogador usar "Sair da conta".
+
+---
+
+# Buscar Partida Ranqueada
+
+Além de criar uma sala e entrar com o código, o Multijogador tem **Buscar partida**: o jogador escolhe o modo e o servidor procura um adversário.
+
+- **Fila por modo:** quem busca entra na fila do modo escolhido. Quando há dois jogadores de **contas diferentes** na mesma fila, o servidor cria a sala, sorteia um dos 5 mapas do modo (documento 19) e leva os dois à sala de espera. A ordem de chegada manda.
+- **Cancelar:** o jogador pode cancelar a busca a qualquer momento; fechar a página ou perder a conexão também tira o jogador da fila.
+- **Sem adversário em 4 minutos:** a partida é feita contra o computador. O adversário recebe um **nome de usuário sorteado**, como o de um jogador comum, e a partida é ranqueada normalmente.
+- **Pontos contra o computador da fila:** a pontuação, as vitórias, as derrotas, as sequências, a patente e o histórico do jogador mudam como numa partida contra uma pessoa. O adversário não tem conta: sua pontuação é virtual (a do jogador, mais ou menos até 50 pontos, sorteada), não aparece no ranking e não guarda nada. No histórico aparece o nome sorteado.
+- **Campanha continua sem pontos:** só contam as partidas ranqueadas online (contra outra conta, ou contra o computador da fila).
+- **Uma conta não joga contra si mesma:** entrar numa sala criada pela mesma conta (por exemplo, com duas abas) é recusado, porque as duas pontas da partida alterariam a mesma pontuação.
+
+## Pontos, ranking e histórico
+
+- Cada partida ranqueada terminada grava uma linha no histórico das duas contas, atualiza os pontos do modo e, na primeira partida do modo, coloca o jogador no ranking daquele modo.
+- O Perfil e o Ranking buscam os dados no servidor sempre que a tela abre ou o modo muda; a tela final mostra a variação de pontos que o servidor calculou.

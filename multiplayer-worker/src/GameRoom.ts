@@ -21,6 +21,8 @@ import { GameEngine } from "@/services/gameEngine";
 import { ownerToPlayer } from "@/types/gameState";
 import { DeploymentManager, DEPLOYMENT_DURATION_MS } from "@/services/deploymentManager";
 import { getBlockedTiles, mapForPace, normalizeMapId } from "@/maps";
+import { AIEngine } from "@/services/aiEngine";
+import { sanitizeLearning, type LearningData } from "@/services/aiLearning";
 import { formatFor, normalizePace } from "@/services/battleFormat";
 import type { GameAction, GameState, Pace, Player } from "@/types/gameState";
 import type { Piece, PlayerOwner } from "@/types/piece";
@@ -131,6 +133,9 @@ interface PersistedRoom {
   skins?: [PlayerId, SkinTable][];
   /** Revanche: quem já pediu para jogar de novo. */
   rematchPlayerIds?: PlayerId[];
+  /** Adversário do computador (fila ranqueada, docs/10-Multiplayer.md): id do jogador-computador e pontuação virtual dele. */
+  botPlayerId?: PlayerId | null;
+  botRatingOffset?: number;
 }
 
 const ROOM_STORAGE_KEY = "room";
@@ -156,6 +161,11 @@ export class GameRoom extends DurableObject<Env> {
   private deployments = new Map<PlayerId, Piece[]>();
   /** Revanche: jogadores que já pediram para jogar de novo (docs/10-Multiplayer.md). */
   private rematchPlayers = new Set<PlayerId>();
+  /** Jogador controlado pelo servidor (fila ranqueada sem adversário em 4 minutos); `null` em salas só de pessoas. */
+  private botPlayerId: PlayerId | null = null;
+  private botRatingOffset = 0;
+  private botTimer: ReturnType<typeof setTimeout> | null = null;
+  private learningCache: LearningData | null = null;
   private connectionsByPlayer = new Map<PlayerId, TransportConnection>();
   private loaded = false;
   /** Sprint TIMER-01 — prazo (epoch ms) do fim da fase de Posicionamento. `null` fora dessa fase. */
@@ -190,6 +200,8 @@ export class GameRoom extends DurableObject<Env> {
       this.players = stored.players;
       this.readyPlayers = new Set(stored.readyPlayerIds);
       this.rematchPlayers = new Set(stored.rematchPlayerIds ?? []);
+      this.botPlayerId = stored.botPlayerId ?? null;
+      this.botRatingOffset = stored.botRatingOffset ?? 0;
       this.deployments = new Map(stored.deployments);
       this.session = stored.gameState
         ? GameSession.fromState({
@@ -221,6 +233,8 @@ export class GameRoom extends DurableObject<Env> {
       players: this.players,
       readyPlayerIds: [...this.readyPlayers],
       rematchPlayerIds: [...this.rematchPlayers],
+      botPlayerId: this.botPlayerId,
+      botRatingOffset: this.botRatingOffset,
       deployments: [...this.deployments.entries()],
       gameState: gameState
         ? { ...gameState, config: { ...gameState.config, blockedTiles: [...(gameState.config.blockedTiles ?? [])] } }
@@ -271,6 +285,8 @@ export class GameRoom extends DurableObject<Env> {
         matchType?: MatchType;
         pace?: Pace;
         mapId?: string;
+        bot?: boolean;
+        botRatingOffset?: number;
       };
       if (!this.roomId) this.roomId = body.roomId;
       // Sprint RANKING-01 — só o primeiro jogador (quem cria a sala)
@@ -284,6 +300,12 @@ export class GameRoom extends DurableObject<Env> {
         this.mapId = normalizeMapId(this.pace, body.mapId);
       }
       const result = this.addPlayer(body.playerId, body.playerName, body.accountId);
+      if (result.ok && body.bot) {
+        // O computador da fila: confirma a prontidão sozinho; só o servidor o conhece como tal.
+        this.botPlayerId = body.playerId;
+        this.botRatingOffset = Number.isFinite(body.botRatingOffset) ? Math.max(-100, Math.min(100, Math.round(body.botRatingOffset!))) : 0;
+        this.readyPlayers.add(body.playerId);
+      }
       // Avisa quem já estiver conectado a esta sala (ex.: quem a criou)
       // que um novo jogador entrou — equivalente ao antigo
       // `broadcastRoomState` chamado depois de CreateRoom/JoinRoom.
@@ -317,6 +339,10 @@ export class GameRoom extends DurableObject<Env> {
   private addPlayer(playerId: PlayerId, playerName: string, accountId: string) {
     if (this.isFull()) {
       return { ok: false as const, reason: "Sala já está cheia." };
+    }
+    // Uma conta não joga contra si mesma: as duas pontas alterariam a mesma pontuação (docs/16, Buscar Partida Ranqueada).
+    if (this.players.some((p) => p.accountId === accountId)) {
+      return { ok: false as const, reason: "Você já está nesta sala com esta conta. Use outra conta para jogar contra si mesmo." };
     }
     const owner: PlayerOwner = this.players.length === 0 ? "blue" : "red";
     const player: RoomPlayer = { playerId, playerName, owner, accountId };
@@ -369,11 +395,14 @@ export class GameRoom extends DurableObject<Env> {
     if (!this.ownerOf(playerId)) return { ok: false, reason: "Jogador não pertence a esta sala." };
     if (this.players.length < 2) return { ok: false, reason: "O adversário saiu da sala." };
     this.rematchPlayers.add(playerId);
-    const everyoneHere = this.players.every((p) => this.connectionsByPlayer.has(p.playerId));
+    // O computador sempre aceita a revanche e está sempre "presente".
+    if (this.botPlayerId) this.rematchPlayers.add(this.botPlayerId);
+    const everyoneHere = this.players.every((p) => p.playerId === this.botPlayerId || this.connectionsByPlayer.has(p.playerId));
     if (this.rematchPlayers.size >= 2 && everyoneHere) {
       this.session = null;
       this.deployments.clear();
       this.readyPlayers.clear();
+      if (this.botPlayerId) this.readyPlayers.add(this.botPlayerId);
       this.rematchPlayers.clear();
       this.matchStartTime = null;
       this.matchEndTime = null;
@@ -466,6 +495,7 @@ export class GameRoom extends DurableObject<Env> {
           endedAt: this.matchEndTime,
           turnCount: finalState.turnNumber,
           pace: this.pace,
+          botRatingOffset: this.botRatingOffset,
         }),
       });
       const result = (await response.json()) as { ok: boolean; record?: MatchRecord; reason?: string };
@@ -567,6 +597,7 @@ export class GameRoom extends DurableObject<Env> {
     // Sprint RANKING-02 — histórico é registrado pra TODA partida
     // (casual ou ranked), independente do resultado de `finalizeMatch`.
     await this.recordMatchHistory(winnerPlayer, finalState, reason, record);
+    await this.recordLearning(winnerPlayer, reason);
     await this.persist();
     for (const player of this.players) {
       const conn = this.connectionsByPlayer.get(player.playerId);
@@ -581,6 +612,94 @@ export class GameRoom extends DurableObject<Env> {
         matchType: this.matchType,
         ranking: rankingByPlayer.get(player.playerId) ?? null,
       });
+    }
+  }
+
+  // ── Adversário do computador (docs/10-Multiplayer.md) ───────────
+
+  /** Aprendizado agregado dos jogadores (docs/09-IA.md, 1.3), pedido à AccountsRoom; vazio se falhar. */
+  private async fetchLearning(): Promise<LearningData> {
+    if (this.learningCache) return this.learningCache;
+    try {
+      const stub = this.env.ACCOUNTS.get(this.env.ACCOUNTS.idFromName("global"));
+      const res = await stub.fetch(`https://internal/internal/get-learning?pace=${this.pace}`);
+      this.learningCache = sanitizeLearning(await res.json());
+      return this.learningCache;
+    } catch {
+      return sanitizeLearning(null);
+    }
+  }
+
+  /** O computador posiciona o exército dele (posicionamento inteligente, com o que aprendeu dos jogadores). */
+  private async deployBot(): Promise<void> {
+    const botId = this.botPlayerId;
+    if (!botId || this.status !== "deployment" || this.deployments.has(botId)) return;
+    const owner = this.ownerOf(botId);
+    if (!owner) return;
+    const map = mapForPace(this.pace, this.mapId);
+    const learning = await this.fetchLearning();
+    const pieces = DeploymentManager.generateAIDeployment(map.rows, map.cols, getBlockedTiles(map), owner, formatFor(this.pace), learning);
+    this.confirmDeployment(botId, pieces);
+  }
+
+  /** Se for a vez do computador, agenda a jogada dele (0,7 a 1,6 s de "pensamento"). */
+  private maybeScheduleBot(): void {
+    if (!this.botPlayerId || this.botTimer || this.status !== "playing" || !this.session) return;
+    const owner = this.ownerOf(this.botPlayerId);
+    const state = this.session.getState();
+    if (!owner || state.gameOver || ownerToPlayer(owner) !== state.currentPlayer) return;
+    this.botTimer = setTimeout(() => void this.runBotMove(), 700 + Math.random() * 900);
+  }
+
+  private async runBotMove(): Promise<void> {
+    this.botTimer = null;
+    try {
+      await this.ensureLoaded();
+      const botId = this.botPlayerId;
+      if (!botId || this.status !== "playing" || !this.session) return;
+      const owner = this.ownerOf(botId);
+      const state = this.session.getState();
+      if (!owner || state.gameOver || ownerToPlayer(owner) !== state.currentPlayer) return;
+
+      const learning = await this.fetchLearning();
+      const decision = AIEngine.chooseMove(state, state.currentPlayer, { memoryKey: `${this.roomId}:${this.matchId}`, learning });
+      if (!decision) return;
+      const select = this.applyAction(botId, { type: "SELECT_PIECE", pieceId: decision.piece.id });
+      if (!select.ok) return;
+      const result = this.applyAction(botId, { type: "MOVE_SELECTED", row: decision.target.row, column: decision.target.column });
+      if (!result.ok) return;
+      await this.persist();
+      if (result.state.gameOver && result.state.winner) {
+        await this.sendGameFinished(result.state.winner, result.state);
+      } else {
+        this.broadcast({ type: "ActionApplied", state: result.state, appliedBy: botId });
+        this.maybeScheduleBot();
+      }
+    } catch {
+      // Uma falha do computador nunca derruba a sala: a próxima ação ou reconexão agenda de novo.
+    }
+  }
+
+  /**
+   * Aprendizado da IA (docs/09-IA.md, 1.3): só partidas entre pessoas, terminadas por captura/falta de peças (não W.O.).
+   * Manda à AccountsRoom os dois posicionamentos e quem venceu — só agregados anônimos, sem conta nem nome.
+   */
+  private async recordLearning(winnerPlayer: Player, reason: "victory" | "forfeit"): Promise<void> {
+    if (this.botPlayerId || reason !== "victory" || this.matchType !== "ranked" || this.players.length < 2) return;
+    try {
+      const map = mapForPace(this.pace, this.mapId);
+      const winnerOwner = winnerPlayer === "BLUE" ? "blue" : "red";
+      const sides = this.players
+        .map((p) => ({ owner: p.owner, pieces: this.deployments.get(p.playerId) ?? [], won: p.owner === winnerOwner }))
+        .filter((side) => side.pieces.length > 0);
+      if (sides.length < 2) return;
+      const stub = this.env.ACCOUNTS.get(this.env.ACCOUNTS.idFromName("global"));
+      await stub.fetch("https://internal/internal/record-learning", {
+        method: "POST",
+        body: JSON.stringify({ pace: this.pace, rows: map.rows, cols: map.cols, sides }),
+      });
+    } catch {
+      // O aprendizado é auxiliar: nunca atrapalha o fim da partida.
     }
   }
 
@@ -688,6 +807,7 @@ export class GameRoom extends DurableObject<Env> {
         matchStartTime: this.matchStartTime!,
         matchType: this.matchType,
       });
+      this.maybeScheduleBot();
     }
   }
 
@@ -764,6 +884,7 @@ export class GameRoom extends DurableObject<Env> {
           this.send(conn, { type: "ActionRejected", reason: result.reason ?? "Não foi possível confirmar." });
           break;
         }
+        if (this.status === "deployment") await this.deployBot();
         await this.persist();
         this.broadcastRoomState();
         // Sprint TIMER-01 — rede de segurança server-authoritative: se
@@ -782,6 +903,7 @@ export class GameRoom extends DurableObject<Env> {
           this.send(conn, { type: "ActionRejected", reason: result.reason ?? "Não foi possível pedir a revanche." });
           break;
         }
+        if (result.started) await this.deployBot();
         await this.persist();
         this.broadcastRoomState();
         if (result.started) await this.scheduleNextAlarm();
@@ -803,6 +925,7 @@ export class GameRoom extends DurableObject<Env> {
             matchStartTime: this.matchStartTime!,
             matchType: this.matchType,
           });
+          this.maybeScheduleBot();
         }
         break;
       }
@@ -834,6 +957,7 @@ export class GameRoom extends DurableObject<Env> {
           await this.sendGameFinished(result.state.winner, result.state);
         } else {
           this.broadcast({ type: "ActionApplied", state: result.state, appliedBy: playerId });
+          this.maybeScheduleBot();
         }
         break;
       }
@@ -849,6 +973,7 @@ export class GameRoom extends DurableObject<Env> {
           await this.sendGameFinished(result.state.winner, result.state);
         } else {
           this.broadcast({ type: "ActionApplied", state: result.state, appliedBy: playerId });
+          this.maybeScheduleBot();
         }
         break;
       }
@@ -946,6 +1071,7 @@ export class GameRoom extends DurableObject<Env> {
           matchStartTime: this.matchStartTime!,
           matchType: this.matchType,
         });
+        this.maybeScheduleBot();
       }
     }
 

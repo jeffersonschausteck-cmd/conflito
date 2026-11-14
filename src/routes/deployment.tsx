@@ -9,6 +9,9 @@ import { theme } from "@/design/theme";
 import { getBlockedTiles, mapForPace } from "@/maps";
 import { flowState } from "@/services/flowState";
 import { ensureConnected } from "@/multiplayer/networkSingleton";
+import { fetchLearning } from "@/multiplayer/learningClient";
+import { AIEngine } from "@/services/aiEngine";
+import type { LearningData } from "@/services/aiLearning";
 import { serializeGameState } from "@/multiplayer/NetworkClient";
 import { useMenuMusic } from "@/hooks/useMenuMusic";
 import { useCountdown } from "@/hooks/useClock";
@@ -87,6 +90,8 @@ function DeploymentPage() {
   const effectiveDeadline = isOnline ? onlineDeploymentDeadline : deploymentDeadline;
   const remainingMs = useCountdown(effectiveDeadline);
   const autoSubmittedRef = useRef(false);
+  // Campanha: o que a IA aprendeu com os jogadores (docs/09-IA.md, 1.3), buscado em segundo plano; sem rede, a IA joga como sempre.
+  const learningRef = useRef<LearningData | null>(null);
 
   // Sprint RANKING-03 — Fase 5. Mesmo `matchType` de sempre; mesmo
   // padrão de `onlineDeploymentDeadline` acima (valor inicial de
@@ -162,6 +167,19 @@ function DeploymentPage() {
       }
     });
   }, [isOnline, navigate]);
+
+  useEffect(() => {
+    if (isOnline) return;
+    let alive = true;
+    void fetchLearning(pace).then((data) => {
+      if (!alive) return;
+      learningRef.current = data;
+      AIEngine.setLearning(data);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [isOnline, pace]);
 
   const trayCounts = useMemo(() => {
     const counts = { ...format.roster };
@@ -322,7 +340,7 @@ function DeploymentPage() {
       return;
     }
 
-    const aiPieces = DeploymentManager.generateAIDeployment(rows, cols, blockedTiles, myOwner === "blue" ? "red" : "blue", format);
+    const aiPieces = DeploymentManager.generateAIDeployment(rows, cols, blockedTiles, myOwner === "blue" ? "red" : "blue", format, learningRef.current);
     const finalWithAI = [...finalPieces, ...aiPieces];
     if (typeof window !== "undefined") {
       window.sessionStorage.setItem("psc:initial-pieces", JSON.stringify(finalWithAI));

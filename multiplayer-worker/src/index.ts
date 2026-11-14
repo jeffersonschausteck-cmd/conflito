@@ -23,6 +23,17 @@ export default {
       return stub.fetch(request);
     }
 
+    // Aprendizado da IA (docs/09-IA.md, 1.3): só agregados anônimos por modo, leitura pública para a Campanha.
+    const learningMatch = url.pathname.match(/^\/learning\/(blitz|rapid|classic)$/);
+    if (learningMatch && request.method === "GET") {
+      const stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromName(ACCOUNTS_INSTANCE));
+      const res = await stub.fetch(`https://internal/internal/get-learning?pace=${learningMatch[1]}`);
+      return new Response(res.body, {
+        status: res.status,
+        headers: { "content-type": "application/json", "access-control-allow-origin": "*", "cache-control": "public, max-age=300" },
+      });
+    }
+
     const roomMatch = url.pathname.match(/^\/room\/([^/]+)\/ws$/);
     if (roomMatch) {
       const roomId = roomMatch[1];

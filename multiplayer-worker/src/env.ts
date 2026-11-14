@@ -9,4 +9,6 @@ export interface Env {
   EMAIL_FROM?: string;
   /** Só desenvolvimento local (`.dev.vars`): "1" mostra o código na tela e no log em vez de enviar e-mail. */
   DEV_SHOW_CODE?: string;
+  /** Quanto esperar, em ms, na fila ranqueada antes de jogar contra o computador (padrão 240000 = 4 min). Só para testes. */
+  MATCH_BOT_AFTER_MS?: string;
 }
