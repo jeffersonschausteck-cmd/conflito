@@ -32,18 +32,6 @@ export function ScreenShell({
   return (
     <main className="relative flex h-dvh w-screen flex-col overflow-hidden text-foreground">
 
-      {/* Top HUD bar */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 py-2 font-display text-[9px] uppercase tracking-[0.2em] text-sky-100 [text-shadow:0_1px_2px_#000] [@media(min-height:480px)]:px-6 [@media(min-height:480px)]:py-4 [@media(min-height:480px)]:text-[10px] [@media(min-height:480px)]:tracking-[0.3em] sm:px-10">
-        <div className="flex items-center gap-3">
-          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary shadow-[0_0_10px_var(--primary)]" />
-          <span>NET // SECURE</span>
-        </div>
-        <div className="flex items-center gap-2 text-cyan-300">
-          <span>◆</span>
-          <span>CONFLITO</span>
-        </div>
-      </div>
-
       {backTo && (
         <div className="absolute left-4 top-8 z-30 [@media(min-height:480px)]:left-6 [@media(min-height:480px)]:top-14 sm:left-10">
           <Link

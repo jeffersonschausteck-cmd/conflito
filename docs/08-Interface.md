@@ -332,3 +332,9 @@ Todos os menus e submenus (Centro de Operações, escolha de modo, Sala Online, 
 - Contra o computador, o clique já abre o Posicionamento.
 - Online, o botão avisa o adversário; enquanto ele não aceitar, a tela mostra "Aguardando o adversário" e, se o adversário clicar primeiro, "O adversário quer jogar de novo". Quando os dois aceitam, os dois vão para o Posicionamento ao mesmo tempo.
 - Há também o botão **MENU** para sair (online, sai da sala).
+
+---
+
+# Submenus sem Barra Superior
+
+- As telas de submenu (Modo, Modos de jogo, Sala Online, Sala de Espera, Perfil, Ranking, Configurações, Créditos, Login e Resultado) não mostram mais a barra superior com "NET // SECURE" e "CONFLITO". O título da tela e o botão de voltar continuam.
