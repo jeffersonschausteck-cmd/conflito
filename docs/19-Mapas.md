@@ -44,7 +44,7 @@ Todo mapa, em qualquer tamanho, cumpre estas regras (verificadas por teste autom
 
 | Terreno | Bloqueia? | Observação |
 |---------|-----------|------------|
-| Planície, estrada, bases (enfeite nos cantos) | Não | Casas livres |
+| Planície, estrada | Não | Casas livres |
 | Floresta, água, montanha | Sim | Nenhuma peça entra nem atravessa |
 | **Rochedo** | Sim | Novo: pedras grandes (Bosque Real e Passo da Montanha) |
 | **Povoado** | Sim | Novo: moinhos, casas e torres (Vale do Rio e Fosso do Castelo) |
@@ -76,3 +76,7 @@ Cada mapa aparece na roleta e na escolha da sala com uma prévia pequena desenha
 # Histórico
 
 - Criação do documento: 5 cenários em 3 tamanhos (15 mapas), roleta na Campanha e escolha do mapa pelo anfitrião no online.
+
+## Sem casas de base nos cantos
+
+Os mapas não têm mais as casas coloridas com uma bandeirinha nos quatro cantos do tabuleiro: essas casas agora são grama igual às demais. Não mudava nenhuma regra.

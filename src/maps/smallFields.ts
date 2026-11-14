@@ -35,10 +35,6 @@ function build(id: string, nome: string, pace: "blitz" | "rapid", rows: number, 
     if (tiles[r][midR] === "grass") set(r, midR, "road");
   }
   // Setores de comando nos cantos opostos (só decoração).
-  tiles[rows - 1][0] = "blue-base";
-  tiles[0][cols - 1] = "blue-base";
-  tiles[0][0] = "red-base";
-  tiles[rows - 1][cols - 1] = "red-base";
   return { id, nome, theme: "planicie", pace, rows, cols, tiles };
 }
 

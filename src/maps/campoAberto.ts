@@ -47,11 +47,6 @@ function buildTiles(): TerrainId[][] {
     if (tiles[r][9] === "grass") set(r, 9, "road");
   }
 
-  // Command sectors in opposite corners.
-  set(ROWS - 1, 0, "blue-base");
-  set(0, COLS - 1, "blue-base");
-  set(0, 0, "red-base");
-  set(ROWS - 1, COLS - 1, "red-base");
 
   return tiles;
 }

@@ -52,10 +52,6 @@ export function fromQuadrant(theme: ThemeId, pace: GalleryPace, quad: string[]):
     }
   }
   // Setores de comando nos cantos opostos (só enfeite, igual aos mapas clássicos).
-  tiles[rows - 1][0] = "blue-base";
-  tiles[0][cols - 1] = "blue-base";
-  tiles[0][0] = "red-base";
-  tiles[rows - 1][cols - 1] = "red-base";
   return { id: `${theme}-${pace}`, nome: NOMES[theme], theme, pace, rows, cols, tiles };
 }
 

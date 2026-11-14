@@ -272,7 +272,7 @@ function KayTile({ row, col, terrain, boardW, boardH, theme, onSelect }: { row: 
         x={px}
         z={pz}
         rotY={terrain === "road" ? 0 : rot * (terrain === "water" ? 0 : 1)}
-        tint={terrain === "water" ? undefined : terrain === "blue-base" ? "#8fd0ff" : terrain === "red-base" ? "#ffb0a0" : theme.grama}
+        tint={terrain === "water" ? undefined : theme.grama}
       />
       {terrain === "mountain" && <KayModel file={mountain} x={px} z={pz} rotY={rot} />}
       {terrain === "forest" && <KayModel file={forest} x={px} z={pz} rotY={rot} />}
@@ -284,8 +284,6 @@ function KayTile({ row, col, terrain, boardW, boardH, theme, onSelect }: { row: 
           <KayModel file={theme.rochedos[(seed + 2) % theme.rochedos.length]} x={px + 0.1} z={pz + 0.45} rotY={rot + 2} scale={1.8} />
         </>
       )}
-      {terrain === "blue-base" && (seed % 3 === 0) && <KayModel file="flag_blue" x={px} z={pz} />}
-      {terrain === "red-base" && (seed % 3 === 0) && <KayModel file="flag_red" x={px} z={pz} />}
     </group>
   );
 }
