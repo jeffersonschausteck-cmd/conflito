@@ -4,6 +4,11 @@ import { ScreenShell } from "@/components/ScreenShell";
 import { GameButton } from "@/components/ui/GameButton";
 import { GameCard } from "@/components/ui/GameCard";
 import { MenuTitle } from "@/components/ui/MenuTitle";
+import { useState } from "react";
+import { MapRoulette } from "@/components/MapRoulette";
+import { mapsForPace } from "@/maps";
+import { PACE_NAMES } from "@/services/battleFormat";
+import type { MapDefinition } from "@/maps";
 import { flowState } from "@/services/flowState";
 import { PACES_ENABLED } from "@/services/matchRules";
 import { armySize, formatFor } from "@/services/battleFormat";
@@ -34,9 +39,12 @@ function details(id: Pace): string[] {
 
 function PacePage() {
   const navigate = useNavigate();
-  const choose = (pace: Pace) => {
+  // Ao escolher o modo, a roleta sorteia um dos 5 mapas dele (docs/19-Mapas.md) e só então a partida segue.
+  const [spinning, setSpinning] = useState<Pace | null>(null);
+  const choose = (pace: Pace) => setSpinning(pace);
+  const startWithMap = (pace: Pace, map: MapDefinition) => {
     // Lado sorteado: o jogador tanto pode cair com o Azul quanto com o Vermelho.
-    flowState.write({ pace, offlineOwner: Math.random() < 0.5 ? "blue" : "red" });
+    flowState.write({ pace, mapId: map.id, offlineOwner: Math.random() < 0.5 ? "blue" : "red" });
     navigate({ to: "/loading" });
   };
 
@@ -69,6 +77,7 @@ function PacePage() {
           </GameCard>
         ))}
       </div>
+      {spinning && <MapRoulette maps={mapsForPace(spinning)} title={PACE_NAMES[spinning]} onDone={(map) => startWithMap(spinning, map)} />}
     </ScreenShell>
   );
 }

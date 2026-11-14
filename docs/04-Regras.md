@@ -293,6 +293,7 @@ Composição de cada exército:
 | **Total** | **40** | **30** | **24** |
 
 - Os três modos valem contra o computador e também no online. Quem cria a sala online escolhe o modo; quem entra joga no modo da sala. O tabuleiro e o exército seguem o modo escolhido. No online toda partida é ranqueada (documento 16).
+- Cada modo tem 5 mapas diferentes (15 no total), com o mesmo tamanho de tabuleiro e o mesmo exército; veja o documento 19. Contra o computador o mapa é sorteado por uma roleta; no online quem cria a sala escolhe o mapa.
 - A ranqueada é separada por modo: cada modo tem a sua própria pontuação, o seu ranking e as suas estatísticas (documento 16, seção "Ranqueada por modo"). Uma partida só mexe nos pontos do modo em que foi jogada.
 
 ---

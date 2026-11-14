@@ -46,6 +46,7 @@ import {
 import type { ClientEvent, PlayerId, RoomPlayerInfo, ServerEvent } from "@/multiplayer/protocol";
 import type { Pace } from "@/types/gameState";
 import { normalizePace } from "@/services/battleFormat";
+import { normalizeMapId } from "@/maps";
 import type { Env } from "./env";
 import {
   CODE_MAX_ATTEMPTS,
@@ -1030,13 +1031,14 @@ export class AccountsRoom extends DurableObject<Env> {
           // Toda partida online é ranqueada: o `matchType` pedido pelo cliente é ignorado (docs/16, "Sem casual").
           "ranked",
           normalizePace(event.pace),
+          normalizeMapId(normalizePace(event.pace), event.mapId),
         );
         if (!added.ok) {
           this.send(conn, { type: "ActionRejected", reason: added.reason ?? "Não foi possível criar a sala." });
           break;
         }
         await this.ctx.storage.put(`room:${roomId}`, true);
-        this.send(conn, { type: "RoomCreated", roomId, you: added.player, pace: added.pace });
+        this.send(conn, { type: "RoomCreated", roomId, you: added.player, pace: added.pace, mapId: added.mapId });
         break;
       }
 
@@ -1059,7 +1061,7 @@ export class AccountsRoom extends DurableObject<Env> {
           this.send(conn, { type: "ActionRejected", reason: added.reason ?? "Não foi possível entrar na sala." });
           break;
         }
-        this.send(conn, { type: "RoomJoined", roomId, you: added.player, players: added.players ?? [added.player], pace: added.pace });
+        this.send(conn, { type: "RoomJoined", roomId, you: added.player, players: added.players ?? [added.player], pace: added.pace, mapId: added.mapId });
         break;
       }
 
@@ -1115,17 +1117,18 @@ export class AccountsRoom extends DurableObject<Env> {
     accountId: string,
     matchType?: MatchType,
     pace?: Pace,
-  ): Promise<{ ok: true; player: RoomPlayerInfo; players?: RoomPlayerInfo[]; pace: Pace } | { ok: false; reason?: string }> {
+    mapId?: string,
+  ): Promise<{ ok: true; player: RoomPlayerInfo; players?: RoomPlayerInfo[]; pace: Pace; mapId: string } | { ok: false; reason?: string }> {
     const stub = this.env.ROOM.get(this.env.ROOM.idFromName(roomId));
     const response = await stub.fetch("https://internal/internal/add-player", {
       method: "POST",
       // Manda o roomId curto (canônico) junto — é assim que a GameRoom
       // aprende seu próprio roomId (Sprint QA-07); nunca usa o ID
       // interno de 64 caracteres da Durable Object para nada visível ao cliente.
-      body: JSON.stringify({ roomId, playerId, playerName, accountId, matchType, pace }),
+      body: JSON.stringify({ roomId, playerId, playerName, accountId, matchType, pace, mapId }),
     });
     return (await response.json()) as
-      | { ok: true; player: RoomPlayerInfo; players?: RoomPlayerInfo[]; pace: Pace }
+      | { ok: true; player: RoomPlayerInfo; players?: RoomPlayerInfo[]; pace: Pace; mapId: string }
       | { ok: false; reason?: string };
   }
 }

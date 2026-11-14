@@ -20,7 +20,7 @@ import { acceptWebSocket, type TransportConnection } from "./durableTransport";
 import { GameEngine } from "@/services/gameEngine";
 import { ownerToPlayer } from "@/types/gameState";
 import { DeploymentManager, DEPLOYMENT_DURATION_MS } from "@/services/deploymentManager";
-import { getBlockedTiles, mapForPace } from "@/maps";
+import { getBlockedTiles, mapForPace, normalizeMapId } from "@/maps";
 import { formatFor, normalizePace } from "@/services/battleFormat";
 import type { GameAction, GameState, Pace, Player } from "@/types/gameState";
 import type { Piece, PlayerOwner } from "@/types/piece";
@@ -49,13 +49,14 @@ const RECONNECT_GRACE_MS = 3 * 60 * 1000;
 class GameSession {
   private state: GameState;
 
-  constructor(initialPieces?: Piece[], pace: Pace = "classic") {
-    const map = mapForPace(pace);
+  constructor(initialPieces?: Piece[], pace: Pace = "classic", mapId?: string) {
+    const map = mapForPace(pace, mapId);
     this.state = GameEngine.createInitialState({
       rows: map.rows,
       cols: map.cols,
       blockedTiles: getBlockedTiles(map),
       pace,
+      mapId: map.id,
     });
     if (initialPieces) {
       this.state = { ...this.state, pieces: initialPieces };
@@ -121,6 +122,8 @@ interface PersistedRoom {
   matchType: MatchType;
   /** Modo da sala (tamanho do tabuleiro e do exército). Ausente em salas antigas = Partida Intensa. */
   pace?: Pace;
+  /** Mapa da sala (docs/19-Mapas.md). Ausente em salas antigas = a Planície Real do modo. */
+  mapId?: string;
   matchId: string | null;
   /** Sprint RANKING-01 — o `AccountsRoom` já processou esse `matchId`? Evita reprocessar Rating se `finalizeMatch` for chamado mais de uma vez pro mesmo resultado. */
   rankingProcessed: boolean;
@@ -165,6 +168,8 @@ export class GameRoom extends DurableObject<Env> {
   private matchType: MatchType = "casual";
   /** Modo da sala, decidido por quem a cria. */
   private pace: Pace = "classic";
+  /** Mapa da sala, escolhido por quem a cria (sempre um dos 5 do modo). */
+  private mapId: string = normalizeMapId("classic", null);
   /** Sprint RANKING-01 — gerado uma única vez quando a `GameSession` é criada (`confirmDeployment`); identifica esta partida pro `AccountsRoom` de forma idempotente. */
   private matchId: string | null = null;
   private rankingProcessed = false;
@@ -194,6 +199,7 @@ export class GameRoom extends DurableObject<Env> {
       this.disconnectDeadline = stored.disconnectDeadline ?? null;
       this.matchType = stored.matchType ?? "casual";
       this.pace = normalizePace(stored.pace);
+      this.mapId = normalizeMapId(this.pace, stored.mapId);
       this.matchId = stored.matchId ?? null;
       this.rankingProcessed = stored.rankingProcessed ?? false;
       this.skinsByPlayer = new Map((stored.skins ?? []).map(([id, t]) => [id, sanitizeSkins(t)]));
@@ -220,6 +226,7 @@ export class GameRoom extends DurableObject<Env> {
       disconnectDeadline: this.disconnectDeadline,
       matchType: this.matchType,
       pace: this.pace,
+      mapId: this.mapId,
       matchId: this.matchId,
       rankingProcessed: this.rankingProcessed,
       skins: [...this.skinsByPlayer.entries()],
@@ -257,6 +264,7 @@ export class GameRoom extends DurableObject<Env> {
         accountId: string;
         matchType?: MatchType;
         pace?: Pace;
+        mapId?: string;
       };
       if (!this.roomId) this.roomId = body.roomId;
       // Sprint RANKING-01 — só o primeiro jogador (quem cria a sala)
@@ -264,7 +272,11 @@ export class GameRoom extends DurableObject<Env> {
       // "ranked" ainda — ver Direcionamento Oficial #5/#6).
       if (this.players.length === 0 && body.matchType) this.matchType = body.matchType;
       // O modo também é decidido só por quem cria a sala.
-      if (this.players.length === 0) this.pace = normalizePace(body.pace);
+      // O mapa também: só quem cria a sala escolhe, e só vale um dos 5 mapas do modo.
+      if (this.players.length === 0) {
+        this.pace = normalizePace(body.pace);
+        this.mapId = normalizeMapId(this.pace, body.mapId);
+      }
       const result = this.addPlayer(body.playerId, body.playerName, body.accountId);
       // Avisa quem já estiver conectado a esta sala (ex.: quem a criou)
       // que um novo jogador entrou — equivalente ao antigo
@@ -273,7 +285,7 @@ export class GameRoom extends DurableObject<Env> {
         await this.persist();
         this.broadcastRoomState();
       }
-      return Response.json(result.ok ? { ...result, pace: this.pace } : result);
+      return Response.json(result.ok ? { ...result, pace: this.pace, mapId: this.mapId } : result);
     }
 
     // O Worker (`index.ts`) repassa a requisição original sem reescrever o
@@ -347,14 +359,14 @@ export class GameRoom extends DurableObject<Env> {
     const owner = this.ownerOf(playerId);
     if (!owner) return { ok: false, reason: "Jogador não pertence a esta sala." };
 
-    const map = mapForPace(this.pace);
+    const map = mapForPace(this.pace, this.mapId);
     const isValid = DeploymentManager.validateDeployment(pieces, map.rows, map.cols, getBlockedTiles(map), owner, formatFor(this.pace));
     if (!isValid) return { ok: false, reason: "Posicionamento inválido." };
 
     this.deployments.set(playerId, pieces);
     if (this.deployments.size >= 2) {
       const allPieces = [...this.deployments.values()].flat();
-      this.session = new GameSession(allPieces, this.pace);
+      this.session = new GameSession(allPieces, this.pace, this.mapId);
       this.status = "playing";
       // Sprint TIMER-01 — instante único do início da Partida; o
       // cronômetro de Posicionamento não é mais relevante a partir daqui.
@@ -591,6 +603,7 @@ export class GameRoom extends DurableObject<Env> {
       deploymentDeadline: this.deploymentDeadline,
       matchType: this.matchType,
       pace: this.pace,
+      mapId: this.mapId,
     });
   }
 
@@ -623,6 +636,7 @@ export class GameRoom extends DurableObject<Env> {
       deploymentDeadline: this.deploymentDeadline,
       matchType: this.matchType,
       pace: this.pace,
+      mapId: this.mapId,
     });
     // Oficina do Exército — manda o visual já conhecido de cada lado (reconexão/F5 inclusos).
     this.send(conn, { type: "SkinsUpdated", skins: this.skinsByOwner() });
@@ -815,7 +829,7 @@ export class GameRoom extends DurableObject<Env> {
       // existe um `GameState` pra mostrar na tela de resultado.
       for (const player of this.players) {
         if (this.deployments.has(player.playerId)) continue;
-        const forfeitMap = mapForPace(this.pace);
+        const forfeitMap = mapForPace(this.pace, this.mapId);
         const autoPieces = DeploymentManager.createDefaultPlayerDeployment(
           forfeitMap.rows,
           forfeitMap.cols,
@@ -824,7 +838,7 @@ export class GameRoom extends DurableObject<Env> {
         );
         this.deployments.set(player.playerId, autoPieces);
       }
-      this.session = new GameSession([...this.deployments.values()].flat(), this.pace);
+      this.session = new GameSession([...this.deployments.values()].flat(), this.pace, this.mapId);
       this.matchStartTime = this.matchStartTime ?? Date.now();
     }
 
@@ -859,7 +873,7 @@ export class GameRoom extends DurableObject<Env> {
     if (this.status === "deployment" && this.deploymentDeadline !== null && now >= this.deploymentDeadline) {
       for (const player of this.players) {
         if (this.deployments.has(player.playerId)) continue;
-        const alarmMap = mapForPace(this.pace);
+        const alarmMap = mapForPace(this.pace, this.mapId);
         const autoPieces = DeploymentManager.createDefaultPlayerDeployment(
           alarmMap.rows,
           alarmMap.cols,

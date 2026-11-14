@@ -52,7 +52,7 @@ export type ClientEvent =
    * quando o matchmaking automático (RANKING-03) existir — nenhum
    * fluxo atual manda "ranked".
    */
-  | { type: "CreateRoom"; playerName?: string; matchType?: MatchType; /** Modo da sala (tamanho do tabuleiro e do exército). Ausente = Partida Intensa. */ pace?: Pace }
+  | { type: "CreateRoom"; playerName?: string; matchType?: MatchType; /** Modo da sala (tamanho do tabuleiro e do exército). Ausente = Partida Intensa. */ pace?: Pace; /** Mapa da sala (um dos 5 do modo; docs/19-Mapas.md). Ausente ou inválido = o primeiro do modo. */ mapId?: string }
   | { type: "JoinRoom"; roomId: RoomId; playerName?: string }
   | { type: "LeaveRoom" }
   | { type: "PlayerReady" }
@@ -139,8 +139,8 @@ export type ServerEvent =
   | { type: "PlayerDisconnected"; playerId: PlayerId; reconnectDeadline: number | null }
   /** Sprint REC-01 — o jogador voltou dentro do prazo; some o aviso de desconexão no adversário. */
   | { type: "PlayerReconnected"; playerId: PlayerId }
-  | { type: "RoomCreated"; roomId: RoomId; you: RoomPlayerInfo; pace: Pace }
-  | { type: "RoomJoined"; roomId: RoomId; you: RoomPlayerInfo; players: RoomPlayerInfo[]; pace: Pace }
+  | { type: "RoomCreated"; roomId: RoomId; you: RoomPlayerInfo; pace: Pace; mapId: string }
+  | { type: "RoomJoined"; roomId: RoomId; you: RoomPlayerInfo; players: RoomPlayerInfo[]; pace: Pace; mapId: string }
   /**
    * Disparado sempre que a sala muda de fase (jogador entrou, ficou
    * pronto, confirmou o posicionamento) — a Interface usa isso para
@@ -175,6 +175,8 @@ export type ServerEvent =
       matchType: MatchType;
       /** Modo da sala: define o tabuleiro e o exército. */
       pace: Pace;
+      /** Mapa da sala, escolhido por quem a criou (docs/19-Mapas.md). */
+      mapId: string;
     }
   /**
    * Sprint TIMER-01 — `matchStartTime` (epoch ms) é o instante em que o

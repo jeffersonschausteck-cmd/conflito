@@ -209,6 +209,12 @@ Na versão 1.0 o sistema Multiplayer deverá:
 
 ---
 
+# Escolha do Mapa na Sala
+
+Quem cria a sala escolhe o modo e também o **mapa** (um dos 5 daquele modo, documento 19). A escolha vale para os dois jogadores: o servidor guarda o mapa da sala, usa o terreno dele para validar o posicionamento e a partida e informa o mapa a quem entra. Um mapa inválido para o modo vira o primeiro mapa do modo. A ranqueada continua separada só por modo.
+
+---
+
 # Visual dos Personagens
 
 O Multiplayer transporta o visual escolhido pelos jogadores (eventos SetSkins e SkinsUpdated). O servidor valida todo visual recebido, só o aceita antes da partida começar e nunca o usa em nenhuma regra ou sincronização do estado do jogo.

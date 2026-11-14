@@ -315,3 +315,11 @@ Todos os menus e submenus (Centro de Operações, escolha de modo, Sala Online, 
 - **Botões de ação:** laranja, com o mesmo formato.
 - **Língua:** todo texto de menu em português.
 
+---
+
+# Tela Inicial, Roleta e Escolha do Mapa
+
+- **Tela inicial sem cabeçalho:** o topo da tela inicial não mostra mais "Rede // Segura", "Versão 0.1.0-Alpha" e "Operador". Ficam só o título, os botões e, embaixo, o rodapé com o nome do estúdio e a versão.
+- **Roleta de mapas (Campanha):** ao tocar num modo (Partida Rápida, Normal ou Intensa), abre uma faixa com a roleta: os 5 mapas daquele modo, cada um com a prévia do terreno e o nome, passam em sequência, desaceleram e param no mapa sorteado, que fica em destaque com o texto "Mapa sorteado". Depois de um instante a partida segue para o carregamento. Não há botão para escolher: o sorteio é ao acaso. Quem pede redução de movimento vê o resultado sem a animação.
+- **Escolha do mapa na sala online:** na tela de criar sala, depois do modo, aparecem os 5 mapas do modo escolhido (prévia e nome) e o criador toca no que quer. Trocar o modo troca a lista de mapas. A sala de espera mostra o mapa escolhido para quem entra.
+- **Mapa na partida:** o posicionamento e a partida usam o terreno e o cenário do mapa da vez (documento 19): céu, luz, cores e enfeites mudam conforme o cenário.

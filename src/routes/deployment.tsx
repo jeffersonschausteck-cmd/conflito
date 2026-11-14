@@ -100,7 +100,7 @@ function DeploymentPage() {
   // Formato do modo (exército e tabuleiro). Online, é o modo da sala (gravado ao criar/entrar na sala).
   const pace = effectivePace(flow.pace);
   const format = formatFor(pace);
-  const map = mapForPace(pace);
+  const map = mapForPace(pace, flow.mapId);
 
   const [pieces, setPieces] = useState<PieceModel[]>(() =>
     DeploymentManager.createDefaultPlayerDeployment(map.rows, map.cols, myOwner, format)

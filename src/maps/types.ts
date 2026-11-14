@@ -8,8 +8,13 @@ export type TerrainId =
   | "water"
   | "mountain"
   | "road"
+  | "rock"
+  | "village"
   | "blue-base"
   | "red-base";
+
+/** Os 5 cenários do jogo (docs/19-Mapas.md). */
+export type ThemeId = "planicie" | "vale" | "bosque" | "montanha" | "fosso";
 
 /**
  * Descriptive catalog entry for a terrain type. Only `nome`/`tipo`/
@@ -34,6 +39,10 @@ export interface TerrainDefinition {
 export interface MapDefinition {
   id: string;
   nome: string;
+  /** Cenário (visual e nome); cada cenário existe nos 3 tamanhos. */
+  theme: ThemeId;
+  /** Modo (tamanho) do mapa: "blitz" | "rapid" | "classic". */
+  pace: "blitz" | "rapid" | "classic";
   rows: number;
   cols: number;
   tiles: TerrainId[][];

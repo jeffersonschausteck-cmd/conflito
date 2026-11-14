@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { withAuth } from "@/components/RequireAuth";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { mapForPace } from "@/maps";
+import { flowState } from "@/services/flowState";
+import { effectivePace } from "@/services/matchRules";
 
 export const Route = createFileRoute("/loading")({
   head: () => ({
@@ -22,6 +25,13 @@ function LoadingPage() {
   const navigate = useNavigate();
   const [progress, setProgress] = useState(0);
   const [msgIndex, setMsgIndex] = useState(0);
+
+  // Enquanto a barra anda, já baixa os modelos do cenário do mapa sorteado (o posicionamento abre sem esperar).
+  useEffect(() => {
+    const f = flowState.read();
+    const map = mapForPace(effectivePace(f.pace), f.mapId);
+    void import("@/components/kay/BoardWorld").then((m) => m.preloadThemeAssets(map));
+  }, []);
 
   useEffect(() => {
     const start = Date.now();

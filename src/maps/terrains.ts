@@ -44,6 +44,22 @@ export const TERRAINS: Record<TerrainId, TerrainDefinition> = {
     corBase: "#8a7f68",
     descricao: "Via utilizada para deslocamento entre setores do campo.",
   },
+  rock: {
+    id: "rock",
+    nome: "Rochedo",
+    tipo: "Pedra intransponível",
+    corBase: "#7a7468",
+    descricao: "Grandes pedras que nenhuma peça atravessa.",
+    bloqueado: true,
+  },
+  village: {
+    id: "village",
+    nome: "Povoado",
+    tipo: "Construção intransponível",
+    corBase: "#a08a5b",
+    descricao: "Moinhos, casas e torres do reino: nenhuma peça entra nem atravessa.",
+    bloqueado: true,
+  },
   "blue-base": {
     id: "blue-base",
     nome: "Base Azul",

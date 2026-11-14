@@ -18,6 +18,7 @@ import { Route as PaceRouteImport } from './routes/pace'
 import { Route as OnlineLobbyRouteImport } from './routes/online-lobby'
 import { Route as OficinaRouteImport } from './routes/oficina'
 import { Route as ModeRouteImport } from './routes/mode'
+import { Route as MapaPreviewRouteImport } from './routes/mapa-preview'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LoadingRouteImport } from './routes/loading'
 import { Route as GameRouteImport } from './routes/game'
@@ -70,6 +71,11 @@ const ModeRoute = ModeRouteImport.update({
   path: '/mode',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MapaPreviewRoute = MapaPreviewRouteImport.update({
+  id: '/mapa-preview',
+  path: '/mapa-preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/game': typeof GameRoute
   '/loading': typeof LoadingRoute
   '/login': typeof LoginRoute
+  '/mapa-preview': typeof MapaPreviewRoute
   '/mode': typeof ModeRoute
   '/oficina': typeof OficinaRoute
   '/online-lobby': typeof OnlineLobbyRoute
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/game': typeof GameRoute
   '/loading': typeof LoadingRoute
   '/login': typeof LoginRoute
+  '/mapa-preview': typeof MapaPreviewRoute
   '/mode': typeof ModeRoute
   '/oficina': typeof OficinaRoute
   '/online-lobby': typeof OnlineLobbyRoute
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/game': typeof GameRoute
   '/loading': typeof LoadingRoute
   '/login': typeof LoginRoute
+  '/mapa-preview': typeof MapaPreviewRoute
   '/mode': typeof ModeRoute
   '/oficina': typeof OficinaRoute
   '/online-lobby': typeof OnlineLobbyRoute
@@ -162,6 +171,7 @@ export interface FileRouteTypes {
     | '/game'
     | '/loading'
     | '/login'
+    | '/mapa-preview'
     | '/mode'
     | '/oficina'
     | '/online-lobby'
@@ -179,6 +189,7 @@ export interface FileRouteTypes {
     | '/game'
     | '/loading'
     | '/login'
+    | '/mapa-preview'
     | '/mode'
     | '/oficina'
     | '/online-lobby'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/game'
     | '/loading'
     | '/login'
+    | '/mapa-preview'
     | '/mode'
     | '/oficina'
     | '/online-lobby'
@@ -214,6 +226,7 @@ export interface RootRouteChildren {
   GameRoute: typeof GameRoute
   LoadingRoute: typeof LoadingRoute
   LoginRoute: typeof LoginRoute
+  MapaPreviewRoute: typeof MapaPreviewRoute
   ModeRoute: typeof ModeRoute
   OficinaRoute: typeof OficinaRoute
   OnlineLobbyRoute: typeof OnlineLobbyRoute
@@ -290,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ModeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mapa-preview': {
+      id: '/mapa-preview'
+      path: '/mapa-preview'
+      fullPath: '/mapa-preview'
+      preLoaderRoute: typeof MapaPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -342,6 +362,7 @@ const rootRouteChildren: RootRouteChildren = {
   GameRoute: GameRoute,
   LoadingRoute: LoadingRoute,
   LoginRoute: LoginRoute,
+  MapaPreviewRoute: MapaPreviewRoute,
   ModeRoute: ModeRoute,
   OficinaRoute: OficinaRoute,
   OnlineLobbyRoute: OnlineLobbyRoute,

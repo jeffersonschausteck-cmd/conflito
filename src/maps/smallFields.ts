@@ -5,7 +5,7 @@ import type { MapDefinition, TerrainId } from "./types";
  * Aberto: zonas de posicionamento limpas nas pontas e, no meio, um lago com uma estrada de cada lado,
  * florestas e montanhas. Dados puros.
  */
-function build(id: string, nome: string, rows: number, cols: number, depth: number): MapDefinition {
+function build(id: string, nome: string, pace: "blitz" | "rapid", rows: number, cols: number, depth: number): MapDefinition {
   const tiles: TerrainId[][] = Array.from({ length: rows }, () => Array<TerrainId>(cols).fill("grass"));
   const set = (r: number, c: number, t: TerrainId) => {
     if (r >= 0 && r < rows && c >= depth && c < cols - depth) tiles[r][c] = t; // nunca nas zonas de posicionamento
@@ -39,8 +39,8 @@ function build(id: string, nome: string, rows: number, cols: number, depth: numb
   tiles[0][cols - 1] = "blue-base";
   tiles[0][0] = "red-base";
   tiles[rows - 1][cols - 1] = "red-base";
-  return { id, nome, rows, cols, tiles };
+  return { id, nome, theme: "planicie", pace, rows, cols, tiles };
 }
 
-export const campoRapido: MapDefinition = build("campo-rapido", "Campo Rápido", 10, 14, 3);
-export const campoRelampago: MapDefinition = build("campo-relampago", "Campo Relâmpago", 8, 12, 3);
+export const campoRapido: MapDefinition = build("planicie-rapid", "Planície Real", "rapid", 10, 14, 3);
+export const campoRelampago: MapDefinition = build("planicie-blitz", "Planície Real", "blitz", 8, 12, 3);

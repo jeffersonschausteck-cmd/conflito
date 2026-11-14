@@ -207,7 +207,7 @@ export function Match3DScreen({ isOnline = false }: { isOnline?: boolean }) {
   const { mounted } = useDeviceMode();
   // A IA joga só offline, com o lado oposto ao do jogador (que é sorteado; docs/04-Regras.md, seção 18).
   const { localOwner, state: matchState } = useGameState();
-  const map = mapForPace(matchState.config.pace);
+  const map = mapForPace(matchState.config.pace, matchState.config.mapId);
   useAITurn({ enabled: !isOnline, aiPlayer: localOwner === "blue" ? "RED" : "BLUE" });
   // O Canvas é outra árvore React: a ponte leva o estado do jogo pra dentro dele.
   const Bridge = useContextBridge(GameStateContext);

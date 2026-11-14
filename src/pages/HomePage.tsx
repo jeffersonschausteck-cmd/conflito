@@ -2,7 +2,7 @@ import { Suspense, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Link } from "@tanstack/react-router";
 import * as THREE from "three";
-import { StatusBar, StatusFooter } from "@/components/StatusBar";
+import { StatusFooter } from "@/components/StatusBar";
 import { KayPiece } from "@/components/kay/KayCharacters";
 import { BoardWorld, cellWorld, useDeviceMode } from "@/components/kay/BoardWorld";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
@@ -117,10 +117,6 @@ export function HomePage() {
       <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_50%_55%,transparent_45%,rgba(2,6,23,0.6))]" />
 
       <div className="relative z-10 h-full">
-        <div className="[&>div]:!text-sky-100 [&>div]:[text-shadow:0_1px_2px_#000]">
-          <StatusBar />
-        </div>
-
         {/* Título e botões */}
         <div className={narrow ? "absolute inset-0 flex flex-col justify-between px-4 pb-[6%] pt-[13%]" : "absolute left-[5.5%] top-[19%] flex w-[min(24rem,44vw)] flex-col [@media(max-height:500px)]:top-[12%]"}>
           <div className={narrow ? "pointer-events-none text-center" : "pointer-events-none"}>

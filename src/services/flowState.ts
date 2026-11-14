@@ -12,6 +12,8 @@ export interface FlowState {
   online?: boolean;
   /** Modo escolhido (Partida Intensa, Normal ou Rápida); só partidas offline. */
   pace?: Pace;
+  /** Mapa da partida (docs/19-Mapas.md): o sorteado na roleta (contra o computador) ou o da sala (online). */
+  mapId?: string;
   /** Lado do jogador contra o computador, sorteado ao escolher o ritmo (docs/04-Regras.md, seção 18). */
   offlineOwner?: "blue" | "red";
   onlineRoomId?: string;

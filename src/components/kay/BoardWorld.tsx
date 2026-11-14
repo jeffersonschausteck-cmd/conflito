@@ -1,12 +1,12 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Environment, Sky, Sparkles } from "@react-three/drei";
+import { OrbitControls, Environment, Sky, Sparkles, useGLTF } from "@react-three/drei";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { ACTIVE_MAP, type MapDefinition } from "@/maps";
+import { ACTIVE_MAP, THEMES, type MapDefinition, type MapTheme } from "@/maps";
 import type { TerrainId } from "@/maps/types";
 import { hexToPixel } from "@/services/hexGeometry";
 import * as THREE from "three";
-import { KayModel, PulseRing } from "@/components/kay/KayCharacters";
+import { KayModel, PulseRing, KAY_BASE } from "@/components/kay/KayCharacters";
 
 /**
  * Mundo 3D do tabuleiro (cenário, casas, câmeras), compartilhado pela partida (`/lab3d`) e pela
@@ -21,7 +21,7 @@ export const HEX_SIZE = 1;
  * e depois mar. A névoa esconde o limite e o campo parece apoiado no mundo.
  */
 const RING = 3;
-function KayRing({ rows, cols, boardW, boardH }: { rows: number; cols: number; boardW: number; boardH: number }) {
+function KayRing({ rows, cols, boardW, boardH, theme }: { rows: number; cols: number; boardW: number; boardH: number; theme: MapTheme }) {
   type RingItem = {
     key: string;
     x: number;
@@ -44,13 +44,13 @@ function KayRing({ rows, cols, boardW, boardH }: { rows: number; cols: number; b
         // d=1: muro de pedra que marca o limite do tabuleiro. d=2: faixa de terra. d>=3: mar.
         const kind: RingItem["kind"] = d === 1 ? "wall" : d === 2 && r1 > 0.35 ? "land" : "sea";
         let deco: string | null = null;
-        if (kind === "land" && r2 < 0.55) deco = ["trees_A_large", "trees_B_large", "trees_A_medium"][Math.floor(r1 * 3)];
+        if (kind === "land" && r2 < theme.chanceEnfeite) deco = theme.enfeites[Math.floor(r1 * theme.enfeites.length) % theme.enfeites.length];
         const rocks: RingItem["rocks"] = [];
         out.push({ key: `${row}:${col}`, x: x - boardW / 2, z: y - boardH / 2, kind, deco, rot: Math.floor(r2 * 6) * (Math.PI / 3), rocks });
       }
     }
     return out;
-  }, [rows, cols, boardW, boardH]);
+  }, [rows, cols, boardW, boardH, theme]);
 
   return (
     <>
@@ -59,9 +59,9 @@ function KayRing({ rows, cols, boardW, boardH }: { rows: number; cols: number; b
           {t.kind === "sea" ? (
             <KayModel file="hex_water" x={t.x} z={t.z} y={-0.45} rotY={t.rot} />
           ) : t.kind === "wall" ? (
-            <KayModel file="hex_grass" x={t.x} z={t.z} y={-0.12} rotY={t.rot} tint="#78c868" />
+            <KayModel file="hex_grass" x={t.x} z={t.z} y={-0.12} rotY={t.rot} tint={theme.grama} />
           ) : (
-            <KayModel file="hex_grass" x={t.x} z={t.z} y={-0.28} rotY={t.rot} tint="#6fd070" />
+            <KayModel file="hex_grass" x={t.x} z={t.z} y={-0.28} rotY={t.rot} tint={theme.gramaBorda} />
           )}
           {t.deco && <KayModel file={t.deco} x={t.x} z={t.z} y={-0.28} rotY={t.rot} />}
           {t.rocks.map((r, i) => (
@@ -92,13 +92,13 @@ function hexNeighbors(row: number, col: number) {
  * com um portão no meio de cada lado do exército. Só visual (não bloqueia nada).
  */
 /** Verdadeiro quando a câmera está do outro lado do campo (jogador Vermelho). Vem do `Board3DCanvas`. */
-const BoardFlipContext = createContext(false);
+export const BoardFlipContext = createContext(false);
 
 /** Verdadeiro dentro do `Board3DCanvas` (partida e posicionamento); falso no menu e nos fundos de tela. */
-const PlayViewContext = createContext(false);
+export const PlayViewContext = createContext(false);
 
 /** Mapa desenhado dentro do `Board3DCanvas` (cada ritmo tem o seu). Fora dele, o Campo Aberto. */
-const BoardMapContext = createContext<MapDefinition>(ACTIVE_MAP);
+export const BoardMapContext = createContext<MapDefinition>(ACTIVE_MAP);
 export function useBoardMap(): MapDefinition {
   return useContext(BoardMapContext);
 }
@@ -184,9 +184,7 @@ function KayBases({ rows, cols, boardW, boardH, towersOnly = false, flags = fals
   );
 }
 
-// Atmosfera: sol baixo (cerca de 22 graus), névoa na cor do horizonte.
-const SUN_DIR = new THREE.Vector3(-0.62, 0.38, -0.5).normalize();
-const FOG_COLOR = "#c3d6e8";
+// Atmosfera de cada cenário (sol, névoa): ver `maps/themes.ts`.
 /** Céu e névoa do menu e das telas de fundo: azul do alto ao horizonte, para o texto branco sempre aparecer. */
 const MENU_SKY = "#2f78c4";
 
@@ -227,24 +225,38 @@ function Clouds({ still = false }: { still?: boolean }) {
 
 /** Mar: plano grande abaixo da ilha. Tudo que não é ilha é água, sem faixa de céu entre elas. */
 /** Mar. No menu (`matte`) fica fosco: o brilho do sol na água fazia uma faixa branca no horizonte. */
-function Sea({ matte = false }: { matte?: boolean }) {
+function Sea({ matte = false, color = "#2f88c6" }: { matte?: boolean; color?: string }) {
   return (
     <mesh position={[0, -0.66, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
       <planeGeometry args={[600, 600]} />
-      <meshStandardMaterial color="#2f88c6" roughness={matte ? 1 : 0.35} metalness={matte ? 0 : 0.05} />
+      <meshStandardMaterial color={color} roughness={matte ? 1 : 0.35} metalness={matte ? 0 : 0.05} />
     </mesh>
   );
 }
 
+/** Baixa de antemão os modelos que o cenário do mapa usa (a tela de carregamento chama isto). Só desempenho. */
+export function preloadThemeAssets(map: MapDefinition) {
+  if (typeof window === "undefined") return;
+  const t = THEMES[map.theme] ?? THEMES.planicie;
+  const used = new Set<string>(t.enfeites);
+  const kinds = new Set(map.tiles.flat());
+  if (kinds.has("forest")) t.florestas.forEach((f) => used.add(f));
+  if (kinds.has("mountain")) t.montanhas.forEach((f) => used.add(f));
+  if (kinds.has("rock")) t.rochedos.forEach((f) => used.add(f));
+  if (kinds.has("village")) t.povoados.forEach((f) => used.add(f));
+  used.forEach((f) => useGLTF.preload(`${KAY_BASE}${f}.gltf`));
+}
+
 /** Uma casa do tabuleiro em estilo KayKit: base + decoração por terreno. */
-function KayTile({ row, col, terrain, boardW, boardH, onSelect }: { row: number; col: number; terrain: TerrainId; boardW: number; boardH: number; onSelect?: (row: number, col: number) => void }) {
+function KayTile({ row, col, terrain, boardW, boardH, theme, onSelect }: { row: number; col: number; terrain: TerrainId; boardW: number; boardH: number; theme: MapTheme; onSelect?: (row: number, col: number) => void }) {
   const { x, y } = hexToPixel(row, col, HEX_SIZE);
   const px = x - boardW / 2;
   const pz = y - boardH / 2;
   const base = terrain === "water" ? "hex_water" : terrain === "road" ? "hex_road_A" : "hex_grass";
   const seed = row * 31 + col * 17;
-  const mountain = ["mountain_A_grass_trees", "mountain_B_grass_trees", "mountain_C_grass_trees"][seed % 3];
-  const forest = ["trees_A_large", "trees_B_large", "trees_A_medium"][seed % 3];
+  const mountain = theme.montanhas[seed % theme.montanhas.length];
+  const forest = theme.florestas[seed % theme.florestas.length];
+  const village = theme.povoados[seed % theme.povoados.length];
   const rot = ((seed % 6) * Math.PI) / 3;
   return (
     <group
@@ -260,10 +272,18 @@ function KayTile({ row, col, terrain, boardW, boardH, onSelect }: { row: number;
         x={px}
         z={pz}
         rotY={terrain === "road" ? 0 : rot * (terrain === "water" ? 0 : 1)}
-        tint={terrain === "water" ? undefined : terrain === "blue-base" ? "#8fd0ff" : terrain === "red-base" ? "#ffb0a0" : "#7fe07a"}
+        tint={terrain === "water" ? undefined : terrain === "blue-base" ? "#8fd0ff" : terrain === "red-base" ? "#ffb0a0" : theme.grama}
       />
       {terrain === "mountain" && <KayModel file={mountain} x={px} z={pz} rotY={rot} />}
       {terrain === "forest" && <KayModel file={forest} x={px} z={pz} rotY={rot} />}
+      {terrain === "village" && <KayModel file={village} x={px} z={pz} rotY={rot} />}
+      {terrain === "rock" && (
+        <>
+          <KayModel file={theme.rochedos[seed % theme.rochedos.length]} x={px - 0.3} z={pz + 0.1} rotY={rot} scale={3.4} />
+          <KayModel file={theme.rochedos[(seed + 1) % theme.rochedos.length]} x={px + 0.4} z={pz - 0.25} rotY={rot + 1} scale={2.5} />
+          <KayModel file={theme.rochedos[(seed + 2) % theme.rochedos.length]} x={px + 0.1} z={pz + 0.45} rotY={rot + 2} scale={1.8} />
+        </>
+      )}
       {terrain === "blue-base" && (seed % 3 === 0) && <KayModel file="flag_blue" x={px} z={pz} />}
       {terrain === "red-base" && (seed % 3 === 0) && <KayModel file="flag_red" x={px} z={pz} />}
     </group>
@@ -353,17 +373,20 @@ export function BoardWorld({ far = false, clouds = true, onSelectTile }: { far?:
     return list;
   }, [map]);
   const clickTile = (row: number, col: number) => onSelectTile?.(row, col);
+  // Cenário do mapa (docs/19-Mapas.md): céu, luz, névoa, cores e modelos. O menu (`far`) usa a Planície Real.
+  const theme = THEMES[map.theme] ?? THEMES.planicie;
+  const sun = useMemo(() => new THREE.Vector3(...theme.sol).normalize(), [theme]);
   return (
     <>
-      {/* Tarde dourada: sol baixo e quente vindo do fundo-esquerda, céu e névoa no mesmo tom do horizonte */}
-      {/* Partida: tarde dourada. Menu e fundos de tela (`far`): céu todo azul, sem o horizonte claro que escondia o texto branco. */}
-      {far ? <color attach="background" args={[MENU_SKY]} /> : <Sky distance={4500} sunPosition={SUN_DIR.clone().multiplyScalar(100)} turbidity={5} rayleigh={1.8} mieCoefficient={0.006} mieDirectionalG={0.85} />}
-      <fog attach="fog" args={[far ? MENU_SKY : FOG_COLOR, far ? 75 : 34, far ? 150 : 70]} />
-      <hemisphereLight args={["#cfe4ff", "#5b7a3c", 0.5]} />
+      {/* Cada cenário tem a sua hora do dia: sol, céu e névoa no mesmo tom do horizonte. */}
+      {/* Menu e fundos de tela (`far`): céu todo azul, sem o horizonte claro que escondia o texto branco. */}
+      {far ? <color attach="background" args={[MENU_SKY]} /> : <Sky distance={4500} sunPosition={sun.clone().multiplyScalar(100)} turbidity={theme.turbidez} rayleigh={theme.rayleigh} mieCoefficient={0.006} mieDirectionalG={0.85} />}
+      <fog attach="fog" args={[far ? MENU_SKY : theme.nevoa, far ? 75 : theme.nevoaPerto, far ? 150 : theme.nevoaLonge]} />
+      <hemisphereLight args={[theme.hemiCeu, theme.hemiChao, 0.5]} />
       <directionalLight
-        position={SUN_DIR.clone().multiplyScalar(26).toArray()}
-        intensity={2.0}
-        color="#ffd7a0"
+        position={sun.clone().multiplyScalar(26).toArray()}
+        intensity={theme.intensidadeSol}
+        color={theme.corSol}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-22}
@@ -378,12 +401,12 @@ export function BoardWorld({ far = false, clouds = true, onSelectTile }: { far?:
       {clouds && <Clouds still={far} />}
       <Sparkles count={70} scale={[34, 5, 22]} position={[0, 2.6, 0]} size={3.2} speed={0.25} opacity={0.55} color="#ffe9b8" />
 
-      <Sea matte={far} />
-      <KayRing rows={map.rows} cols={map.cols} boardW={boardW} boardH={boardH} />
+      <Sea matte={far} color={theme.mar} />
+      <KayRing rows={map.rows} cols={map.cols} boardW={boardW} boardH={boardH} theme={theme} />
       <KayWall rows={map.rows} cols={map.cols} boardW={boardW} boardH={boardH} skipBottom={!flip} skipTop={flip} />
       <KayBases rows={map.rows} cols={map.cols} boardW={boardW} boardH={boardH} castlesAtEnds={playView} />
       {tiles.map((t) => (
-        <KayTile key={`${t.row}-${t.col}`} row={t.row} col={t.col} terrain={t.terrain} boardW={boardW} boardH={boardH} onSelect={clickTile} />
+        <KayTile key={`${t.row}-${t.col}`} row={t.row} col={t.col} terrain={t.terrain} boardW={boardW} boardH={boardH} theme={theme} onSelect={clickTile} />
       ))}
     </>
   );

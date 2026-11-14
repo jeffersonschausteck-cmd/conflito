@@ -57,8 +57,10 @@ function buildTiles(): TerrainId[][] {
 }
 
 export const campoAberto: MapDefinition = {
-  id: "campo-aberto",
-  nome: "Campo Aberto",
+  id: "planicie-classic",
+  nome: "Planície Real",
+  theme: "planicie",
+  pace: "classic",
   rows: ROWS,
   cols: COLS,
   tiles: buildTiles(),

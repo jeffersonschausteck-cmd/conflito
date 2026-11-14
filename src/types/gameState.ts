@@ -22,6 +22,8 @@ export interface GameStateConfig {
   cols: number;
   /** Ritmo da partida, que define o tamanho do exército e do tabuleiro (docs/04-Regras.md, seção 19). Ausente: Clássica. */
   pace?: Pace;
+  /** Mapa da partida (docs/19-Mapas.md); só serve para o cenário visual. Ausente: a Planície Real do modo. */
+  mapId?: string;
   /**
    * Coordinates ("row-col") that are permanently impassable (Sprint 2.5:
    * terrain obstacles). Supplied by the Interface from the active map —

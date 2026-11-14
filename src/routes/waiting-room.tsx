@@ -12,6 +12,8 @@ import type { RoomPlayerInfo, RoomStatus } from "@/multiplayer/protocol";
 import type { MatchType } from "@/types/ranking";
 import type { Pace } from "@/types/gameState";
 import { PACE_NAMES, armySize, formatFor } from "@/services/battleFormat";
+import { MapPreview } from "@/components/MapPreview";
+import { THEMES, mapForPace } from "@/maps";
 
 export const Route = createFileRoute("/waiting-room")({
   head: () => ({ meta: [{ title: "Sala de Espera — Conflito" }] }),
@@ -32,6 +34,7 @@ function WaitingRoomPage() {
   // `matchType` de sempre, agora exposto aqui também.
   const [matchType, setMatchType] = useState<MatchType>("casual");
   const [pace, setPace] = useState<Pace>(flow.pace ?? "classic");
+  const [mapId, setMapId] = useState<string | undefined>(flow.mapId);
 
   useEffect(() => {
     if (!session || !flow.onlineRoomId) {
@@ -46,7 +49,8 @@ function WaitingRoomPage() {
         setReadyIds(event.readyPlayerIds);
         setMatchType(event.matchType);
         setPace(event.pace);
-        flowState.write({ pace: event.pace }); // o posicionamento e a partida usam o modo da sala
+        setMapId(event.mapId);
+        flowState.write({ pace: event.pace, mapId: event.mapId }); // o posicionamento e a partida usam o modo e o mapa da sala
         if (event.status === "deployment") {
           // Sprint TIMER-01 — grava o prazo em flowState antes de navegar:
           // este `RoomStateChanged` é único, e o listener de
@@ -87,6 +91,20 @@ function WaitingRoomPage() {
         <div className="mb-4 rounded border border-border/40 bg-background/40 px-4 py-2 text-center text-xs uppercase tracking-[0.1em] text-muted-foreground">
           {PACE_NAMES[pace]} · {armySize(formatFor(pace))} peças · tabuleiro {formatFor(pace).rows}×{formatFor(pace).cols}
         </div>
+        {/* Mapa da sala, escolhido por quem a criou */}
+        {(() => {
+          const map = mapForPace(pace, mapId);
+          return (
+            <div className="mb-4 flex items-center gap-3 rounded border border-border/40 bg-background/40 px-4 py-2">
+              <MapPreview map={map} className="h-12 w-20 shrink-0" />
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Mapa</div>
+                <div className="text-sm font-bold uppercase tracking-[0.06em]" style={{ color: THEMES[map.theme].destaque }}>{map.nome}</div>
+                <div className="text-[11px] leading-snug text-muted-foreground">{THEMES[map.theme].descricao}</div>
+              </div>
+            </div>
+          );
+        })()}
 
         <GamePanel variant="blue" eyebrow="// JOGADORES" title="Comandantes na Sala">
           <div className="space-y-3">

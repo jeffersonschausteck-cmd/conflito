@@ -12,6 +12,8 @@ import { useMenuMusic } from "@/hooks/useMenuMusic";
 import type { MatchType } from "@/types/ranking";
 import type { Pace } from "@/types/gameState";
 import { BATTLE_FORMATS, PACE_NAMES, armySize } from "@/services/battleFormat";
+import { MapPreview } from "@/components/MapPreview";
+import { THEMES, mapsForPace, type ThemeId } from "@/maps";
 
 export const Route = createFileRoute("/online-lobby")({
   head: () => ({ meta: [{ title: "Sala Online — Conflito" }] }),
@@ -28,6 +30,10 @@ function OnlineLobbyPage() {
   const matchType: MatchType = "ranked";
   // Modo da sala: tamanho do tabuleiro e do exército. A ranqueada é separada por modo.
   const [pace, setPace] = useState<Pace>("classic");
+  // Mapa da sala (docs/19-Mapas.md): escolhe-se o cenário; ao trocar o modo, o mesmo cenário continua escolhido.
+  const [theme, setTheme] = useState<ThemeId>("planicie");
+  const maps = mapsForPace(pace);
+  const chosenMap = maps.find((m) => m.theme === theme) ?? maps[0];
 
   useEffect(() => {
     if (!session) {
@@ -46,7 +52,7 @@ function OnlineLobbyPage() {
       }
       if (event.type === "RoomCreated" || event.type === "RoomJoined") {
         // O modo da sala vale também para o posicionamento e a partida (e substitui o de uma partida offline antiga).
-        flowState.write({ onlineRoomId: event.roomId, onlineOwner: event.you.owner, pace: event.pace });
+        flowState.write({ onlineRoomId: event.roomId, onlineOwner: event.you.owner, pace: event.pace, mapId: event.mapId });
         navigate({ to: "/waiting-room" });
       }
       if (event.type === "ActionRejected") setError(event.reason);
@@ -124,11 +130,32 @@ function OnlineLobbyPage() {
             <p className="mt-1 text-[11px] text-amber-200/80">Vale pontos só no ranking da {PACE_NAMES[pace]}.</p>
           </div>
 
+          {/* Mapa da sala: quem cria escolhe, e vale para os dois jogadores. */}
+          <div className="mb-4">
+            <div className="mb-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">Mapa</div>
+            <div className="grid grid-cols-3 gap-2">
+              {maps.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setTheme(m.theme)}
+                  className={`rounded border p-1.5 text-center transition-colors ${chosenMap.id === m.id ? "bg-cyan-500/10" : "border-border/40 bg-transparent hover:border-border"}`}
+                  style={chosenMap.id === m.id ? { borderColor: THEMES[m.theme].destaque } : undefined}
+                  aria-pressed={chosenMap.id === m.id}
+                >
+                  <MapPreview map={m} className="h-14 w-full" />
+                  <div className="mt-1 text-[10px] font-bold uppercase leading-tight tracking-[0.04em] text-foreground">{m.nome}</div>
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">{THEMES[chosenMap.theme].descricao}</p>
+          </div>
+
           <GameButton
             variant="primary"
             size="lg"
             className="w-full"
-            onClick={() => ensureConnected().send({ type: "CreateRoom", matchType, pace })}
+            onClick={() => ensureConnected().send({ type: "CreateRoom", matchType, pace, mapId: chosenMap.id })}
           >
             Criar Sala
           </GameButton>

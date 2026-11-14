@@ -68,8 +68,8 @@ function GameProvider({
       config={(() => {
         // Ritmo escolhido na tela de ritmo (Clássica = sem regras extras), com o tabuleiro e o exército dele.
         const pace = effectivePace(flowState.read().pace);
-        const map = mapForPace(pace);
-        return { rows: map.rows, cols: map.cols, blockedTiles: getBlockedTiles(map), pace };
+        const map = mapForPace(pace, flowState.read().mapId);
+        return { rows: map.rows, cols: map.cols, blockedTiles: getBlockedTiles(map), pace, mapId: map.id };
       })()}
       localOwner={localOwner}
     >
