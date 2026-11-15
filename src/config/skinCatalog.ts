@@ -55,7 +55,7 @@ export const SKIN_COLORS: readonly SkinColor[] = [
 ];
 export const colorHex = (id: string | null | undefined): string | null => SKIN_COLORS.find((c) => c.id === id)?.hex ?? null;
 
-/** Chapéus. "padrao" = o da peça (quepe no Duque, capacete de obra no Sapador, o do modelo nas demais). */
+/** Chapéus. "padrao" = o da peça (quepe no Duque, capacete de mineração no Sapador, o do modelo nas demais). */
 export interface SkinOption {
   id: string;
   label: string;
@@ -184,7 +184,7 @@ export const SKIN_PRESETS: readonly SkinPreset[] = [
       officer: { model: "Mannequin_Medium", hat: "quepe" },
       sniper: { model: "Mannequin_Medium" },
       infantry: { model: "Mannequin_Medium" },
-      engineer: { model: "Mannequin_Medium", hat: "obra" },
+      engineer: { model: "Mannequin_Medium", hat: "mineracao" },
       scout: { model: "Mannequin_Medium" },
     }),
   },

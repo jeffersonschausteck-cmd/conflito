@@ -62,6 +62,8 @@ Para cada peça personalizável o jogador escolhe:
 | Arma (mão direita) | Nenhuma ou uma de 13 armas |
 | Escudo (mão esquerda) | Nenhum ou um de 5 escudos |
 
+- **Chapéu padrão do Sapador:** o capacete de mineração (antes era o capacete de obra amarelo). O capacete de obra continua disponível como escolha na Oficina.
+
 O catálogo oficial de opções vive em um único arquivo (`src/config/skinCatalog.ts`), usado tanto pela Interface quanto pelo servidor. Nenhuma opção existe fora dele.
 
 ---

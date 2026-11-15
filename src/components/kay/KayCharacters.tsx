@@ -366,8 +366,8 @@ export function KayCharacter({ file, rotY, scale, pieceType, shade = false, owne
   const melee = useGLTF(`${KAY_BASE}Rig_Medium_CombatMelee.glb`).animations;
   const ranged = useGLTF(`${KAY_BASE}Rig_Medium_CombatRanged.glb`).animations;
   const allClips = useMemo(() => [...animations, ...mv, ...melee, ...ranged], [animations, mv, melee, ranged]);
-  // Chapéu efetivo: "padrao" depende da peça (quepe no Duque, capacete de obra no Sapador).
-  const hatId = shade ? "modelo" : hat === "padrao" ? (pieceType === "officer" ? "quepe" : pieceType === "engineer" ? "obra" : "modelo") : hat;
+  // Chapéu efetivo: "padrao" depende da peça (quepe no Duque, capacete de mineração no Sapador).
+  const hatId = shade ? "modelo" : hat === "padrao" ? (pieceType === "officer" ? "quepe" : pieceType === "engineer" ? "mineracao" : "modelo") : hat;
   // O mixer nasce junto com o boneco e é devolvido pelo mesmo useMemo: se o React descartar uma
   // das duas execuções (modo de desenvolvimento), boneco e animação nunca ficam desencontrados.
   const { obj, mixer, ...rig } = useMemo(() => {
