@@ -14,6 +14,13 @@ export { AccountsRoom, GameRoom };
 
 const ACCOUNTS_INSTANCE = "global";
 
+/** Comparação de texto em tempo constante (mesmo tamanho já checado antes). */
+function timingSafeEqual(a: string, b: string): boolean {
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -21,6 +28,18 @@ export default {
     if (url.pathname === "/connect") {
       const stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromName(ACCOUNTS_INSTANCE));
       return stub.fetch(request);
+    }
+
+    // Estatísticas do dono: desligada sem STATS_KEY; com ela, exige `Authorization: Bearer <chave>`. Só números agregados.
+    if (url.pathname === "/stats" && request.method === "GET") {
+      const key = env.STATS_KEY;
+      const given = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+      if (!key || !given || given.length !== key.length || !timingSafeEqual(given, key)) {
+        return new Response("Não encontrado", { status: 404 });
+      }
+      const stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromName(ACCOUNTS_INSTANCE));
+      const res = await stub.fetch("https://internal/internal/stats");
+      return new Response(res.body, { status: res.status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
     }
 
     // Aprendizado da IA (docs/09-IA.md, 1.3): só agregados anônimos por modo, leitura pública para a Campanha.

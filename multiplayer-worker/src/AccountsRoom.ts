@@ -246,6 +246,11 @@ export class AccountsRoom extends DurableObject<Env> {
       return Response.json({ ok: true });
     }
 
+    // Estatísticas do dono (docs/16 - Sistema de Contas): só números, nunca nomes, e-mails ou senhas.
+    if (url.pathname.endsWith("/internal/stats") && request.method === "GET") {
+      return Response.json(await this.computeStats());
+    }
+
     // Aprendizado da IA (docs/09-IA.md, 1.3): agregados anônimos por modo.
     if (url.pathname.endsWith("/internal/get-learning") && request.method === "GET") {
       const learning = await this.loadLearning(normalizePace((url.searchParams.get("pace") ?? undefined) as Pace | undefined));
@@ -1271,6 +1276,44 @@ export class AccountsRoom extends DurableObject<Env> {
   }
 
   // ── Aprendizado da IA (docs/09-IA.md, 1.3) ────────────────────────
+
+  /** Contagens agregadas das contas (cadastros por período, confirmadas, partidas ranqueadas). Sem dados pessoais. */
+  private async computeStats(): Promise<Record<string, unknown>> {
+    const now = Date.now();
+    const DAY = 86_400_000;
+    const all = await this.ctx.storage.list<Account>({ prefix: "account:" });
+    let total = 0;
+    let verified = 0;
+    let withRanked = 0;
+    let rankedMatches = 0;
+    const signups = { last24h: 0, last7d: 0, last30d: 0 };
+    const perDay: Record<string, number> = {};
+    for (const account of all.values()) {
+      if (!account || typeof account !== "object") continue;
+      total++;
+      if (account.emailVerified !== false) verified++;
+      const age = now - (account.createdAt ?? 0);
+      if (age <= DAY) signups.last24h++;
+      if (age <= 7 * DAY) signups.last7d++;
+      if (age <= 30 * DAY) signups.last30d++;
+      if (age <= 14 * DAY && account.createdAt) {
+        const day = new Date(account.createdAt).toISOString().slice(0, 10);
+        perDay[day] = (perDay[day] ?? 0) + 1;
+      }
+      const stats = [account.stats, ...Object.values(account.statsByPace ?? {})];
+      const played = stats.reduce((sum, s) => sum + (s?.rankedMatches ?? 0), 0);
+      if (played > 0) withRanked++;
+      rankedMatches += played;
+    }
+    return {
+      generatedAt: new Date(now).toISOString(),
+      accounts: { total, emailVerified: verified, emailPending: total - verified, playedRanked: withRanked },
+      signups,
+      signupsPerDay: Object.fromEntries(Object.entries(perDay).sort()),
+      rankedMatchesPlayedByAccounts: rankedMatches,
+      onlineNow: this.playersByConnection.size,
+    };
+  }
 
   private async loadLearning(pace: Pace): Promise<LearningData> {
     return sanitizeLearning(await this.ctx.storage.get(`learning:${pace}`));

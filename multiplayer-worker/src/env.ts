@@ -11,4 +11,6 @@ export interface Env {
   DEV_SHOW_CODE?: string;
   /** Quanto esperar, em ms, na fila ranqueada antes de jogar contra o computador (padrão 240000 = 4 min). Só para testes. */
   MATCH_BOT_AFTER_MS?: string;
+  /** Chave da rota de estatísticas do dono (`GET /stats`). Segredo: `wrangler secret put STATS_KEY`. Sem ela a rota fica desligada. */
+  STATS_KEY?: string;
 }

@@ -301,3 +301,11 @@ Além de criar uma sala e entrar com o código, o Multijogador tem **Buscar part
 
 - Cada partida ranqueada terminada grava uma linha no histórico das duas contas, atualiza os pontos do modo e, na primeira partida do modo, coloca o jogador no ranking daquele modo.
 - O Perfil e o Ranking buscam os dados no servidor sempre que a tela abre ou o modo muda; a tela final mostra a variação de pontos que o servidor calculou.
+
+---
+
+# Estatísticas do dono
+
+- **Rota `GET /stats` do servidor multijogador:** devolve só números agregados — total de contas, contas com e-mail confirmado e pendentes, quantas já jogaram ranqueada, cadastros nas últimas 24 horas, 7 e 30 dias, cadastros por dia (últimos 14 dias), total de partidas ranqueadas e quantos jogadores estão conectados agora. Nunca mostra nomes, e-mails ou senhas.
+- **Proteção:** a rota exige o cabeçalho `Authorization: Bearer <chave>`, e a chave é o segredo `STATS_KEY` do servidor (`wrangler secret put STATS_KEY`). Sem o segredo configurado, ou com chave errada ou ausente, a resposta é `404`, como se a rota não existisse. A comparação da chave é em tempo constante.
+- **Quem usa:** só o dono do jogo. A chave não vai para o repositório nem para o site.
