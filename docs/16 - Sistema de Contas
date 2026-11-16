@@ -306,6 +306,7 @@ Além de criar uma sala e entrar com o código, o Multijogador tem **Buscar part
 
 # Estatísticas do dono
 
-- **Rota `GET /stats` do servidor multijogador:** devolve só números agregados — total de contas, contas com e-mail confirmado e pendentes, quantas já jogaram ranqueada, cadastros nas últimas 24 horas, 7 e 30 dias, cadastros por dia (últimos 14 dias), total de partidas ranqueadas e quantos jogadores estão conectados agora. Nunca mostra nomes, e-mails ou senhas.
+- **Rota `GET /stats` do servidor multijogador:** devolve só números agregados — total de contas, contas com e-mail confirmado e pendentes, quantas já jogaram ranqueada, cadastros nas últimas 24 horas, 7 e 30 dias, cadastros por dia (últimos 14 dias), total de partidas ranqueadas e quantos jogadores estão conectados agora. A rota `/stats` nunca mostra nomes, e-mails ou senhas.
 - **Proteção:** a rota exige o cabeçalho `Authorization: Bearer <chave>`, e a chave é o segredo `STATS_KEY` do servidor (`wrangler secret put STATS_KEY`). Sem o segredo configurado, ou com chave errada ou ausente, a resposta é `404`, como se a rota não existisse. A comparação da chave é em tempo constante.
 - **Quem usa:** só o dono do jogo. A chave não vai para o repositório nem para o site.
+- **Lista de contas `GET /stats/accounts`:** mesma chave e mesma proteção; devolve apelido, e-mail, data de criação e se o e-mail foi confirmado de cada conta, para o dono do jogo (exportar contatos, suporte). Nunca devolve senha nem o hash dela. Os dados pessoais devem ficar só com o dono, fora do repositório e do site.

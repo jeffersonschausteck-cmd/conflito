@@ -31,14 +31,14 @@ export default {
     }
 
     // Estatísticas do dono: desligada sem STATS_KEY; com ela, exige `Authorization: Bearer <chave>`. Só números agregados.
-    if (url.pathname === "/stats" && request.method === "GET") {
+    if ((url.pathname === "/stats" || url.pathname === "/stats/accounts") && request.method === "GET") {
       const key = env.STATS_KEY;
       const given = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
       if (!key || !given || given.length !== key.length || !timingSafeEqual(given, key)) {
         return new Response("Não encontrado", { status: 404 });
       }
       const stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromName(ACCOUNTS_INSTANCE));
-      const res = await stub.fetch("https://internal/internal/stats");
+      const res = await stub.fetch(url.pathname === "/stats/accounts" ? "https://internal/internal/export-accounts" : "https://internal/internal/stats");
       return new Response(res.body, { status: res.status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
     }
 

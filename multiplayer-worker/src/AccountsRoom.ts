@@ -251,6 +251,21 @@ export class AccountsRoom extends DurableObject<Env> {
       return Response.json(await this.computeStats());
     }
 
+    // Lista de contas para o dono (apelido, e-mail, data, confirmação). Nunca inclui senha nem hash.
+    if (url.pathname.endsWith("/internal/export-accounts") && request.method === "GET") {
+      const all = await this.ctx.storage.list<Account>({ prefix: "account:" });
+      const rows = [...all.values()]
+        .filter((a) => a && typeof a === "object")
+        .map((a) => ({
+          nickname: a.nickname,
+          email: a.email,
+          createdAt: a.createdAt ? new Date(a.createdAt).toISOString() : "",
+          emailVerified: a.emailVerified !== false,
+        }))
+        .sort((x, y) => x.createdAt.localeCompare(y.createdAt));
+      return Response.json(rows);
+    }
+
     // Aprendizado da IA (docs/09-IA.md, 1.3): agregados anônimos por modo.
     if (url.pathname.endsWith("/internal/get-learning") && request.method === "GET") {
       const learning = await this.loadLearning(normalizePace((url.searchParams.get("pace") ?? undefined) as Pace | undefined));
