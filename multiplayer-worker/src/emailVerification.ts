@@ -14,8 +14,23 @@ export function isValidEmail(email: string): boolean {
   return e.length <= 254 && EMAIL_RE.test(e);
 }
 
+/**
+ * Chave de unicidade do e-mail: minúsculas, sem o "+apelido" (fulano+jogo@x.com é a mesma caixa de fulano@x.com)
+ * e, no Gmail, sem pontos (fu.lano@gmail.com = fulano@gmail.com). Uma caixa de e-mail = uma conta.
+ */
 export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
+  const e = email.trim().toLowerCase();
+  const at = e.lastIndexOf("@");
+  if (at < 1) return e;
+  let local = e.slice(0, at);
+  let domain = e.slice(at + 1);
+  const plus = local.indexOf("+");
+  if (plus > 0) local = local.slice(0, plus);
+  if (domain === "gmail.com" || domain === "googlemail.com") {
+    domain = "gmail.com";
+    local = local.replace(/\./g, "");
+  }
+  return `${local}@${domain}`;
 }
 
 /** "jo***@gmail.com": mostra só o começo, para a tela de confirmação. */

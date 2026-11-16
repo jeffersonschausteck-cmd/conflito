@@ -42,6 +42,18 @@ export default {
       return new Response(res.body, { status: res.status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
     }
 
+    // Apagar contas por domínio de e-mail (dono, mesma chave). POST {domains, confirm}. Sem confirm só simula.
+    if (url.pathname === "/stats/delete-accounts" && request.method === "POST") {
+      const key = env.STATS_KEY;
+      const given = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+      if (!key || !given || given.length !== key.length || !timingSafeEqual(given, key)) {
+        return new Response("Não encontrado", { status: 404 });
+      }
+      const stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromName(ACCOUNTS_INSTANCE));
+      const res = await stub.fetch("https://internal/internal/delete-accounts", { method: "POST", body: await request.text() });
+      return new Response(res.body, { status: res.status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
+    }
+
     // Aprendizado da IA (docs/09-IA.md, 1.3): só agregados anônimos por modo, leitura pública para a Campanha.
     const learningMatch = url.pathname.match(/^\/learning\/(blitz|rapid|classic)$/);
     if (learningMatch && request.method === "GET") {

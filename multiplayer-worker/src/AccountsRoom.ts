@@ -223,6 +223,7 @@ export class AccountsRoom extends DurableObject<Env> {
   private schemaReady = false;
   /** Fila de busca ranqueada: uma entrada por conta. */
   private queue = new Map<string, QueueEntry>();
+  private emailIndexReady = false;
 
   async fetch(request: Request): Promise<Response> {
     this.ensureSchema();
@@ -249,6 +250,14 @@ export class AccountsRoom extends DurableObject<Env> {
     // Estatísticas do dono (docs/16 - Sistema de Contas): só números, nunca nomes, e-mails ou senhas.
     if (url.pathname.endsWith("/internal/stats") && request.method === "GET") {
       return Response.json(await this.computeStats());
+    }
+
+    // Apagar contas por domínio de e-mail (dono). Sem `confirm: true` só conta (simulação).
+    if (url.pathname.endsWith("/internal/delete-accounts") && request.method === "POST") {
+      const body = (await request.json()) as { domains?: string[]; confirm?: boolean };
+      const domains = (body.domains ?? []).map((d) => String(d).trim().toLowerCase()).filter(Boolean);
+      if (domains.length === 0) return Response.json({ error: "domains vazio" }, { status: 400 });
+      return Response.json(await this.deleteAccountsByDomain(domains, body.confirm === true));
     }
 
     // Lista de contas para o dono (apelido, e-mail, data, confirmação). Nunca inclui senha nem hash.
@@ -704,7 +713,30 @@ export class AccountsRoom extends DurableObject<Env> {
   // ── Contas (idêntico a AccountManager.ts, agora persistido em
   //    `ctx.storage` — sobrevive a uma eviction da Durable Object) ──
 
+  /**
+   * Refaz UMA vez o índice `email:` com a regra atual de unicidade (contas antigas não tinham índice, ou tinham
+   * a regra velha). Em caso de e-mails repetidos, a conta mais antiga fica com o endereço.
+   */
+  private async ensureEmailIndex(): Promise<void> {
+    if (this.emailIndexReady) return;
+    if (await this.ctx.storage.get<boolean>("emailIndexV2")) {
+      this.emailIndexReady = true;
+      return;
+    }
+    const old = await this.ctx.storage.list({ prefix: "email:" });
+    if (old.size > 0) await this.ctx.storage.delete([...old.keys()]);
+    const all = await this.ctx.storage.list<Account>({ prefix: "account:" });
+    const accounts = [...all.values()].filter((a) => a && typeof a === "object" && a.email).sort((x, y) => (x.createdAt ?? 0) - (y.createdAt ?? 0));
+    for (const a of accounts) {
+      const k = `email:${normalizeEmail(a.email)}`;
+      if (!(await this.ctx.storage.get(k))) await this.ctx.storage.put(k, a.id);
+    }
+    await this.ctx.storage.put("emailIndexV2", true);
+    this.emailIndexReady = true;
+  }
+
   private async register(nickname: string, email: string, password: string) {
+    await this.ensureEmailIndex();
     const key = nickname.trim().toLowerCase();
     if (!key || password.length < 4) {
       return { ok: false as const, reason: "Nickname ou senha inválidos." };
@@ -727,7 +759,7 @@ export class AccountsRoom extends DurableObject<Env> {
       };
     }
     if (await this.ctx.storage.get<string>(emailKey)) {
-      return { ok: false as const, reason: "Este e-mail já está em uso." };
+      return { ok: false as const, reason: "Este e-mail já tem uma conta. Entre com ela, ou use \"Esqueci a senha\" para recuperar o acesso." };
     }
     const account: Account = {
       id: crypto.randomUUID(),
@@ -756,6 +788,7 @@ export class AccountsRoom extends DurableObject<Env> {
   private async findAccount(identifier: string): Promise<Account | undefined> {
     const text = String(identifier ?? "").trim();
     if (!text) return undefined;
+    await this.ensureEmailIndex();
     const indexKey = text.includes("@") ? `email:${normalizeEmail(text)}` : `nickname:${text.toLowerCase()}`;
     const id = await this.ctx.storage.get<string>(indexKey);
     return id ? await this.loadAccount(id) : undefined;
@@ -1291,6 +1324,32 @@ export class AccountsRoom extends DurableObject<Env> {
   }
 
   // ── Aprendizado da IA (docs/09-IA.md, 1.3) ────────────────────────
+
+  /** Apaga por inteiro as contas cujo e-mail é de um dos domínios (conta, índices, códigos, sessões, ranking, histórico). */
+  private async deleteAccountsByDomain(domains: string[], confirm: boolean): Promise<Record<string, unknown>> {
+    const all = await this.ctx.storage.list<Account>({ prefix: "account:" });
+    const targets = [...all.values()].filter((a) => a && typeof a === "object" && domains.includes((a.email.split("@")[1] ?? "").trim().toLowerCase()));
+    const ids = new Set(targets.map((a) => a.id));
+    if (!confirm) return { simulacao: true, contasEncontradas: targets.length, totalAntes: all.size };
+    for (const a of targets) {
+      const emailKey = `email:${normalizeEmail(a.email)}`;
+      const keys = [`account:${a.id}`, `nickname:${a.nickname.toLowerCase()}`, `verify:${a.id}`, `reset:${a.id}`, `loginfail:${a.id}`];
+      if ((await this.ctx.storage.get<string>(emailKey)) === a.id) keys.push(emailKey);
+      await this.ctx.storage.delete(keys);
+    }
+    const sessions = await this.ctx.storage.list<Session>({ prefix: "session:" });
+    const dead = [...sessions.entries()].filter(([, s]) => s && ids.has(s.accountId)).map(([k]) => k);
+    if (dead.length) await this.ctx.storage.delete(dead);
+    this.ensureSchema();
+    const sql = this.ctx.storage.sql;
+    for (const id of ids) {
+      sql.exec(`DELETE FROM leaderboard_modes WHERE accountId = ?`, id);
+      sql.exec(`DELETE FROM leaderboard WHERE accountId = ?`, id);
+      sql.exec(`DELETE FROM match_history WHERE blueAccountId = ? OR redAccountId = ?`, id, id);
+    }
+    const left = await this.ctx.storage.list<Account>({ prefix: "account:" });
+    return { apagadas: targets.length, sessoesRemovidas: dead.length, totalDepois: left.size };
+  }
 
   /** Contagens agregadas das contas (cadastros por período, confirmadas, partidas ranqueadas). Sem dados pessoais. */
   private async computeStats(): Promise<Record<string, unknown>> {

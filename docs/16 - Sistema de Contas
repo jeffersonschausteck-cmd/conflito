@@ -310,3 +310,19 @@ Além de criar uma sala e entrar com o código, o Multijogador tem **Buscar part
 - **Proteção:** a rota exige o cabeçalho `Authorization: Bearer <chave>`, e a chave é o segredo `STATS_KEY` do servidor (`wrangler secret put STATS_KEY`). Sem o segredo configurado, ou com chave errada ou ausente, a resposta é `404`, como se a rota não existisse. A comparação da chave é em tempo constante.
 - **Quem usa:** só o dono do jogo. A chave não vai para o repositório nem para o site.
 - **Lista de contas `GET /stats/accounts`:** mesma chave e mesma proteção; devolve apelido, e-mail, data de criação e se o e-mail foi confirmado de cada conta, para o dono do jogo (exportar contatos, suporte). Nunca devolve senha nem o hash dela. Os dados pessoais devem ficar só com o dono, fora do repositório e do site.
+
+---
+
+# Um E-mail, Uma Conta
+
+- **Regra:** cada caixa de e-mail só pode ter uma conta. Quem tenta cadastrar um e-mail que já tem conta recebe: "Este e-mail já tem uma conta. Entre com ela, ou use \"Esqueci a senha\" para recuperar o acesso." Quem esqueceu a senha usa a recuperação (documento acima), não cria outra conta.
+- **O que conta como o mesmo e-mail:** letras maiúsculas e minúsculas não importam; o trecho `+apelido` é ignorado (`fulano+jogo@x.com` é `fulano@x.com`); e no Gmail (`gmail.com` e `googlemail.com`) os pontos também são ignorados (`fu.lano@gmail.com` é `fulano@gmail.com`).
+- **Contas antigas:** na primeira vez que o servidor recebe um cadastro ou um login por e-mail depois desta regra, o índice de e-mails é refeito uma única vez com a regra nova. Se duas contas antigas tinham o mesmo e-mail, a mais antiga fica com o endereço para entrar por e-mail; a outra continua existindo e entra pelo apelido.
+- **Cadastro não confirmado** por mais de 24 horas libera o e-mail e o apelido, como antes.
+
+# Apagar Contas por Domínio (dono)
+
+- **Rota `POST /stats/delete-accounts`**, com a mesma chave do dono (`Authorization: Bearer <chave>`; sem a chave a resposta é `404`). O corpo é `{ "domains": ["test.com"], "confirm": true }`.
+- **Sem `confirm: true` só simula:** devolve quantas contas seriam apagadas e não apaga nada.
+- **O que é apagado por conta:** a conta, o apelido e o e-mail reservados, os códigos de confirmação e de recuperação, as tentativas de login, as sessões abertas, as linhas do Ranking (todos os modos) e as partidas do histórico em que a conta jogou. Não há como desfazer.
+- **Uso previsto:** limpar as contas de teste que os testes automáticos criaram no servidor de verdade (`test.com` e `t.com`).
