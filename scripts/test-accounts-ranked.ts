@@ -143,7 +143,10 @@ async function playStrikeMatch(creator: WebSocket, joiner: WebSocket, matchType:
   await waitFor(roomB, (m) => m.type === "GameStarted");
   const startState = startedA.state;
   const strikeCol = map.cols - f.depth; // coluna da Bandeira vermelha
-  send(roomA, { type: "MovePiece", pieceId: blue.strikerId, row: strikeRow, column: strikeCol } as ClientEvent);
+  // O servidor troca os ids das peças por ids sem sentido (informação oculta): acha o atacante pela casa e pelo tipo.
+  const sp = blue.pieces.find((p) => p.id === blue.strikerId)!;
+  const strikerId = (startState.pieces as any[]).find((p) => p.owner === "blue" && p.pieceType === sp.pieceType && p.currentRow === sp.currentRow && p.currentColumn === sp.currentColumn)!.id;
+  send(roomA, { type: "MovePiece", pieceId: strikerId, row: strikeRow, column: strikeCol } as ClientEvent);
   const finA = (await waitFor(roomA, (m) => m.type === "GameFinished", 10000)) as any;
   const finB = (await waitFor(roomB, (m) => m.type === "GameFinished", 10000)) as any;
   roomA.close();

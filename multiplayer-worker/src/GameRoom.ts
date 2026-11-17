@@ -22,6 +22,7 @@ import { ownerToPlayer } from "@/types/gameState";
 import { DeploymentManager, DEPLOYMENT_DURATION_MS } from "@/services/deploymentManager";
 import { getBlockedTiles, mapForPace, normalizeMapId } from "@/maps";
 import { AIEngine } from "@/services/aiEngine";
+import { maskStateFor, opaquePieceIds } from "@/services/fogMask";
 import { sanitizeLearning, type LearningData } from "@/services/aiLearning";
 import { formatFor, normalizePace } from "@/services/battleFormat";
 import type { GameAction, GameState, Pace, Player } from "@/types/gameState";
@@ -426,7 +427,8 @@ export class GameRoom extends DurableObject<Env> {
     const isValid = DeploymentManager.validateDeployment(pieces, map.rows, map.cols, getBlockedTiles(map), owner, formatFor(this.pace));
     if (!isValid) return { ok: false, reason: "Posicionamento inválido." };
 
-    this.deployments.set(playerId, pieces);
+    // Ids sem sentido: `red-bomb-3` entregaria o tipo da peça ao adversário (informação oculta, docs/10).
+    this.deployments.set(playerId, opaquePieceIds(pieces));
     if (this.deployments.size >= 2) {
       const allPieces = [...this.deployments.values()].flat();
       this.session = new GameSession(allPieces, this.pace, this.mapId);
@@ -712,6 +714,14 @@ export class GameRoom extends DurableObject<Env> {
    * lado do cliente. Puro transporte, nenhuma regra de jogo envolvida.
    */
   private send(conn: TransportConnection, event: ServerEvent): void {
+    // Informação oculta: cada jogador só recebe as peças do adversário que já foram reveladas (ver `maskStateFor`).
+    if ("state" in event && event.state) {
+      let viewer: PlayerOwner | null = null;
+      for (const [playerId, c] of this.connectionsByPlayer) {
+        if (c === conn) viewer = this.ownerOf(playerId);
+      }
+      event = { ...event, state: maskStateFor(event.state, viewer) } as ServerEvent;
+    }
     const wireEvent =
       "state" in event && event.state
         ? {

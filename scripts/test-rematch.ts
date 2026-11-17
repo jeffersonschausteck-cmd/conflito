@@ -113,24 +113,30 @@ async function main() {
   send(roomA, { type: "Rematch" });
   ok("revanche com a partida em andamento é recusada", ((await early) as any).type === "ActionRejected");
 
-  // Joga a partida inteira com a IA, pelo protocolo.
+  // Joga a partida inteira com a IA, pelo protocolo. Cada lado decide só com o que o servidor lhe mandou
+  // (informação oculta: as peças do adversário chegam sem tipo).
+  const startedB = (await waitFor(roomB, (m) => m.type === "GameStarted")) as any;
   let state = hydrate(started.state);
+  let stateB = hydrate(startedB.state);
   let plies = 0;
   while (!state.gameOver && plies < 1500) {
-    const ws = state.currentPlayer === "BLUE" ? roomA : roomB;
-    const d = AIEngine.chooseMove(state, state.currentPlayer);
+    const blueTurn = state.currentPlayer === "BLUE";
+    const ws = blueTurn ? roomA : roomB;
+    const view = blueTurn ? state : stateB;
+    const d = AIEngine.chooseMove(view, view.currentPlayer, { memoryKey: `rematch-${blueTurn ? "a" : "b"}-${firstMatchStart}` });
+    const isEnd = (m: ServerEvent) => m.type === "ActionApplied" || m.type === "GameFinished" || m.type === "ActionRejected";
+    const waitEvA = next(roomA, isEnd, 15000);
+    const waitEvB = next(roomB, isEnd, 15000);
     if (!d) {
       send(ws, { type: "EndTurn" });
     } else {
       send(ws, { type: "MovePiece", pieceId: d.piece.id, row: d.target.row, column: d.target.column });
     }
-    const ev = (await next(
-      roomA,
-      (m) => m.type === "ActionApplied" || m.type === "GameFinished" || m.type === "ActionRejected",
-      15000,
-    )) as any;
+    const ev = (await waitEvA) as any;
+    const evB = (await waitEvB) as any;
     if (ev.type === "ActionRejected") throw new Error("jogada recusada: " + ev.reason);
     state = hydrate(ev.state);
+    stateB = hydrate(evB.state);
     plies++;
   }
   ok(`a partida 1 terminou com vencedor (${plies} jogadas)`, state.gameOver && !!state.winner);
@@ -166,7 +172,10 @@ async function main() {
   ok("novo instante de início", started.matchStartTime > firstMatchStart);
 
   // Uma jogada na partida 2 funciona.
-  const d2 = AIEngine.chooseMove(s2, s2.currentPlayer)!;
+  // (a visão do azul serve para o azul; se for a vez do vermelho, ele decide pela visão que recebeu)
+  const startedB2 = (await waitFor(roomB, (m) => m.type === "GameStarted" && (m as any).matchStartTime === started.matchStartTime)) as any;
+  const view2 = s2.currentPlayer === "BLUE" ? s2 : hydrate(startedB2.state);
+  const d2 = AIEngine.chooseMove(view2, view2.currentPlayer)!;
   const moved = next(roomA, (m) => m.type === "ActionApplied", 10000);
   send(s2.currentPlayer === "BLUE" ? roomA : roomB, { type: "MovePiece", pieceId: d2.piece.id, row: d2.target.row, column: d2.target.column });
   ok("jogada aceita na partida 2", ((await moved) as any).type === "ActionApplied");

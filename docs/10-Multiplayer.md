@@ -259,3 +259,15 @@ Quando uma partida termina em vitória por captura da Bandeira ou por falta de p
 - **Resultado:** `process-ranked-result` aceita um lado `bot:...`: só a conta humana é alterada, com a pontuação virtual do computador (`botRatingOffset`, sorteado ao criar a sala). O histórico guarda o nome sorteado.
 - **Revanche:** na sala com o computador, o pedido do jogador já vale pelos dois.
 - **Mesma conta:** `add-player` recusa um segundo jogador da mesma conta na sala.
+
+---
+
+# Informação Oculta (Peças do Adversário)
+
+- **Regra:** o servidor guarda o estado completo da partida, mas cada jogador só recebe o que pode ver (docs/04-Regras.md, seção 7). As peças do adversário que ainda não foram reveladas chegam **sem identidade**: todas aparecem como uma mesma figura (Guarda Real, patente 4, que se move), que o jogo desenha como vulto. Assim ninguém consegue descobrir Armadilhas, o Rei ou o Assassino lendo as mensagens da rede.
+- **O que continua visível:** as peças do próprio jogador, as peças do adversário já reveladas em combate ou por andar o Batedor mais de uma casa, e a Bandeira, que é sempre visível para os dois (docs/04, seção 7).
+- **Ids das peças:** no Posicionamento o servidor troca o id de cada peça por um código sem sentido (`blue-3fa9c1d2…`), porque o id de origem (`red-bomb-3`) entregaria o tipo. O id fica o mesmo a partida inteira.
+- **Fim da partida:** com a partida terminada o tabuleiro inteiro é mostrado nos dois lados (tela de resultado).
+- **Onde vale:** em todo evento que leva o estado: início da partida, cada jogada, reconexão e fim. O filtro é feito no servidor, na hora de enviar (`maskStateFor`, em `src/services/fogMask.ts`); o servidor e a IA do computador continuam enxergando tudo, e a IA só usa o que um jogador veria.
+- **Campanha (contra o computador no navegador):** não passa pelo servidor; o estado completo fica no próprio navegador do jogador, e não vale ranking.
+- **Teste:** `scripts/test-fog-online.ts` joga uma partida inteira pelo protocolo, cada lado decidindo só com o que recebeu, e confere todo estado enviado (inclusive após reconexão e no fim).
