@@ -1,5 +1,5 @@
 import { Suspense, useState, useMemo, useEffect, useRef } from "react";
-import { withAuth } from "@/components/RequireAuth";
+import { withAuthUnlessCampaign } from "@/components/RequireAuth";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PIECES } from "@/config/pieces";
 import { DeploymentManager, DEPLOYMENT_DURATION_MS } from "@/services/deploymentManager";
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/deployment")({
   head: () => ({
     meta: [{ title: "Fase de Posicionamento — Conflito" }],
   }),
-  component: withAuth(DeploymentPage),
+  component: withAuthUnlessCampaign(DeploymentPage),
 });
 
 // ─── Constants ───────────────────────────────────────────────────────────────

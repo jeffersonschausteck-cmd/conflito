@@ -1,6 +1,7 @@
 import { useGameState } from "@/hooks/useGameState";
 import { useAITurn } from "@/hooks/useAITurn";
 import { GameButton } from "@/components/ui/GameButton";
+import { GameEngine } from "@/services/gameEngine";
 
 export interface MatchActionsBarProps {
   isOnline: boolean;
@@ -26,7 +27,13 @@ export interface MatchActionsBarProps {
  * alterar a altura da barra.
  */
 export function MatchActionsBar({ isOnline }: MatchActionsBarProps) {
-  const { state, selectedPiece, selectPiece, dispatch } = useGameState();
+  const { state, selectedPiece, selectPiece, dispatch, localOwner } = useGameState();
+  // Online, passar a vez só vale quando não há nenhuma jogada possível (senão serviria para enrolar a partida; o servidor também confere).
+  const hasMove =
+    isOnline &&
+    state.pieces.some(
+      (p) => p.isAlive && p.owner === localOwner && p.canMove && GameEngine.legalMovesForSelection({ ...state, selectedPieceId: p.id, actionLocked: false }).size > 0,
+    );
   // Ver comentário original (Sprint QA-08) em `useAITurn`: a IA local só
   // faz sentido offline — online, `enabled: false` garante que ela
   // nunca sequestra o turno do jogador Vermelho de verdade.
@@ -66,7 +73,7 @@ export function MatchActionsBar({ isOnline }: MatchActionsBarProps) {
         <GameButton
           variant="primary"
           size="sm"
-          disabled={state.gameOver}
+          disabled={state.gameOver || hasMove}
           onClick={() => dispatch({ type: "END_TURN" })}
           className="flex-1 md:flex-none"
         >

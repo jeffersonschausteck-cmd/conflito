@@ -271,3 +271,14 @@ Quando uma partida termina em vitória por captura da Bandeira ou por falta de p
 - **Onde vale:** em todo evento que leva o estado: início da partida, cada jogada, reconexão e fim. O filtro é feito no servidor, na hora de enviar (`maskStateFor`, em `src/services/fogMask.ts`); o servidor e a IA do computador continuam enxergando tudo, e a IA só usa o que um jogador veria.
 - **Campanha (contra o computador no navegador):** não passa pelo servidor; o estado completo fica no próprio navegador do jogador, e não vale ranking.
 - **Teste:** `scripts/test-fog-online.ts` joga uma partida inteira pelo protocolo, cada lado decidindo só com o que recebeu, e confere todo estado enviado (inclusive após reconexão e no fim).
+
+---
+
+# Relógio por Jogada (partidas online)
+
+- **Regra:** em toda partida online cada jogada tem um limite de tempo, contado pelo servidor desde que a vez começa: **30 s** na Partida Rápida, **45 s** na Normal e **60 s** na Intensa. A vez do computador (partida contra o adversário controlado pelo computador) não tem relógio; a do jogador, sim.
+- **Quando zera:** quem não jogou a tempo **perde a vez** (a vez passa ao adversário e as peças ficam como estão). Quem deixa o relógio zerar **3 vezes seguidas** perde a partida por abandono (W.O.), igual a uma desconexão. Jogar uma peça zera a contagem de vezes perdidas.
+- **Sem enrolar:** passar a vez com o botão "Finalizar Turno" só é permitido quando o jogador não tem nenhuma jogada possível; com jogadas possíveis o botão fica desativado e o servidor recusa o pedido.
+- **Tela:** uma etiqueta no alto do campo mostra "Sua vez" ou "Vez do adversário" com a contagem regressiva (vermelha e piscando nos últimos 10 s da própria vez). O prazo vem do servidor junto de cada estado (`turnDeadline`); reconectar não dá tempo extra.
+- **Campanha (offline):** sem relógio.
+- **Teste:** `scripts/test-turn-clock.ts` (servidor local com `TURN_LIMIT_MS:1500`) confere o prazo no início, a vez passando sozinha, o novo prazo, a recusa de passar a vez com jogadas e o W.O. na terceira vez.

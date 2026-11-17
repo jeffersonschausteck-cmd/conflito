@@ -326,3 +326,11 @@ Além de criar uma sala e entrar com o código, o Multijogador tem **Buscar part
 - **Sem `confirm: true` só simula:** devolve quantas contas seriam apagadas e não apaga nada.
 - **O que é apagado por conta:** a conta, o apelido e o e-mail reservados, os códigos de confirmação e de recuperação, as tentativas de login, as sessões abertas, as linhas do Ranking (todos os modos) e as partidas do histórico em que a conta jogou. Não há como desfazer.
 - **Uso previsto:** limpar as contas de teste que os testes automáticos criaram no servidor de verdade (`test.com` e `t.com`).
+
+---
+
+# Jogar Sem Conta (Campanha)
+
+- **Regra:** a conta só é obrigatória para o que depende dela: Multijogador (ranqueada e busca de partida), Ranking, Perfil e Oficina do Exército (o visual é sincronizado com a conta). A **Campanha**, contra o computador no navegador, pode ser jogada por visitante: não conta pontos e nada dela é salvo no servidor.
+- **Como o visitante é reconhecido:** não existe "conta de visitante" no servidor. A tela de posicionamento e a de partida abrem sem conta apenas quando o fluxo escolhido foi a Campanha (marcado na escolha de modo); sem isso, abrir o endereço direto leva ao login.
+- **Convite à conta:** o Centro de Operações mostra "Entrar / Criar conta" para o visitante, e a descrição do Multijogador avisa que ele pede conta.

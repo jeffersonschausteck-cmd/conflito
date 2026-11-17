@@ -1,5 +1,5 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { withAuth } from "@/components/RequireAuth";
 import { ScreenShell } from "@/components/ScreenShell";
 import { GameButton } from "@/components/ui/GameButton";
 import { GameCard } from "@/components/ui/GameCard";
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/mode")({
   head: () => ({
     meta: [{ title: "Modo de Jogo — Conflito" }],
   }),
-  component: withAuth(ModeSelectPage),
+  component: ModeSelectPage,
 });
 
 interface ModeCard {
@@ -33,13 +33,13 @@ const MODES: ModeCard[] = [
     id: "classic",
     name: "Campanha",
     tagline: "Contra a IA",
-    description: "Enfrente o computador no tamanho de partida que quiser. Não conta pontos.",
+    description: "Enfrente o computador no tamanho de partida que quiser. Não precisa de conta e não conta pontos.",
   },
   {
     id: "modern",
     name: "Multijogador",
     tagline: "Ranqueada",
-    description: "Dispute partidas ranqueadas contra outros comandantes. Vale pontos no ranking do modo.",
+    description: "Dispute partidas ranqueadas contra outros comandantes. Pede conta e vale pontos no ranking do modo.",
     online: true,
   },
   {
@@ -53,6 +53,9 @@ const MODES: ModeCard[] = [
 
 function ModeSelectPage() {
   const navigate = useNavigate();
+  // A Campanha é livre; o Multijogador, o Ranking e a Oficina pedem conta (docs/16 - Sistema de Contas).
+  const [loggedIn, setLoggedIn] = useState(false);
+  useEffect(() => setLoggedIn(AuthClient.isAuthenticated()), []);
 
   const onSelect = (mode: ModeCard) => {
     if (mode.disabled) return;
@@ -111,13 +114,15 @@ function ModeSelectPage() {
           size="sm"
           className="ml-2"
           onClick={() => {
-            const client = getNetworkClient();
-            AuthClient.logout(client);
-            client.disconnect();
+            if (loggedIn) {
+              const client = getNetworkClient();
+              AuthClient.logout(client);
+              client.disconnect();
+            }
             navigate({ to: "/login" });
           }}
         >
-          Sair da conta
+          {loggedIn ? "Sair da conta" : "Entrar / Criar conta"}
         </GameButton>
       </div>
     </ScreenShell>

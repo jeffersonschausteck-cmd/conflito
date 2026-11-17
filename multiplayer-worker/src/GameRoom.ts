@@ -47,6 +47,10 @@ import type { Env } from "./env";
  * nem tem os dois jogadores prontos.
  */
 const RECONNECT_GRACE_MS = 3 * 60 * 1000;
+/** Relógio por jogada nas partidas online (docs/10-Multiplayer.md, "Relógio por Jogada"). */
+const TURN_LIMIT_BY_PACE: Record<Pace, number> = { blitz: 30_000, rapid: 45_000, classic: 60_000 };
+/** Vezes seguidas sem jogar (o relógio zerou) até perder a partida. */
+const MAX_TIMEOUT_STRIKES = 3;
 
 /** Idêntico a `GameSession` original — única ponte com o Motor do Jogo. */
 class GameSession {
@@ -121,6 +125,10 @@ interface PersistedRoom {
   /** Sprint REC-01 — quem está desconectado agora e até quando pode voltar. */
   disconnectedPlayerId: PlayerId | null;
   disconnectDeadline: number | null;
+  /** Relógio por jogada: prazo da vez atual, a vez a que ele pertence e quantas vezes seguidas cada jogador deixou o relógio zerar. */
+  turnDeadline?: number | null;
+  turnClockKey?: string | null;
+  turnStrikes?: [PlayerId, number][];
   /** Sprint RANKING-01 — tipo da sala (hoje sempre "casual" pras salas por código) e o matchId único gerado quando a Partida começa (`null` antes disso). */
   matchType: MatchType;
   /** Modo da sala (tamanho do tabuleiro e do exército). Ausente em salas antigas = Partida Intensa. */
@@ -179,6 +187,9 @@ export class GameRoom extends DurableObject<Env> {
   private disconnectedPlayerId: PlayerId | null = null;
   /** Sprint REC-01 — prazo (epoch ms) pro jogador acima reconectar antes do W.O. */
   private disconnectDeadline: number | null = null;
+  private turnDeadline: number | null = null;
+  private turnClockKey: string | null = null;
+  private turnStrikes = new Map<PlayerId, number>();
   /** Sprint RANKING-01 — Direcionamento Oficial #5/#6: toda sala por código nasce "casual" e nunca altera Rating. */
   private matchType: MatchType = "casual";
   /** Modo da sala, decidido por quem a cria. */
@@ -215,6 +226,9 @@ export class GameRoom extends DurableObject<Env> {
       this.matchEndTime = stored.matchEndTime ?? null;
       this.disconnectedPlayerId = stored.disconnectedPlayerId ?? null;
       this.disconnectDeadline = stored.disconnectDeadline ?? null;
+      this.turnDeadline = stored.turnDeadline ?? null;
+      this.turnClockKey = stored.turnClockKey ?? null;
+      this.turnStrikes = new Map(stored.turnStrikes ?? []);
       this.matchType = stored.matchType ?? "casual";
       this.pace = normalizePace(stored.pace);
       this.mapId = normalizeMapId(this.pace, stored.mapId);
@@ -245,6 +259,9 @@ export class GameRoom extends DurableObject<Env> {
       matchEndTime: this.matchEndTime,
       disconnectedPlayerId: this.disconnectedPlayerId,
       disconnectDeadline: this.disconnectDeadline,
+      turnDeadline: this.turnDeadline,
+      turnClockKey: this.turnClockKey,
+      turnStrikes: [...this.turnStrikes.entries()],
       matchType: this.matchType,
       pace: this.pace,
       mapId: this.mapId,
@@ -265,7 +282,7 @@ export class GameRoom extends DurableObject<Env> {
    * tempo) — nunca perde um dos dois.
    */
   private async scheduleNextAlarm(): Promise<void> {
-    const candidates = [this.deploymentDeadline, this.disconnectDeadline].filter(
+    const candidates = [this.deploymentDeadline, this.disconnectDeadline, this.status === "playing" ? this.turnDeadline : null].filter(
       (t): t is number => t !== null,
     );
     if (candidates.length === 0) return;
@@ -441,8 +458,45 @@ export class GameRoom extends DurableObject<Env> {
       // estável pro `AccountsRoom` (idempotência do processamento de
       // Rating). Gerado uma única vez aqui, nunca recalculado.
       this.matchId = crypto.randomUUID();
+      this.turnStrikes.clear();
+      this.turnClockKey = null;
+      this.armTurnClock();
     }
     return { ok: true };
+  }
+
+  /** Limite de tempo de cada jogada (em ms) deste modo. */
+  private turnLimitMs(): number {
+    const override = Number(this.env.TURN_LIMIT_MS);
+    return Number.isFinite(override) && override > 0 ? override : TURN_LIMIT_BY_PACE[this.pace];
+  }
+
+  /**
+   * Relógio por jogada: a cada vez nova de um jogador (não do computador) o servidor marca um prazo. É idempotente por vez
+   * (`turnClockKey`): reconectar ou repetir uma seleção não dá tempo extra. O prazo vai a cada cliente em `turnDeadline`.
+   */
+  private armTurnClock(): void {
+    const state = this.session?.getState();
+    if (this.status !== "playing" || !state || state.gameOver) {
+      this.turnDeadline = null;
+      this.turnClockKey = null;
+      return;
+    }
+    const key = `${state.turnNumber}:${state.currentPlayer}`;
+    if (key === this.turnClockKey) return;
+    this.turnClockKey = key;
+    const mover = this.players.find((p) => ownerToPlayer(p.owner) === state.currentPlayer);
+    this.turnDeadline = mover && mover.playerId !== this.botPlayerId ? Date.now() + this.turnLimitMs() : null;
+    void this.persist().then(() => this.scheduleNextAlarm());
+  }
+
+  /** O jogador tem alguma jogada possível? (Passar a vez só é permitido sem nenhuma.) */
+  private hasLegalMove(owner: PlayerOwner): boolean {
+    const state = this.session?.getState();
+    if (!state) return false;
+    return state.pieces.some(
+      (p) => p.isAlive && p.owner === owner && p.canMove && GameEngine.legalMovesForSelection({ ...state, selectedPieceId: p.id, actionLocked: false }).size > 0,
+    );
   }
 
   private applyAction(playerId: PlayerId, action: GameAction) {
@@ -450,8 +504,10 @@ export class GameRoom extends DurableObject<Env> {
     const owner = this.ownerOf(playerId);
     if (!owner) return { ok: false as const, reason: "Jogador não pertence a esta sala." };
     const result = this.session.applyAction(owner, action);
+    if (result.ok) this.armTurnClock();
     if (result.state.gameOver) {
       this.status = "finished";
+      this.turnDeadline = null;
       // Sprint TIMER-01 — só grava na primeira vez que `gameOver` vira
       // verdadeiro (`matchEndTime` já setado significa que já paramos).
       if (this.matchEndTime === null) this.matchEndTime = Date.now();
@@ -720,7 +776,7 @@ export class GameRoom extends DurableObject<Env> {
       for (const [playerId, c] of this.connectionsByPlayer) {
         if (c === conn) viewer = this.ownerOf(playerId);
       }
-      event = { ...event, state: maskStateFor(event.state, viewer) } as ServerEvent;
+      event = { ...event, state: maskStateFor(event.state, viewer), turnDeadline: this.status === "playing" ? this.turnDeadline : null } as ServerEvent;
     }
     const wireEvent =
       "state" in event && event.state
@@ -962,6 +1018,7 @@ export class GameRoom extends DurableObject<Env> {
           this.send(conn, { type: "ActionRejected", reason: result.reason ?? "Ação inválida." });
           break;
         }
+        this.turnStrikes.set(playerId, 0);
         await this.persist();
         if (result.state.gameOver && result.state.winner) {
           await this.sendGameFinished(result.state.winner, result.state);
@@ -973,6 +1030,12 @@ export class GameRoom extends DurableObject<Env> {
       }
 
       case "EndTurn": {
+        // Passar a vez só vale quando não há nenhuma jogada possível; senão seria um jeito de enrolar a partida.
+        const passer = this.ownerOf(playerId);
+        if (passer && ownerToPlayer(passer) === this.session?.getState().currentPlayer && this.hasLegalMove(passer)) {
+          this.send(conn, { type: "ActionRejected", reason: "Você tem jogadas possíveis: mova uma peça." });
+          break;
+        }
         const result = this.applyAction(playerId, { type: "END_TURN" });
         if (!result.ok) {
           this.send(conn, { type: "ActionRejected", reason: result.reason ?? "Ação inválida." });
@@ -1092,6 +1155,31 @@ export class GameRoom extends DurableObject<Env> {
       (this.status === "deployment" || this.status === "playing")
     ) {
       await this.forfeit(this.disconnectedPlayerId);
+    }
+
+    // Relógio por jogada: quem não jogou a tempo perde a vez; três vezes seguidas, perde a partida.
+    if (this.status === "playing" && this.turnDeadline !== null && now >= this.turnDeadline && this.session) {
+      const state = this.session.getState();
+      const slow = this.players.find((p) => ownerToPlayer(p.owner) === state.currentPlayer);
+      this.turnDeadline = null;
+      if (slow && !state.gameOver) {
+        const strikes = (this.turnStrikes.get(slow.playerId) ?? 0) + 1;
+        this.turnStrikes.set(slow.playerId, strikes);
+        if (strikes >= MAX_TIMEOUT_STRIKES) {
+          await this.forfeit(slow.playerId);
+        } else {
+          const result = this.applyAction(slow.playerId, { type: "END_TURN" });
+          if (result.ok) {
+            await this.persist();
+            if (result.state.gameOver && result.state.winner) {
+              await this.sendGameFinished(result.state.winner, result.state);
+            } else {
+              this.broadcast({ type: "ActionApplied", state: result.state, appliedBy: slow.playerId });
+              this.maybeScheduleBot();
+            }
+          }
+        }
+      }
     }
 
     await this.scheduleNextAlarm();

@@ -65,6 +65,11 @@ export interface GameStateApi {
    */
   opponentDisconnectDeadline: number | null;
   /**
+   * Relógio por jogada (docs/10-Multiplayer.md): prazo (epoch ms) da vez atual, vindo do servidor, ou `null` quando não
+   * há relógio (Campanha, vez do computador, partida terminada). Meta de orquestração, nunca dado do Motor.
+   */
+  turnDeadline: number | null;
+  /**
    * Sprint REC-01 — distingue uma vitória por combate (bandeira
    * capturada) de uma vitória por W.O. (adversário não reconectou a
    * tempo), pra tela final mostrar o motivo certo. Offline nunca tem
@@ -177,6 +182,7 @@ export function GameStateProvider({ config, children, localOwner = "blue" }: Gam
       // Sprint REC-01 — offline não tem adversário nem servidor pra
       // detectar desconexão; sempre `null`.
       opponentDisconnectDeadline: null,
+      turnDeadline: null,
       matchEndReason: state.gameOver ? "victory" : null,
       // Sprint RANKING-01 — offline nunca tem Rating.
       rankingResult: null,

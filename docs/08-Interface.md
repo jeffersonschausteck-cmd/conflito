@@ -296,7 +296,7 @@ A escolha do modo (tamanho da partida) é uma tela própria, entre o Centro de O
 
 # Login Obrigatório e Centro de Operações
 
-- **Sem login não se joga.** Para jogar qualquer modo é preciso ter feito login (documento 16). Quem tenta abrir o Centro de Operações, a escolha de modo, o posicionamento, a partida, a Oficina, o Ranking ou o Perfil sem estar logado é levado à tela de login. A tela inicial, as Configurações e os Créditos continuam abertas.
+- **A Campanha não pede conta; o resto pede.** Quem entra sem conta pode abrir o Centro de Operações e jogar a Campanha (contra o computador, em qualquer tamanho de partida, sem pontos) até o fim: escolha de modo, posicionamento e partida. O Multijogador, a Oficina do Exército, o Ranking e o Perfil levam à tela de login (documento 16), e o botão do Centro de Operações vira "Entrar / Criar conta" para quem não está logado. O visitante só entra no posicionamento e na partida se vier do fluxo da Campanha; abrir essas telas direto pelo endereço leva ao login. A tela inicial, as Configurações e os Créditos continuam abertas.
 - **Tela de login (documento 16):** o campo de acesso aceita nickname ou e-mail; erros e acertos aparecem sempre na tela (usuário não encontrado, senha incorreta, muitas tentativas, sem conexão, "Login realizado!"); há o link "Esqueci minha senha", que leva ao envio e à digitação do código por e-mail e à nova senha.
 - **A conta fica salva neste aparelho.** Depois de entrar, o jogador não precisa fazer login de novo a cada visita; só depois de usar "Sair da conta".
 - **Centro de Operações com 3 opções:**
@@ -346,3 +346,10 @@ Todos os menus e submenus (Centro de Operações, escolha de modo, Sala Online, 
 
 - A Sala Online ganha o painel **Buscar Partida**: escolha do modo e botão **Buscar adversário**. Enquanto busca, mostra o tempo decorrido, "Procurando um adversário…" e o botão **Cancelar**. Ao achar, leva à sala de espera (o mapa é o sorteado pelo servidor).
 - Criar sala e entrar com código continuam como antes. Entrar na sala da própria conta é recusado com uma mensagem clara.
+
+---
+
+# Relógio da Vez na Partida Online
+
+- No alto do campo de batalha, nas partidas online, aparece uma etiqueta "Sua vez · 0:27" ou "Vez do adversário · 0:27" com a contagem regressiva da jogada (documento 10, "Relógio por Jogada"). Nos últimos 10 s da própria vez ela fica vermelha e pisca. Na Campanha a etiqueta não existe.
+- O botão "Finalizar Turno" fica desativado, online, enquanto o jogador tem alguma jogada possível.

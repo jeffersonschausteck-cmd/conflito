@@ -55,6 +55,8 @@ export function OnlineGameStateProvider({ initialState, children, localOwner, ma
   // `PlayerReconnected` — nunca calculado localmente, mesmo padrão de
   // `deploymentDeadline`/`matchStartTime`.
   const [opponentDisconnectDeadline, setOpponentDisconnectDeadline] = useState<number | null>(null);
+  // Relógio por jogada: o servidor manda o prazo da vez em todo evento que leva o estado.
+  const [turnDeadline, setTurnDeadline] = useState<number | null>(null);
   // Sprint RANKING-01 — vem junto do `GameFinished`; `null` até a
   // partida terminar (ou numa partida casual, onde o servidor manda
   // `ranking: null` de propósito).
@@ -79,6 +81,7 @@ export function OnlineGameStateProvider({ initialState, children, localOwner, ma
       // do servidor ressincronizar quem ficou parado no estado antigo.
       if (event.type === "ActionApplied" || event.type === "GameFinished" || event.type === "GameStarted") {
         setState(event.state);
+        setTurnDeadline("turnDeadline" in event && typeof event.turnDeadline === "number" ? event.turnDeadline : null);
         // Sprint SEC-01 — qualquer ação confirmada (própria ou do
         // adversário) pode ter movido/capturado a peça selecionada
         // localmente; limpar evita highlight de movimento apontando
@@ -219,6 +222,7 @@ export function OnlineGameStateProvider({ initialState, children, localOwner, ma
       matchStartTime,
       matchEndTime,
       opponentDisconnectDeadline,
+      turnDeadline,
       matchEndReason,
       rankingResult,
       matchType,
@@ -238,6 +242,7 @@ export function OnlineGameStateProvider({ initialState, children, localOwner, ma
       matchStartTime,
       matchEndTime,
       opponentDisconnectDeadline,
+      turnDeadline,
       matchEndReason,
       rankingResult,
       matchType,

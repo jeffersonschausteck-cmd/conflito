@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { withAuth } from "@/components/RequireAuth";
+import { withAuthUnlessCampaign } from "@/components/RequireAuth";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CyberBackground } from "@/components/CyberBackground";
 import { GameStateProvider, useGameState } from "@/hooks/useGameState";
@@ -140,6 +140,30 @@ function OpponentDisconnectBanner() {
   );
 }
 
+/**
+ * Relógio por jogada (partida online): mostra quanto falta para a vez acabar, de quem é a vez e fica vermelho nos últimos
+ * 10 s. O prazo vem do servidor (`turnDeadline`); quem deixa zerar perde a vez, e três vezes seguidas perde a partida.
+ */
+function TurnClockBadge() {
+  const { turnDeadline, state, localOwner } = useGameState();
+  const remainingMs = useCountdown(turnDeadline);
+  if (turnDeadline === null || state.gameOver) return null;
+  const mine = state.currentPlayer === (localOwner === "blue" ? "BLUE" : "RED");
+  const urgent = mine && remainingMs <= 10_000;
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-[68px] z-30 flex justify-center px-4">
+      <div
+        role="timer"
+        className={`rounded-full border px-4 py-1 font-display text-[11px] font-bold uppercase tracking-[0.16em] backdrop-blur-sm ${
+          urgent ? "animate-pulse border-rose-400/70 bg-rose-950/80 text-rose-200" : mine ? "border-cyan-400/50 bg-slate-950/70 text-cyan-100" : "border-white/15 bg-slate-950/60 text-slate-300"
+        }`}
+      >
+        {mine ? "Sua vez" : "Vez do adversário"} · {formatClock(remainingMs)}
+      </div>
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/game")({
   // Só no navegador: o lado do jogador (sorteado) vem do sessionStorage e não existe no servidor.
   ssr: false,
@@ -152,7 +176,7 @@ export const Route = createFileRoute("/game")({
       },
     ],
   }),
-  component: withAuth(GamePage),
+  component: withAuthUnlessCampaign(GamePage),
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -236,6 +260,7 @@ function GamePage() {
       >
         <AudioBridge />
         <OpponentDisconnectBanner />
+        <TurnClockBadge />
         <RevealLogProvider>
           {/* Partida em 3D, em qualquer modo e nos dois lados (a câmera gira para quem joga de Vermelho). */}
           <Match3DScreen isOnline={isOnline} />

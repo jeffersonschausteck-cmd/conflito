@@ -262,7 +262,7 @@ Todas as partidas do Conflito deverão respeitar os seguintes princípios:
 
 O Conflito possui três modos: Partida Rápida (a menor), Partida Normal e Partida Intensa (a maior, com o exército completo). O modo é escolhido antes da partida contra o computador e vale para os dois jogadores.
 
-Os modos diferem **apenas no tamanho do tabuleiro e na quantidade de peças** (seção 19). Todas as demais regras (movimento, combate, informações ocultas, vitória) são idênticas nos três. Não há relógio, tempo por jogada, limite de rodadas nem pontuação: a partida só termina pelas regras da seção 12.
+Os modos diferem **apenas no tamanho do tabuleiro e na quantidade de peças** (seção 19). Todas as demais regras (movimento, combate, informações ocultas, vitória) são idênticas nos três. Não há limite de rodadas nem pontuação, e na Campanha (contra o computador) também não há relógio: a partida só termina pelas regras da seção 12. Nas partidas online há um relógio por jogada (documento 10, "Relógio por Jogada").
 
 **Os três modos estão liberados.** A flag `PACES_ENABLED` em `matchRules.ts` permite bloquear um modo (ele aparece como "Em breve"). Internamente os modos se chamam `blitz` (Partida Rápida), `rapid` (Partida Normal) e `classic` (Partida Intensa).
 

@@ -198,14 +198,14 @@ export type ServerEvent =
    * `RoomStateChanged`/`GameFinished`), pra HUD da Partida poder
    * mostrar CASUAL/RANQUEADA durante toda a batalha, não só no fim.
    */
-  | { type: "GameStarted"; state: GameState; matchStartTime: number; matchType: MatchType }
+  | { type: "GameStarted"; state: GameState; matchStartTime: number; matchType: MatchType; turnDeadline?: number | null }
   /**
    * Envelope único para qualquer ação validada pelo Motor
    * (MovePiece/SelectPiece/EndTurn) — sempre carrega o `GameState`
    * completo e novo, nunca um diff. O cliente nunca reconstrói o
    * estado sozinho (doc 10).
    */
-  | { type: "ActionApplied"; state: GameState; appliedBy: PlayerId }
+  | { type: "ActionApplied"; state: GameState; appliedBy: PlayerId; turnDeadline?: number | null }
   /**
    * Sprint TIMER-01 — `matchStartTime`/`matchEndTime` vêm do servidor,
    * garantindo o mesmo tempo final pros dois jogadores. Sprint REC-01 —

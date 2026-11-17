@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { withAuth } from "@/components/RequireAuth";
+import { withAuthUnlessCampaign } from "@/components/RequireAuth";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { mapForPace } from "@/maps";
 import { flowState } from "@/services/flowState";
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/loading")({
   head: () => ({
     meta: [{ title: "Inicializando — Conflito" }],
   }),
-  component: withAuth(LoadingPage),
+  component: withAuthUnlessCampaign(LoadingPage),
 });
 
 const MESSAGES = [

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { withAuth } from "@/components/RequireAuth";
+import { withAuthUnlessCampaign } from "@/components/RequireAuth";
 import { ScreenShell } from "@/components/ScreenShell";
 import { GameButton } from "@/components/ui/GameButton";
 import { GameCard } from "@/components/ui/GameCard";
@@ -16,7 +16,7 @@ import type { Pace } from "@/types/gameState";
 
 export const Route = createFileRoute("/pace")({
   head: () => ({ meta: [{ title: "Modo de Jogo — Conflito" }] }),
-  component: withAuth(PacePage),
+  component: withAuthUnlessCampaign(PacePage),
 });
 
 interface PaceCard {

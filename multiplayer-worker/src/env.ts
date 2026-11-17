@@ -13,4 +13,6 @@ export interface Env {
   MATCH_BOT_AFTER_MS?: string;
   /** Chave da rota de estatísticas do dono (`GET /stats`). Segredo: `wrangler secret put STATS_KEY`. Sem ela a rota fica desligada. */
   STATS_KEY?: string;
+  /** Relógio por jogada em ms (vale para os três modos). Só para testes; sem ele valem 30 s / 45 s / 60 s por modo. */
+  TURN_LIMIT_MS?: string;
 }
